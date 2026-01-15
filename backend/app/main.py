@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from app.persons.routes import router as persons_router
+from app.api.api_v1 import api_router
 
-app = FastAPI()
+app = FastAPI(title="Shaya Project")
 
-app.include_router(persons_router)
+app.include_router(api_router, prefix="/api/v1")
