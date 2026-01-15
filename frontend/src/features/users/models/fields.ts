@@ -5,7 +5,7 @@ export const userFields: TableField<User>[] = [
   { accessor: 'name', header: 'Nombre', type: 'text' },
   { accessor: 'document', header: 'Documento', type: 'text' },
   { accessor: 'username', header: 'Usuario', type: 'text' },
-  { accessor: 'hashed_password', header: 'Contraseña', type: 'password' },
+  { accessor: 'password', header: 'Contraseña', type: 'password' },
   { accessor: 'email', header: 'Correo', type: 'text' },
   { accessor: 'phone', header: 'Teléfono', type: 'text' },
   {

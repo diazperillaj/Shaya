@@ -1,7 +1,7 @@
 // src/components/ui/EditModal.tsx
 import { useState } from 'react';
 import type { TableField } from '../../models/common';
-import { Pencil, X, Check, Trash2 } from 'lucide-react';
+import { Pencil, X, Check, Trash2, Eye, EyeOff } from 'lucide-react';
 
 type ModalMode = 'add' | 'edit';
 
@@ -30,6 +30,7 @@ export default function Modal<T>({
   const [formData, setFormData] = useState<T>({ ...item });
 
   const isEdit = mode === 'edit';
+  const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false)
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fadeIn">
@@ -56,12 +57,16 @@ export default function Modal<T>({
         <div className="p-6">
           <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-emerald-200 scrollbar-track-gray-100">
             {fields.map(field => (
-              <div key={String(field.accessor)} className="flex flex-col gap-2">
+              <div
+                key={String(field.accessor)}
+                className="flex flex-col gap-2 relative"
+              >
                 <label className="flex text-md font-semibold text-gray-700 ps-2">
                   {field.header}
                 </label>
 
-                {field.type === 'select' ? (
+                {/* SELECT */}
+                {field.type === 'select' && (
                   <select
                     value={formData[field.accessor] as string}
                     onChange={e =>
@@ -78,7 +83,10 @@ export default function Modal<T>({
                       </option>
                     ))}
                   </select>
-                ) : field.type === 'textarea' ? (
+                )}
+
+                {/* TEXTAREA */}
+                {field.type === 'textarea' && (
                   <textarea
                     value={formData[field.accessor] as string}
                     onChange={e =>
@@ -91,21 +99,45 @@ export default function Modal<T>({
                     className="text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none resize-none"
                     placeholder={`Ingrese ${field.header.toLowerCase()}`}
                   />
+                )}
 
-                ) : field.type === 'text' || field.type === 'password' ? (
-                  <input
-                    type={field.type}
-                    value={formData[field.accessor] as string}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        [field.accessor]: e.target.value,
-                      } as T))
-                    }
-                    className="text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none"
-                    placeholder={`Ingrese ${field.header.toLowerCase()}`}
-                  />
-                ) : null}
+                {/* INPUT TEXT / PASSWORD */}
+                {(field.type === 'text' || field.type === 'password') && (
+                  <div className="relative">
+                    <input
+                      type={
+                        field.type === 'password' && !isPasswordVisible
+                          ? 'password'
+                          : 'text'
+                      }
+                      value={formData[field.accessor] as string}
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          [field.accessor]: e.target.value,
+                        } as T))
+                      }
+                      className="text-sm border border-gray-200 rounded-xl px-4 py-3 pr-12 focus:outline-none w-full"
+                      placeholder={`Ingrese ${field.header.toLowerCase()}`}
+                    />
+
+                    {/* ICONO PASSWORD */}
+                    {field.type === 'password' && (
+                      <div
+                        className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
+                        onClick={() =>
+                          setIsPasswordVisible(prev => !prev)
+                        }
+                      >
+                        {isPasswordVisible ? (
+                          <EyeOff className="w-5 h-5 text-gray-400" />
+                        ) : (
+                          <Eye className="w-5 h-5 text-gray-400" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

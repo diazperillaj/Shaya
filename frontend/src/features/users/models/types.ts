@@ -4,7 +4,7 @@ export interface User {
   name: string;
   document: string;
   username: string;
-  hashed_password?: string;
+  password?: string;
   email: string;
   phone: string;
   role: string;

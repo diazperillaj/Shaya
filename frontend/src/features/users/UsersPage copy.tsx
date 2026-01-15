@@ -28,7 +28,7 @@ const userFields: TableField<User>[] = [
 ];
 
 export default function UsersPage() {
-    const [namePage, setNamePage] = useState<string>('usuario')
+    const [namePage] = useState<string>('usuario')
     const [data, setData] = useState<User[]>([]);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [addingUser, setAddingUser] = useState<boolean>(false);

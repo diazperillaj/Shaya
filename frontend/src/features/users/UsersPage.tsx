@@ -6,12 +6,13 @@ import { CirclePlus, Funnel, ChevronDown, Search, X } from 'lucide-react';
 import { userColumns } from './models/columns'
 import { userFields } from './models/fields'
 import type { User } from './models/types'
-import { fetchUsers, createUser } from './services/user.api'
+import { fetchUsers, createUser, updateUser, deleteUser } from './services/user.api'
 
 export default function UsersPage() {
     const [data, setData] = useState<User[]>([])
     const [editingUser, setEditingUser] = useState<User | null>(null)
     const [addingUser, setAddingUser] = useState(false)
+    const [namePage] = useState('usuario')
 
     useEffect(() => {
         loadUsers()
@@ -24,10 +25,9 @@ export default function UsersPage() {
     return (
         <div className="flex flex-col gap-6">
             <div className="text-3xl font-semibold flex items-center gap-2">
-                <CirclePlus
-                    className="cursor-pointer"
-                    onClick={() => setAddingUser(true)}
-                />
+                <div className='flex justify-center items-center hover:cursor-pointer hover:scale-105 transition-transform duration-400'>
+                    <CirclePlus onClick={() => setAddingUser(true)} className="inline w-8 h-8 text-emerald-900 font-bold" />
+                </div>
                 Gestión de usuarios
             </div>
 
@@ -98,15 +98,19 @@ export default function UsersPage() {
                     item={editingUser}
                     fields={userFields}
                     onClose={() => setEditingUser(null)}
-                    onSave={(u) =>
-                        setData(prev => prev.map(x => (x.id === u.id ? u : x)))
-                    }
-                    onDelete={(id) => {
-                        setData((prev) => prev.filter((u) => u.id !== id));
-                        setEditingUser(null);
+                    onSave={async (user) => {
+                        await updateUser(user)  
+                        await loadUsers()
+                        setEditingUser(null)
+                    }}
+                    onDelete={async (id) => {
+                        await deleteUser(1)
+                        await loadUsers()
+                        setEditingUser(null)
                     }}
                     idKey="id"
                     mode="edit"
+                    title={namePage}
                 />
             )}
 
@@ -121,6 +125,7 @@ export default function UsersPage() {
                         setAddingUser(false)
                     }}
                     mode="add"
+                    title={namePage}
                 />
             )}
         </div>
