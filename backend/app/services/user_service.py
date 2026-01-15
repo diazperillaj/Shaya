@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.user import User
 from app.models.person import Person
 from app.schemas.user import UserCreate
@@ -9,7 +9,14 @@ class UserService:
         self.db = db
 
     def get_users(self):
-        return self.db.query(User).all()
+        return (
+            self.db
+            .query(User)
+            .options(joinedload(User.person))
+            .join(User.person)
+            .order_by(Person.full_name.asc())
+            .all()
+        )
 
     def get_user_by_id(self, user_id: int) -> User:
         return self.db.query(User).filter(User.id == user_id).first()
