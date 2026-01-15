@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { TableField } from '../../models/common';
 import { Pencil, X, Check, Trash2 } from 'lucide-react';
 
-type ModalMode = 'add'|'edit';
+type ModalMode = 'add' | 'edit';
 
 interface ModalProps<T> {
   item: T;
@@ -13,6 +13,7 @@ interface ModalProps<T> {
   onDelete?: (id: string | number) => void;
   idKey?: keyof T; // por defecto "id" para eliminar
   mode?: ModalMode;
+  title?: string;
 }
 
 export default function Modal<T>({
@@ -23,6 +24,7 @@ export default function Modal<T>({
   onDelete,
   idKey = 'id' as keyof T,
   mode = 'edit',
+  title,
 
 }: ModalProps<T>) {
   const [formData, setFormData] = useState<T>({ ...item });
@@ -38,7 +40,7 @@ export default function Modal<T>({
             <div>
               <Pencil className="w-5 h-5" />
             </div>
-            {isEdit ? 'Editar elemento' : 'Agregar elemento'}
+            {isEdit ? `Editar ${title}` : `Agregar ${title}`}
           </h2>
           <button
             onClick={onClose}
@@ -55,18 +57,55 @@ export default function Modal<T>({
           <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-emerald-200 scrollbar-track-gray-100">
             {fields.map(field => (
               <div key={String(field.accessor)} className="flex flex-col gap-2">
-                <label className="text-md font-semibold text-gray-700 flex ps-2">
+                <label className="flex text-md font-semibold text-gray-700 ps-2">
                   {field.header}
                 </label>
-                <input
-                  type="text"
-                  value={formData[field.accessor] as string}
-                  onChange={e =>
-                    setFormData(prev => ({ ...prev, [field.accessor]: e.target.value } as T))
-                  }
-                  className="border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 hover:border-emerald-300"
-                  placeholder={`Ingrese ${field.header.toLowerCase()}`}
-                />
+
+                {field.type === 'select' ? (
+                  <select
+                    value={formData[field.accessor] as string}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        [field.accessor]: e.target.value,
+                      } as T))
+                    }
+                    className="text-sm border border-gray-200 rounded-xl px-4 py-3 bg-white focus:outline-none"
+                  >
+                    {field.options?.map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : field.type === 'textarea' ? (
+                  <textarea
+                    value={formData[field.accessor] as string}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        [field.accessor]: e.target.value,
+                      } as T))
+                    }
+                    rows={5}
+                    className="text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none resize-none"
+                    placeholder={`Ingrese ${field.header.toLowerCase()}`}
+                  />
+
+                ) : field.type === 'text' || field.type === 'password' ? (
+                  <input
+                    type={field.type}
+                    value={formData[field.accessor] as string}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        [field.accessor]: e.target.value,
+                      } as T))
+                    }
+                    className="text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none"
+                    placeholder={`Ingrese ${field.header.toLowerCase()}`}
+                  />
+                ) : null}
               </div>
             ))}
           </div>
@@ -74,7 +113,7 @@ export default function Modal<T>({
 
         {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 rounded-b-2xl border-t border-gray-100">
-          
+
           <div className="flex flex-wrap gap-3 justify-end">
             {onDelete && isEdit && (
               <button

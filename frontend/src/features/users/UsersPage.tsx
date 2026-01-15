@@ -1,61 +1,36 @@
-// src/features/users/UsersPage.tsx
-import { useState, useEffect } from 'react';
-import DataTable from '../../components/ui/DataTable';
-import { userColumns } from './columns';
-import type { User } from './types';
-import type { TableField } from '../../models/common';
+import { useEffect, useState } from 'react'
+import DataTable from '../../components/ui/DataTable'
+import Modal from '../../components/ui/Modal'
 import { CirclePlus, Funnel, ChevronDown, Search, X } from 'lucide-react';
-import Modal from '../../components/ui/Modal';
 
-const userFields: TableField<User>[] = [
-    { accessor: 'nombre', header: 'Nombre' },
-    { accessor: 'usuario', header: 'Usuario' },
-    { accessor: 'correo', header: 'Correo' },
-    { accessor: 'telefono', header: 'Teléfono' },
-    { accessor: 'rol', header: 'Rol' },
-];
+import { userColumns } from './models/columns'
+import { userFields } from './models/fields'
+import type { User } from './models/types'
+import { fetchUsers, createUser } from './services/user.api'
 
 export default function UsersPage() {
-    const [data, setData] = useState<User[]>([]);
-    const [editingUser, setEditingUser] = useState<User | null>(null);
-    const [addingUser, setAddingUser] = useState<boolean>(false);
-    const userToAdd: User = { id: 0, nombre: '', usuario: '', correo: '', telefono: '', rol: '' };
-    const fetchUsers = async () => {
-        try {
-            const response = await fetch('http://localhost:8000/api/v1/users/get/users') // ajusta endpoint
-            const result = await response.json()
-
-            const mappedUsers: User[] = result.map((u: any) => ({
-                id: u.id,
-                nombre: u.person.full_name,
-                usuario: u.username,
-                correo: u.person.email,
-                telefono: u.person.phone,
-                rol: u.role,
-            }))
-
-            console.log(mappedUsers)
-
-            setData(mappedUsers)
-        } catch (error) {
-            console.error('Error fetching users', error)
-        }
-    }
+    const [data, setData] = useState<User[]>([])
+    const [editingUser, setEditingUser] = useState<User | null>(null)
+    const [addingUser, setAddingUser] = useState(false)
 
     useEffect(() => {
-        fetchUsers()
+        loadUsers()
     }, [])
+
+    const loadUsers = async () => {
+        setData(await fetchUsers())
+    }
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="text-3xl font-semibold text-gray-700 flex gap-2 items-center">
-                <div className='flex justify-center items-center hover:cursor-pointer hover:scale-105 transition-transform duration-400'>
-                    <CirclePlus onClick={() => setAddingUser(true)} className="inline w-8 h-8 text-emerald-900 font-bold" />
-                </div>
-                <h1>
-                    Gestion de Usuarios
-                </h1>
+            <div className="text-3xl font-semibold flex items-center gap-2">
+                <CirclePlus
+                    className="cursor-pointer"
+                    onClick={() => setAddingUser(true)}
+                />
+                Gestión de usuarios
             </div>
+
             {/* Filtros */}
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
                 <div className="flex flex-wrap gap-4 items-end">
@@ -112,25 +87,20 @@ export default function UsersPage() {
                 </div>
             </div>
 
-
-            {/* Tabla */}
-            <DataTable<User>
+            <DataTable
                 columns={userColumns}
                 data={data}
-                onEdit={(user) => setEditingUser(user)} // Abrimos el modal
+                onEdit={setEditingUser}
             />
-            {/* Modal de edición */}
+
             {editingUser && (
-                <Modal<User>
+                <Modal
                     item={editingUser}
                     fields={userFields}
                     onClose={() => setEditingUser(null)}
-                    onSave={(updated) => {
-                        setData((prev) =>
-                            prev.map((u) => (u.id === updated.id ? updated : u))
-                        );
-                        setEditingUser(null);
-                    }}
+                    onSave={(u) =>
+                        setData(prev => prev.map(x => (x.id === u.id ? u : x)))
+                    }
                     onDelete={(id) => {
                         setData((prev) => prev.filter((u) => u.id !== id));
                         setEditingUser(null);
@@ -139,21 +109,20 @@ export default function UsersPage() {
                     mode="edit"
                 />
             )}
-            {
-                addingUser && (
-                    <Modal<User>
-                        item={userToAdd}
-                        fields={userFields}
-                        onClose={() => setAddingUser(false)}
-                        onSave={(newUser) => {
-                            setData((prev) => [...prev, newUser]);
-                            setAddingUser(false);
-                        }}
-                        idKey="id"
-                        mode="add"
-                    />
-                )
-            }
+
+            {addingUser && (
+                <Modal
+                    item={{} as User}
+                    fields={userFields}
+                    onClose={() => setAddingUser(false)}
+                    onSave={async (user) => {
+                        await createUser(user)
+                        await loadUsers() // 🔥 REUTILIZAS
+                        setAddingUser(false)
+                    }}
+                    mode="add"
+                />
+            )}
         </div>
-    );
+    )
 }

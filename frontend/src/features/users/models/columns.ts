@@ -4,27 +4,27 @@ import type { User } from './types';
 
 export const userColumns: ColumnDef<User>[] = [
   {
-    accessorKey: 'nombre',
+    accessorKey: 'name',
     header: 'Nombre',
     cell: info => info.getValue(),
   },
   {
-    accessorKey: 'usuario',
+    accessorKey: 'username',
     header: 'Usuario',
     cell: info => info.getValue(),
   },
   {
-    accessorKey: 'correo',
+    accessorKey: 'email',
     header: 'Correo',
     cell: info => info.getValue(),
   },
   {
-    accessorKey: 'telefono',
+    accessorKey: 'phone',
     header: 'Teléfono',
     cell: info => info.getValue(),
   },
   {
-    accessorKey: 'rol',
+    accessorKey: 'role',
     header: 'Rol',
     cell: info => info.getValue(),
   },
