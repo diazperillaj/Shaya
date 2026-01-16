@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_
 from app.models.user import User
 from app.models.person import Person
 from app.schemas.user import UserCreate, UserUpdate
@@ -80,3 +81,30 @@ class UserService:
         self.db.commit()
         self.db.refresh(user)
         return user
+
+    def delete_user(self, user_id: int) -> bool:
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return False
+        # Borra primero la persona asociada
+        if user.person:
+            self.db.delete(user.person)
+        self.db.delete(user)
+        self.db.commit()
+        return True
+    
+    def get_users_filtered(self, search: str = None, role: str = None):
+        query = self.db.query(User).options(joinedload(User.person))
+
+        if search:
+            query = query.join(User.person).filter(
+                or_(
+                    User.username.ilike(f"%{search}%"),
+                    Person.full_name.ilike(f"%{search}%")
+                )
+            )
+
+        if role:
+            query = query.filter(User.role == role)
+
+        return query.join(User.person).order_by(Person.full_name.asc()).all()

@@ -1,13 +1,21 @@
-import type { User } from '../models/types'
+import type { User, UsersQuery } from '../models/types'
 import { mapUserFromApi } from '../mapper/user.mapper'
+
 
 const BASE_URL = 'http://localhost:8000/api/v1/users'
 
 /* =======================
    GET
 ======================= */
-export const fetchUsers = async (): Promise<User[]> => {
-  const res = await fetch(`${BASE_URL}/get`)
+export const fetchUsers = async (filters?: UsersQuery): Promise<User[]> => {
+  const query = new URLSearchParams()
+
+  if (filters?.search) query.append('search', filters?.search)
+  if (filters?.role) query.append('role', filters?.role)
+
+  const res = await fetch(`${BASE_URL}/get?${query.toString()}`)
+  if (!res.ok) throw new Error('Error obteniendo usuarios')
+
   const data = await res.json()
   return data.map(mapUserFromApi)
 }
@@ -18,7 +26,7 @@ export const fetchUsers = async (): Promise<User[]> => {
 export const createUser = async (user: User): Promise<User> => {
   const payload = {
     username: user.username,
-    hashed_password: user.password,
+    password: user.password,
     role: user.role || 'user',
     person: {
       full_name: user.name,
@@ -28,6 +36,8 @@ export const createUser = async (user: User): Promise<User> => {
       observation: user.observation,
     },
   }
+
+  console.log(payload)
 
   const res = await fetch(`${BASE_URL}/create`, {
     method: 'POST',
@@ -87,3 +97,6 @@ export const deleteUser = async (id: number): Promise<void> => {
 
   if (!res.ok) throw new Error('Error eliminando usuario')
 }
+
+
+

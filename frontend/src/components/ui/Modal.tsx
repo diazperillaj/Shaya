@@ -149,7 +149,14 @@ export default function Modal<T>({
           <div className="flex flex-wrap gap-3 justify-end">
             {onDelete && isEdit && (
               <button
-                onClick={() => onDelete(formData[idKey] as string | number)}
+                onClick={() => {
+                  // Pregunta de confirmación
+                  const confirmed = window.confirm("¿Estás seguro de que deseas eliminar este usuario?")
+                  if (!confirmed) return // si el usuario cancela, no hacemos nada
+
+                  // Llamada a la función de delete, convirtiendo id a número
+                  onDelete(Number(formData[idKey]))
+                }}
                 className="bg-red-800 hover:bg-red-900 text-white px-5 py-2.5 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
               >
                 <div>

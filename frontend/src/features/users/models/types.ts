@@ -10,3 +10,10 @@ export interface User {
   role: string;
   observation?: string
 }
+
+export interface UsersQuery {
+  search?: string
+  role?: string
+}
+
+

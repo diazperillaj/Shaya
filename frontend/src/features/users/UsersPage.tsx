@@ -14,13 +14,20 @@ export default function UsersPage() {
     const [addingUser, setAddingUser] = useState(false)
     const [namePage] = useState('usuario')
 
+    // 🔹 Filtros
+    const [search, setSearch] = useState('')
+    const [role, setRole] = useState('')
+
+    // 🔹 Cargar usuarios con filtros
+    const loadUsers = async () => {
+        const users = await fetchUsers({ search, role })
+        setData(users)
+    }
+
+    // 🔹 Actualizamos cada vez que cambian los filtros
     useEffect(() => {
         loadUsers()
-    }, [])
-
-    const loadUsers = async () => {
-        setData(await fetchUsers())
-    }
+    }, [search, role])
 
     return (
         <div className="flex flex-col gap-6">
@@ -43,6 +50,8 @@ export default function UsersPage() {
                             <input
                                 type="text"
                                 placeholder="Buscar"
+                                value={search} // 🔹 conectamos al estado
+                                onChange={(e) => setSearch(e.target.value)}
                                 className="text-sm w-full border border-gray-200 rounded-xl px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-emerald-900 focus:border-transparent transition-all duration-200 hover:border-emerald-900"
                             />
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -56,11 +65,13 @@ export default function UsersPage() {
                         </label>
                         <div className="relative">
                             <select
+                                value={role} // 🔹 conectamos al estado
+                                onChange={(e) => setRole(e.target.value)}
                                 className="text-sm w-full border border-gray-200 rounded-xl px-4 py-3 pr-10 appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-900 focus:border-transparent transition-all duration-200 hover:border-emerald-900 bg-white cursor-pointer"
                             >
                                 <option value="">Todos los roles</option>
-                                <option value="administrador">Administrador</option>
-                                <option value="usuario">Usuario</option>
+                                <option value="admin">Administrador</option>
+                                <option value="user">Usuario</option>
                             </select>
                             <div>
                                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
@@ -70,17 +81,19 @@ export default function UsersPage() {
 
                     {/* Botones */}
                     <div className="flex gap-2 flex-col md:flex-row w-max">
-                        <button className="text-sm h-11 bg-emerald-900 hover:bg-emerald-950 text-white px-6 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2">
-                            <div>
-                                <Funnel className="w-5 h-5" />
-                            </div>
+                        <button
+                            onClick={loadUsers} // 🔹 botón Filtrar recarga los datos
+                            className="text-sm h-11 bg-emerald-900 hover:bg-emerald-950 text-white px-6 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                        >
+                            <Funnel className="w-5 h-5" />
                             Filtrar
                         </button>
 
-                        <button className="text-sm h-11 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200 flex items-center gap-2 border border-gray-200">
-                            <div>
-                                <X className="w-5 h-5" />
-                            </div>
+                        <button
+                            onClick={() => { setSearch(''); setRole('') }} // 🔹 Limpiar filtros
+                            className="text-sm h-11 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200 flex items-center gap-2 border border-gray-200"
+                        >
+                            <X className="w-5 h-5" />
                             Limpiar
                         </button>
                     </div>
@@ -99,12 +112,12 @@ export default function UsersPage() {
                     fields={userFields}
                     onClose={() => setEditingUser(null)}
                     onSave={async (user) => {
-                        await updateUser(user)  
+                        await updateUser(user)
                         await loadUsers()
                         setEditingUser(null)
                     }}
                     onDelete={async (id) => {
-                        await deleteUser(1)
+                        await deleteUser(Number(id))
                         await loadUsers()
                         setEditingUser(null)
                     }}
@@ -121,7 +134,7 @@ export default function UsersPage() {
                     onClose={() => setAddingUser(false)}
                     onSave={async (user) => {
                         await createUser(user)
-                        await loadUsers() // 🔥 REUTILIZAS
+                        await loadUsers()
                         setAddingUser(false)
                     }}
                     mode="add"
