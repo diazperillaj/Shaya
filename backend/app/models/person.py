@@ -1,8 +1,15 @@
 from sqlalchemy import Integer, String, Text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from app.db.base import Base
+from app.core.db.base import Base
 
 class Person(Base):
+    """
+    Modelo ORM que representa la información personal asociada a un usuario.
+
+    Esta entidad almacena los datos personales independientes de las credenciales
+    de acceso y mantiene una relación uno a uno con el modelo `User`.
+    """
+    
     __tablename__ = "persons"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

@@ -45,11 +45,17 @@ export const createUser = async (user: User): Promise<User> => {
     body: JSON.stringify(payload),
   })
 
+  const data = await res.json()
+
+  console.log(data.detail)
+
+  if (!res.ok) {
+    throw new Error(data.detail || 'Error creando usuario')
+  }
+
   if (!res.ok) throw new Error('Error creando usuario')
 
-  alert('Usuario creado correctamente')
-
-  return mapUserFromApi(await res.json())
+  return mapUserFromApi(data)
 }
 
 /* =======================
@@ -79,9 +85,19 @@ export const updateUser = async (user: User): Promise<User> => {
     body: JSON.stringify(payload),
   })
 
-  if (!res.ok) throw new Error('Error actualizando usuario')
+  const data = await res.json()
 
-  alert('Usuario actualizado correctamente')
+  console.log(data.detail)
+
+  if (!res.ok) {
+    throw new Error(data.detail || 'Error creando usuario')
+  }
+
+  if (!res.ok) throw new Error('Error creando usuario')
+
+  return mapUserFromApi(data)
+
+  if (!res.ok) throw new Error('Error actualizando usuario')
 
   return mapUserFromApi(await res.json())
 }

@@ -3,6 +3,8 @@ import DataTable from '../../components/ui/DataTable'
 import Modal from '../../components/ui/Modal'
 import { CirclePlus, Funnel, ChevronDown, Search, X } from 'lucide-react';
 
+import { runWithAlert } from '../../hooks/useSafeAction';
+
 import { userColumns } from './models/columns'
 import { userFields } from './models/fields'
 import type { User } from './models/types'
@@ -111,11 +113,16 @@ export default function UsersPage() {
                     item={editingUser}
                     fields={userFields}
                     onClose={() => setEditingUser(null)}
-                    onSave={async (user) => {
-                        await updateUser(user)
-                        await loadUsers()
-                        setEditingUser(null)
-                    }}
+                    onSave={(user) =>
+                        runWithAlert(
+                            async () => {
+                                await updateUser(user)
+                                await loadUsers()
+                                setEditingUser(null)
+                            },
+                            'Usuario editado correctamente'
+                        )
+                    }
                     onDelete={async (id) => {
                         await deleteUser(Number(id))
                         await loadUsers()
@@ -132,11 +139,16 @@ export default function UsersPage() {
                     item={{} as User}
                     fields={userFields}
                     onClose={() => setAddingUser(false)}
-                    onSave={async (user) => {
-                        await createUser(user)
-                        await loadUsers()
-                        setAddingUser(false)
-                    }}
+                    onSave={(user) =>
+                        runWithAlert(
+                            async () => {
+                                await createUser(user)
+                                await loadUsers()
+                                setAddingUser(false)
+                            },
+                            'Usuario creado correctamente'
+                        )
+                    }
                     mode="add"
                     title={namePage}
                 />

@@ -12,7 +12,7 @@ const userFields: TableField<User>[] = [
     { accessor: 'name', header: 'Nombre', type: 'text' },
     { accessor: 'document', header: 'Documento', type: 'text' },
     { accessor: 'username', header: 'Usuario', type: 'text' },
-    { accessor: 'hashed_password', header: 'Contraseña', type: 'password' },
+    { accessor: 'password', header: 'Contraseña', type: 'password' },
     { accessor: 'email', header: 'Correo', type: 'text' },
     { accessor: 'phone', header: 'Teléfono', type: 'text' },
     {
@@ -32,7 +32,7 @@ export default function UsersPage() {
     const [data, setData] = useState<User[]>([]);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [addingUser, setAddingUser] = useState<boolean>(false);
-    const userToAdd: User = { id: 0, name: '', document: '', username: '', hashed_password: '', email: '', phone: '', role: '', observation: '' };
+    const userToAdd: User = { id: 0, name: '', document: '', username: '', password: '', email: '', phone: '', role: '', observation: '' };
     const fetchUsers = async () => {
         try {
             const response = await fetch('http://localhost:8000/api/v1/users/get/users') // ajusta endpoint
@@ -69,7 +69,7 @@ export default function UsersPage() {
     const createUser = async (user: User): Promise<User> => {
         const payload = {
             username: user.username,
-            hashed_password: user.hashed_password,
+            password: user.password,
             role: user.role || 'user',
             person: {
                 full_name: user.name,
