@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Clipboard, Home, ShoppingBag, Users, UserCog, PersonStanding, ChevronLeft, ChevronRight, Wheat } from 'lucide-react';
+import { logout } from '../../features/auth/service';
+import { useNavigate } from 'react-router-dom';
 
 type setActiveMenuItemProps = (item: string) => void;
 
@@ -14,6 +16,18 @@ function Sidebar({ children, setActiveMenuItem }: { children: React.ReactNode, s
         { name: 'Caficultores', icon: PersonStanding, label: 'farmers' },
         { name: 'Usuarios', icon: UserCog, label: 'users' },
     ];
+
+    const navigate = useNavigate()
+
+    const handleLogout = async () => {
+    
+        try {
+          await logout()
+          navigate("/login")
+        } catch (err: any) {
+          alert(err.message)
+        }
+      }
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -78,7 +92,7 @@ function Sidebar({ children, setActiveMenuItem }: { children: React.ReactNode, s
                             <ChevronRight className="w-5 h-5 text-emerald-200 group-hover:text-white transition-colors duration-200" />
                         )}
                     </button>
-                    <p className="text-xs text-emerald-300 mt-2"><a href="">Cerrar sesión</a></p>
+                    <p className="cursor-pointer text-xs text-emerald-300 mt-2"><a onClick={handleLogout}>Cerrar sesión</a></p>
                 </div>
             </div>
 

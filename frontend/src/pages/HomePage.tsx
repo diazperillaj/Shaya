@@ -7,11 +7,11 @@ export default function Dashboard() {
 
   const [activeMenuItem, setActiveMenuItem] = useState('Dashboard');
 
-  console.log(activeMenuItem);
-
   return (
     <MainLayout setActiveMenuItem={setActiveMenuItem}>
-      <UsersPage />
+      <div className="min-w-[700px] overflow-x-auto p-4">
+        <UsersPage />
+      </div>
     </MainLayout>
   );
 }

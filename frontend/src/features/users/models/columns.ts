@@ -4,6 +4,11 @@ import type { User } from './types';
 
 export const userColumns: ColumnDef<User>[] = [
   {
+    accessorKey: 'count',
+    header: 'id',
+    cell: info => info.getValue(),
+  },
+  {
     accessorKey: 'name',
     header: 'Nombre',
     cell: info => info.getValue(),

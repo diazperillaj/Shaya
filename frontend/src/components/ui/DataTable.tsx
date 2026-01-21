@@ -15,6 +15,7 @@ interface DataTableProps<T> {
   columns: ColumnDef<T, any>[]
   onEdit?: (item: T) => void
   initialPageSize?: number
+  isAdmin: boolean
 }
 
 export default function DataTable<T>({
@@ -22,13 +23,18 @@ export default function DataTable<T>({
   columns,
   onEdit,
   initialPageSize = 30,
+  isAdmin = false
 }: DataTableProps<T>) {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: initialPageSize })
   const [sorting, setSorting] = useState<any[]>([])
 
+  const visibleColumns = isAdmin
+    ? columns
+    : columns.filter(col => col.header != 'Acciones')
+
   const table = useReactTable({
     data,
-    columns,
+    columns: visibleColumns,
     state: { pagination, sorting },
     onPaginationChange: setPagination,
     onSortingChange: setSorting,
@@ -68,10 +74,10 @@ export default function DataTable<T>({
                   }`}
               >
                 {row.getVisibleCells().map(cell => (
-                  <td key={cell.id} className="px-6 p-1 text-sm text-gray-700">
-                    {cell.column.id === 'edit' && onEdit ? (
+                  <td key={cell.id} className="px-6 p-2 text-sm text-gray-700">
+                    {cell.column.id === 'edit' && onEdit && isAdmin ? (
                       <button
-                        className="bg-emerald-900 hover:from-emerald-500 hover:to-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                        className="bg-emerald-900 hover:from-emerald-500 hover:to-emerald-600 text-white px-4 p-1 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
                         onClick={() => onEdit(row.original)}
                       >
                         Editar

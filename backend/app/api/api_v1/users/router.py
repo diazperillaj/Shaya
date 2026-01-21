@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.api.api_v1.users.schema import UserCreate, UserResponse, UserUpdate, UserUpdateResponse
 from app.api.api_v1.users.service import UserService
-from app.core.db.session import SessionLocal
+from app.core.db.session import get_db
 from typing import List, Optional
+
+from app.api.api_v1.auth.dependencies import get_current_user
+from app.api.api_v1.auth.dependencies import require_admin
 
 
 router = APIRouter()
@@ -30,28 +33,12 @@ def create_tables():
 
 
 
-
-
-def get_db():
-    """
-    Dependencia que proporciona una sesión activa de base de datos.
-
-    Yields:
-        Session: Sesión de SQLAlchemy activa.
-
-    Garantiza:
-        El cierre correcto de la sesión al finalizar la petición.
-    """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-
 @router.post("/create", response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+def create_user(
+    user: UserCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_admin)
+):
     """
     Crea un nuevo usuario en el sistema.
 
@@ -71,7 +58,12 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/update/{user_id}", response_model=UserUpdateResponse)
-def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db)):
+def update_user(
+    user_id: int, 
+    user_data: UserUpdate, 
+    db: Session = Depends(get_db),
+    current_user = Depends(require_admin)
+):
     """
     Actualiza la información de un usuario existente.
 
@@ -92,7 +84,11 @@ def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_d
 
 
 @router.get("/get/user/{user_id}", response_model=UserResponse)
-def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
+def get_user_by_id(
+    user_id: int, 
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """
     Obtiene un usuario a partir de su identificador único.
 
@@ -115,7 +111,9 @@ def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
 def get_users(
     search: Optional[str] = Query(None, description="Buscar por username o nombre completo"),
     role: Optional[str] = Query(None, description="Filtrar por rol"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+
 ):
     """
     Obtiene una lista de usuarios registrados en el sistema.
@@ -138,7 +136,11 @@ def get_users(
 
 
 @router.delete("/delete/{user_id}", response_model=dict)
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+def delete_user(
+    user_id: int, 
+    db: Session = Depends(get_db),
+    current_user = Depends(require_admin)
+):
     """
     Elimina un usuario del sistema usando su identificador.
 

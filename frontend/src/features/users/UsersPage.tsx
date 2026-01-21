@@ -10,6 +10,11 @@ import { userFields } from './models/fields'
 import type { User } from './models/types'
 import { fetchUsers, createUser, updateUser, deleteUser } from './services/user.api'
 
+import { useAuth } from '../auth/AuthContext'
+
+
+
+
 export default function UsersPage() {
     const [data, setData] = useState<User[]>([])
     const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -25,6 +30,8 @@ export default function UsersPage() {
         const users = await fetchUsers({ search, role })
         setData(users)
     }
+
+    const { user } = useAuth()
 
     // 🔹 Actualizamos cada vez que cambian los filtros
     useEffect(() => {
@@ -106,6 +113,8 @@ export default function UsersPage() {
                 columns={userColumns}
                 data={data}
                 onEdit={setEditingUser}
+                isAdmin={user?.role === 'admin' ? true : false}
+
             />
 
             {editingUser && (

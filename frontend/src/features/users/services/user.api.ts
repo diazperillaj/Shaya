@@ -13,7 +13,10 @@ export const fetchUsers = async (filters?: UsersQuery): Promise<User[]> => {
   if (filters?.search) query.append('search', filters?.search)
   if (filters?.role) query.append('role', filters?.role)
 
-  const res = await fetch(`${BASE_URL}/get?${query.toString()}`)
+  const res = await fetch(`${BASE_URL}/get?${query.toString()}`,
+    {
+      credentials: 'include',
+    })
   if (!res.ok) throw new Error('Error obteniendo usuarios')
 
   const data = await res.json()
@@ -41,6 +44,7 @@ export const createUser = async (user: User): Promise<User> => {
 
   const res = await fetch(`${BASE_URL}/create`, {
     method: 'POST',
+    credentials: "include",
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
@@ -81,6 +85,7 @@ export const updateUser = async (user: User): Promise<User> => {
 
   const res = await fetch(`${BASE_URL}/update/${user.id}`, {
     method: 'PUT',
+    credentials: "include",
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
@@ -109,6 +114,7 @@ export const updateUser = async (user: User): Promise<User> => {
 export const deleteUser = async (id: number): Promise<void> => {
   const res = await fetch(`${BASE_URL}/delete/${id}`, {
     method: 'DELETE',
+    credentials: "include",
   })
 
   if (!res.ok) throw new Error('Error eliminando usuario')
