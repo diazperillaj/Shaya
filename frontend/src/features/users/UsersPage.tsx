@@ -12,28 +12,72 @@ import { fetchUsers, createUser, updateUser, deleteUser } from './services/user.
 
 import { useAuth } from '../auth/AuthContext'
 
-
+/**
+ * Página de gestión de usuarios.
+ *
+ * Muestra la lista de usuarios registrados y permite:
+ * - Buscar usuarios por texto
+ * - Filtrar por rol
+ * - Crear nuevos usuarios
+ * - Editar usuarios existentes
+ * - Eliminar usuarios
+ *
+ * Las acciones de edición y eliminación están disponibles
+ * únicamente para usuarios con rol administrador.
+ */
 
 
 export default function UsersPage() {
+
+    /**
+     * Lista de usuarios obtenida desde la API.
+     */
     const [data, setData] = useState<User[]>([])
+
+    /**
+     * Usuario seleccionado para la edicion
+     * Si es null el modal no se muestra.
+     */
     const [editingUser, setEditingUser] = useState<User | null>(null)
+
+    /**
+     * Controla la visibilidad del modal para la adicion de usuarios.
+     */
     const [addingUser, setAddingUser] = useState(false)
+
+    /**
+     * Nombre de la pagina en la que se encuentra.
+     */
     const [namePage] = useState('usuario')
 
-    // 🔹 Filtros
+    /**
+     * Texto de busqueda para filtrar los usuarios.
+     */
     const [search, setSearch] = useState('')
+
+    /**
+     * Seleccion de busqueda por rol para filtrar usuarios.
+     */
     const [role, setRole] = useState('')
 
-    // 🔹 Cargar usuarios con filtros
+    /**
+     * Carga los usuarios desde la API aplicando filtros si los lleva.
+     */
     const loadUsers = async () => {
         const users = await fetchUsers({ search, role })
         setData(users)
     }
 
+    /**
+     * El usuario actual, se usa para validad si el usuario lleva permisos de
+     * administrador.
+     */
     const { user } = useAuth()
 
-    // 🔹 Actualizamos cada vez que cambian los filtros
+    /**
+     * Efecto que recarga la lista de los usuarios
+     * cada vez que se cambia un filtro por busqueda o rol.
+     */
     useEffect(() => {
         loadUsers()
     }, [search, role])

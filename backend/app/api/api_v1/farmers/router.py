@@ -78,7 +78,7 @@ def update_farmer(
     Returns:
         FarmerUpdateResponse: Caficultor actualizado.
     Raises:
-        HTTPException: Si el usuario no existe.
+        HTTPException: Si el caficultor no existe.
     """
     service = FarmerService(db)
     return service.update_farmer(farmer_id, farmer_data)
@@ -92,17 +92,17 @@ def get_user_by_id(
     current_user = Depends(get_current_user)
 ):
     """
-    Obtiene un usuario a partir de su identificador único.
+    Obtiene un caficultor a partir de su identificador único.
 
     Args:
-        user_id (int): ID del usuario.
+        farmer_id (int): ID del caficultor.
         db (Session): Sesión de base de datos (dependencia).
 
     Returns:
-        UserResponse: Información del usuario encontrado.
+        FarmerResponse: Información del caficultor encontrado.
 
     Raises:
-        HTTPException: Si el usuario no existe.
+        HTTPException: Si el caficultor no existe.
     """
     service = FarmerService(db)
     return service.get_farmer_by_id(farmer_id)
@@ -122,12 +122,11 @@ def get_users(
     Permite aplicar filtros opcionales mediante parámetros de consulta.
 
     Args:
-        search (str, opcional): Texto para buscar por usuario o nombre completo.
-        role (str, opcional): Rol del usuario.
+        search (str, opcional): Texto para buscar por nombre completo.
         db (Session): Sesión de base de datos (dependencia).
 
     Returns:
-        List[UserResponse]: Lista de usuarios que cumplen los criterios.
+        List[FarmerResponse]: Lista de caficultores que cumplen los criterios.
     """
     service = FarmerService(db)
     if search:
@@ -143,17 +142,17 @@ def delete_user(
     current_user = Depends(require_admin)
 ):
     """
-    Elimina un usuario del sistema usando su identificador.
+    Elimina un caficultor del sistema usando su identificador.
 
     Args:
-        farmer_id (int): ID del usuario a eliminar.
+        farmer_id (int): ID del caficultor a eliminar.
         db (Session): Sesión de base de datos (dependencia).
 
     Returns:
         dict: Mensaje de confirmación de eliminación.
 
     Raises:
-        HTTPException: Si el usuario no existe.
+        HTTPException: Si el caficultor no existe.
     """
     service = FarmerService(db)
     if not service.delete_farmer(farmer_id):

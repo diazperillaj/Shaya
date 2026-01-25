@@ -250,6 +250,7 @@ class UserService:
         - Username
         - Nombre completo
         - Rol
+        - Correo electronico
 
         Args:
             search (str, opcional): Texto de búsqueda.
@@ -265,7 +266,8 @@ class UserService:
             query = query.join(User.person).filter(
                 or_(
                     User.username.ilike(f"%{search}%"),
-                    Person.full_name.ilike(f"%{search}%")
+                    Person.full_name.ilike(f"%{search}%"),
+                    Person.email.ilike(f"%{search}%")
                 )
             )
 

@@ -5,26 +5,61 @@ import { useNavigate } from "react-router-dom"
 import { login } from "./service"
 import { useAuth } from "./AuthContext"
 
+/**
+ * Página de autenticación.
+ *
+ * Renderiza el formulario de inicio de sesión y gestiona
+ * el flujo completo de autenticación:
+ * - Captura de credenciales
+ * - Llamada al servicio de login
+ * - Refresco del usuario autenticado
+ * - Redirección a la aplicación principal
+ */
 export default function AuthPage() {
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
+
+  /**
+   * Nombre de usuario ingresado por el usuario.
+   */
+  const [username, setUsername] = useState('')
+
+  /**
+   * Contraseña ingresada por el usuario.
+   */
+  const [password, setPassword] = useState('')
+
+  /**
+   * Controla la visibilidad de la contraseña.
+   */
   const [showPassword, setShowPassword] = useState(false)
 
+  /** Hook de navegación */
   const navigate = useNavigate()
+
+  /** Función para refrescar el usuario autenticado */
   const { refreshUser } = useAuth()
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  /**
+   * Maneja el envío del formulario de login.
+   *
+   * Ejecuta la autenticación, actualiza el contexto
+   * de usuario y redirige al inicio si es exitoso.
+   *
+   * @param e Evento de envío del formulario
+   */
+  const handleSubmit = async (
+    e: FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     e.preventDefault()
 
     try {
       await login({ username, password })
       await refreshUser()
-      navigate("/")
+      navigate('/')
     } catch (err: any) {
       alert(err.message)
     }
   }
-
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 backdrop-blur-sm p-4 animate-fadeIn">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slideUp">

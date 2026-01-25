@@ -80,13 +80,13 @@ class FarmerService:
 
     def get_farmers(self):
         """
-        Obtiene la lista de usuarios registrados.
+        Obtiene la lista de caficultores registrados.
 
         Incluye la información de la persona asociada y ordena
         los resultados por ID descendente (últimos primero).
 
         Returns:
-            List[User]: Lista de usuarios.
+            List[User]: Lista de caficultores.
         """
 
         return (
@@ -102,13 +102,13 @@ class FarmerService:
 
     def get_farmer_by_id(self, farmer_id: int) -> Farmer:
         """
-        Obtiene un usuario a partir de su identificador único.
+        Obtiene un caficultor a partir de su identificador único.
 
         Args:
-            farmer_id (int): ID del usuario.
+            farmer_id (int): ID del caficultor.
 
         Returns:
-            farmer | None: Usuario encontrado o None si no existe.
+            farmer | None: Caficultor encontrado o None si no existe.
         """
 
         return self.db.query(Farmer).filter(Farmer.id == farmer_id).first()
@@ -117,18 +117,17 @@ class FarmerService:
 
     def create_farmer(self, farmer_data: FarmerCreate) -> Farmer:
         """
-        Crea un nuevo usuario en el sistema.
+        Crea un nuevo caficultor en el sistema.
 
         Valida previamente:
-        - Username
         - Documento
         - Correo electrónico
 
         Args:
-            user_data (UserCreate): Datos del usuario a crear.
+            farmer_data (UserCreate): Datos del caficultor a crear.
 
         Returns:
-            User: Usuario creado exitosamente.
+            User: Caficultor creado exitosamente.
 
         Raises:
             HTTPException: Si alguno de los datos ya existe.
@@ -167,16 +166,16 @@ class FarmerService:
 
     def update_farmer(self, farmer_id: int, farmer_data: FarmerUpdate):
         """
-        Actualiza la información de un usuario existente.
+        Actualiza la información de un caficultor existente.
 
         Permite actualización parcial de datos.
 
         Args:
-            user_id (int): ID del usuario.
-            user_data (UserUpdate): Datos a modificar.
+            farmer_id (int): ID del caficultor.
+            farmer_data (UserUpdate): Datos a modificar.
 
         Returns:
-            User | None: Usuario actualizado o None si no existe.
+            User | None: Caficultor actualizado o None si no existe.
         """
 
         farmer = self.db.query(Farmer).filter(Farmer.id == farmer_id).first()
@@ -207,12 +206,12 @@ class FarmerService:
 
     def delete_farmer(self, farmer_id: int) -> bool:
         """
-        Elmina al usuario por su identificador unico.
+        Elmina al caficultor por su identificador unico.
 
-        Valida antes si existe el usuario.
+        Valida antes si existe el caficultor.
 
         Args:
-            user_id (int): Identificador unico.
+            farmer_id (int): Identificador unico.
 
         Returns:
             Boolean: True si se elimino, false si no lo logro.
@@ -236,25 +235,28 @@ class FarmerService:
 
     def get_farmers_filtered(self, search: str = None):
         """
-        Obtiene usuarios aplicando filtros opcionales.
+        Obtiene caficultores aplicando filtros opcionales.
 
         Permite buscar por:
-        - Username
         - Nombre completo
-        - Rol
+        - Correo electronico
 
         Args:
             search (str, opcional): Texto de búsqueda.
-            role (str, opcional): Rol del usuario.
 
         Returns:
-            List[User]: Usuarios que cumplen los criterios.
+            List[Farmer]: Caficultores que cumplen los criterios.
         """
 
         query = self.db.query(Farmer).options(joinedload(Farmer.person))
 
         if search:
-            query = query.join(Farmer.person).filter(Person.full_name.ilike(f"%{search}%"))
+            query = query.join(Farmer.person).filter(
+                or_(
+                    Person.full_name.ilike(f"%{search}%"),
+                    Person.email.ilike(f"%{search}%")
+                )
+            )
 
 
         return query.join(Farmer.person).order_by(Person.full_name.asc()).all()

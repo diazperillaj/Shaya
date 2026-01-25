@@ -1,42 +1,90 @@
 import { useEffect, useState } from 'react'
 import DataTable from '../../components/ui/DataTable'
 import Modal from '../../components/ui/Modal'
-import { CirclePlus, Funnel, Search, X } from 'lucide-react';
+import { CirclePlus, Funnel, Search, X } from 'lucide-react'
 
-import { runWithAlert } from '../../hooks/useSafeAction';
+import { runWithAlert } from '../../hooks/useSafeAction'
 
 import { FarmerColumns } from './models/columns'
 import { FarmerFields } from './models/fields'
 import type { Farmer } from './models/types'
-import { fetchFarmers, createFarmer, updateFarmer, deleteFarmer } from './services/farmer.api'
+import {
+  fetchFarmers,
+  createFarmer,
+  updateFarmer,
+  deleteFarmer,
+} from './services/farmer.api'
 
 import { useAuth } from '../auth/AuthContext'
 
-
-
-
+/**
+ * Página de gestión de caficultores.
+ *
+ * Permite:
+ * - Listar caficultores
+ * - Buscar caficultores por texto
+ * - Crear nuevos caficultores
+ * - Editar caficultores existentes
+ * - Eliminar caficultores
+ *
+ * Las acciones de edición y eliminación
+ * dependen de los permisos del usuario autenticado.
+ */
 export default function FarmersPage() {
-    const [data, setData] = useState<Farmer[]>([])
-    const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null)
-    const [addingFarmer, setAddingFarmer] = useState(false)
-    const [namePage] = useState('caficultor')
 
-    // 🔹 Filtros
-    const [search, setSearch] = useState('')
-    const [role, setRole] = useState('')
+  /**
+   * Lista de caficultores obtenida desde la API.
+   */
+  const [data, setData] = useState<Farmer[]>([])
 
-    // 🔹 Cargar caficultors con filtros
-    const loadFarmers = async () => {
-        const Farmers = await fetchFarmers({ search})
-        setData(Farmers)
-    }
+  /**
+   * Caficultor actualmente seleccionado para edición.
+   */
+  const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null)
 
-    const { user } = useAuth()
+  /**
+   * Controla la visibilidad del modal de creación.
+   */
+  const [addingFarmer, setAddingFarmer] = useState(false)
 
-    // 🔹 Actualizamos cada vez que cambian los filtros
-    useEffect(() => {
-        loadFarmers()
-    }, [search, role])
+  /**
+   * Nombre base utilizado en los títulos de los modales.
+   */
+  const [namePage] = useState('caficultor')
+
+  /**
+   * Texto de búsqueda para filtrar caficultores.
+   */
+  const [search, setSearch] = useState('')
+
+  /**
+   * Estado reservado para futuros filtros.
+   * (Actualmente no se utiliza en la consulta).
+   */
+  const [role, setRole] = useState('')
+
+  /**
+   * Carga la lista de caficultores desde la API
+   * aplicando los filtros activos.
+   */
+  const loadFarmers = async (): Promise<void> => {
+    const farmers = await fetchFarmers({ search })
+    setData(farmers)
+  }
+
+  /**
+   * Usuario autenticado actual.
+   * Se utiliza para validar permisos.
+   */
+  const { user } = useAuth()
+
+  /**
+   * Recarga la lista de caficultores cada vez
+   * que cambian los filtros.
+   */
+  useEffect(() => {
+    loadFarmers()
+  }, [search, role])
 
     return (
         <div className="flex flex-col gap-6">
