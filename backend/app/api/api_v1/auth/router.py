@@ -8,10 +8,48 @@ from app.api.api_v1.auth.dependencies import get_current_user
 from app.core.security import create_access_token
 from app.core.db.session import get_db
 
-from app.models.user import User
 
 
 router = APIRouter()
+
+from app.api.api_v1.users.router import create_tables
+from app.models.person import Person
+from app.models.user import User
+from app.core.db.session import engine
+from app.core.security import get_password_hash
+
+@router.get('/create/database/tables')
+def createTablesOnAuth():
+    return create_tables()
+
+
+@router.get('/insert/user')
+def insertUserOnAuth():
+    
+    person = Person(
+        full_name="Juan Pablo Diaz",
+        document="12345678",
+        phone="555-1234",
+        email="diazperillaj@gmail.com",
+        observation="Usuario administrador por defecto"
+    )
+    
+    user = User(
+        username='admin',
+        hashed_password= get_password_hash('admin1'),
+        role='admin',
+        person=person
+    )
+    
+    session = Session(bind=engine)
+    session.add(user)
+    session.commit()
+    session.close()
+    
+    return {"message":"Admin user created"}
+    
+    
+    
 
 @router.post("/login")
 def login(
@@ -19,9 +57,6 @@ def login(
     response: Response,
     db: Session = Depends(get_db)
 ):
-
-    print(data.username)
-    print(data.password)
 
     user = authenticate_user(db, data.username, data.password)
 
@@ -43,7 +78,7 @@ def login(
         max_age=60 * 60 * 8
     )
 
-    return {"message": "Login exitoso"}
+    return {"message": f"Login exitoso"}
 
 
 @router.get("/me", response_model=UserResponse)

@@ -1,8 +1,8 @@
-// src/features/users/columns.ts
+// src/features/Farmers/columns.ts
 import type { ColumnDef } from '@tanstack/react-table';
-import type { User } from './types';
+import type { Farmer } from './types';
 
-export const userColumns: ColumnDef<User>[] = [
+export const FarmerColumns: ColumnDef<Farmer>[] = [
   {
     accessorKey: 'id',
     header: 'id',
@@ -14,13 +14,8 @@ export const userColumns: ColumnDef<User>[] = [
     cell: info => info.getValue(),
   },
   {
-    accessorKey: 'username',
-    header: 'Usuario',
-    cell: info => info.getValue(),
-  },
-  {
-    accessorKey: 'email',
-    header: 'Correo',
+    accessorKey: 'document',
+    header: 'Documento',
     cell: info => info.getValue(),
   },
   {
@@ -29,8 +24,18 @@ export const userColumns: ColumnDef<User>[] = [
     cell: info => info.getValue(),
   },
   {
-    accessorKey: 'role',
-    header: 'Rol',
+    accessorKey: 'email',
+    header: 'Correo',
+    cell: info => info.getValue(),
+  },
+  {
+    accessorKey: 'farm_name',
+    header: 'Finca',
+    cell: info => info.getValue(),
+  },
+  {
+    accessorKey: 'farm_location',
+    header: 'Ubicación finca',
     cell: info => info.getValue(),
   },
   {

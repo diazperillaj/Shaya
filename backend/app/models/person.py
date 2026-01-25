@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, Text
+from sqlalchemy import Integer, String, Text, DateTime, func as sql_func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.core.db.base import Base
 
@@ -18,9 +18,22 @@ class Person(Base):
     phone: Mapped[str] = mapped_column(String(20), nullable=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     observation: Mapped[str] = mapped_column(Text, nullable=True)
+    
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), 
+        nullable=False,
+        server_default=sql_func.now()
+    )
 
     user = relationship(
         "User",
+        back_populates="person",
+        uselist=False,
+        cascade="all, delete"
+    )
+    
+    farmer = relationship(
+        "Farmer",
         back_populates="person",
         uselist=False,
         cascade="all, delete"

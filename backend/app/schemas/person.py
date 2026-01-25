@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, StringConstraints
 from typing import Optional
 from typing_extensions import Annotated
-
+from datetime import datetime
 
 """
 Módulo de esquemas Pydantic para la entidad Person.
@@ -117,6 +117,7 @@ class PersonResponse(BaseModel):
     phone: str
     email: EmailStr
     observation: Optional[str] = None
+    created_at: datetime
 
     class Config:
         orm_mode = True

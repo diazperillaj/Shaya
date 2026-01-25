@@ -3,18 +3,18 @@ import { Clipboard, Home, ShoppingBag, Users, UserCog, PersonStanding, ChevronLe
 import { logout } from '../../features/auth/service';
 import { useNavigate } from 'react-router-dom';
 
-type setActiveMenuItemProps = (item: string) => void;
+type setActiveMenuItemProps = (item: number) => void;
 
 function Sidebar({ children, setActiveMenuItem }: { children: React.ReactNode, setActiveMenuItem: setActiveMenuItemProps }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     const menuItems = [
-        { name: 'Inicio', icon: Home, label: 'home' },
-        { name: 'Inventario', icon: Clipboard, label: 'inventory' },
-        { name: 'Ventas', icon: ShoppingBag, label: 'sales' },
-        { name: 'Clientes', icon: Users, label: 'clients' },
-        { name: 'Caficultores', icon: PersonStanding, label: 'farmers' },
-        { name: 'Usuarios', icon: UserCog, label: 'users' },
+        { id: 0, name: 'Inicio', icon: Home, label: 'home' },
+        { id: 1, name: 'Inventario', icon: Clipboard, label: 'inventory' },
+        { id: 2, name: 'Ventas', icon: ShoppingBag, label: 'sales' },
+        { id: 3, name: 'Clientes', icon: Users, label: 'clients' },
+        { id: 4, name: 'Caficultores', icon: PersonStanding, label: 'farmers' },
+        { id: 5, name: 'Usuarios', icon: UserCog, label: 'users' },
     ];
 
     const navigate = useNavigate()
@@ -62,7 +62,7 @@ function Sidebar({ children, setActiveMenuItem }: { children: React.ReactNode, s
                                 key={item.name}
                                 className={`group relative flex items-center gap-4 px-4 py-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:bg-emerald-800/60 hover:shadow-lg hover:translate-x-1 ${isSidebarOpen ? '' : 'justify-center'}`}
                                 style={{ animationDelay: `${index * 50}ms` }}
-                                onClick={() => setActiveMenuItem(item.label)}
+                                onClick={() => setActiveMenuItem(Number(item.id))}
                             >
                                 <div className="flex items-center justify-center w-5 h-5 text-emerald-200 group-hover:text-white group-hover:scale-110 transition-all duration-200">
                                     {<Icon className="w-5 h-5" />}

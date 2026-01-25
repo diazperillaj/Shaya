@@ -1,50 +1,50 @@
 import { useEffect, useState } from 'react'
 import DataTable from '../../components/ui/DataTable'
 import Modal from '../../components/ui/Modal'
-import { CirclePlus, Funnel, ChevronDown, Search, X } from 'lucide-react';
+import { CirclePlus, Funnel, Search, X } from 'lucide-react';
 
 import { runWithAlert } from '../../hooks/useSafeAction';
 
-import { userColumns } from './models/columns'
-import { userFields } from './models/fields'
-import type { User } from './models/types'
-import { fetchUsers, createUser, updateUser, deleteUser } from './services/user.api'
+import { FarmerColumns } from './models/columns'
+import { FarmerFields } from './models/fields'
+import type { Farmer } from './models/types'
+import { fetchFarmers, createFarmer, updateFarmer, deleteFarmer } from './services/farmer.api'
 
 import { useAuth } from '../auth/AuthContext'
 
 
 
 
-export default function UsersPage() {
-    const [data, setData] = useState<User[]>([])
-    const [editingUser, setEditingUser] = useState<User | null>(null)
-    const [addingUser, setAddingUser] = useState(false)
-    const [namePage] = useState('usuario')
+export default function FarmersPage() {
+    const [data, setData] = useState<Farmer[]>([])
+    const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null)
+    const [addingFarmer, setAddingFarmer] = useState(false)
+    const [namePage] = useState('caficultor')
 
     // 🔹 Filtros
     const [search, setSearch] = useState('')
     const [role, setRole] = useState('')
 
-    // 🔹 Cargar usuarios con filtros
-    const loadUsers = async () => {
-        const users = await fetchUsers({ search, role })
-        setData(users)
+    // 🔹 Cargar caficultors con filtros
+    const loadFarmers = async () => {
+        const Farmers = await fetchFarmers({ search})
+        setData(Farmers)
     }
 
     const { user } = useAuth()
 
     // 🔹 Actualizamos cada vez que cambian los filtros
     useEffect(() => {
-        loadUsers()
+        loadFarmers()
     }, [search, role])
 
     return (
         <div className="flex flex-col gap-6">
             <div className="text-3xl font-semibold flex items-center gap-2">
                 <div className='flex justify-center items-center hover:cursor-pointer hover:scale-105 transition-transform duration-400'>
-                    <CirclePlus onClick={() => setAddingUser(true)} className="inline w-8 h-8 text-emerald-900 font-bold" />
+                    <CirclePlus onClick={() => setAddingFarmer(true)} className="inline w-8 h-8 text-emerald-900 font-bold" />
                 </div>
-                Gestión de usuarios
+                Gestión de caficultores
             </div>
 
             {/* Filtros */}
@@ -53,7 +53,7 @@ export default function UsersPage() {
                     {/* Campo de búsqueda */}
                     <div className="flex-1 min-w-[200px]">
                         <label className="flex text-sm font-semibold text-gray-700 mb-2">
-                            Buscar usuario
+                            Buscar caficultor
                         </label>
                         <div className="relative">
                             <input
@@ -67,31 +67,10 @@ export default function UsersPage() {
                         </div>
                     </div>
 
-                    {/* Select de Rol */}
-                    <div className="flex-1 min-w-[180px]">
-                        <label className="flex text-sm font-semibold text-gray-700 mb-2">
-                            Rol
-                        </label>
-                        <div className="relative">
-                            <select
-                                value={role} // 🔹 conectamos al estado
-                                onChange={(e) => setRole(e.target.value)}
-                                className="text-sm w-full border border-gray-200 rounded-xl px-4 py-3 pr-10 appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-900 focus:border-transparent transition-all duration-200 hover:border-emerald-900 bg-white cursor-pointer"
-                            >
-                                <option value="">Todos los roles</option>
-                                <option value="admin">Administrador</option>
-                                <option value="user">Usuario</option>
-                            </select>
-                            <div>
-                                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Botones */}
                     <div className="flex gap-2 flex-col md:flex-row w-max">
                         <button
-                            onClick={loadUsers} // 🔹 botón Filtrar recarga los datos
+                            onClick={loadFarmers} // 🔹 botón Filtrar recarga los datos
                             className="text-sm h-11 bg-emerald-900 hover:bg-emerald-950 text-white px-6 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
                         >
                             <Funnel className="w-5 h-5" />
@@ -110,32 +89,32 @@ export default function UsersPage() {
             </div>
 
             <DataTable
-                columns={userColumns}
+                columns={FarmerColumns}
                 data={data}
-                onEdit={setEditingUser}
+                onEdit={setEditingFarmer}
                 isAdmin={user?.role === 'admin' ? true : false}
 
             />
 
-            {editingUser && (
+            {editingFarmer && (
                 <Modal
-                    item={editingUser}
-                    fields={userFields}
-                    onClose={() => setEditingUser(null)}
-                    onSave={(user) =>
+                    item={editingFarmer}
+                    fields={FarmerFields}
+                    onClose={() => setEditingFarmer(null)}
+                    onSave={(Farmer) =>
                         runWithAlert(
                             async () => {
-                                await updateUser(user)
-                                await loadUsers()
-                                setEditingUser(null)
+                                await updateFarmer(Farmer)
+                                await loadFarmers()
+                                setEditingFarmer(null)
                             },
-                            'Usuario editado correctamente'
+                            'Caficultor editado correctamente'
                         )
                     }
                     onDelete={async (id) => {
-                        await deleteUser(Number(id))
-                        await loadUsers()
-                        setEditingUser(null)
+                        await deleteFarmer(Number(id))
+                        await loadFarmers()
+                        setEditingFarmer(null)
                     }}
                     idKey="id"
                     mode="edit"
@@ -143,19 +122,19 @@ export default function UsersPage() {
                 />
             )}
 
-            {addingUser && (
+            {addingFarmer && (
                 <Modal
-                    item={{} as User}
-                    fields={userFields}
-                    onClose={() => setAddingUser(false)}
-                    onSave={(user) =>
+                    item={{} as Farmer}
+                    fields={FarmerFields}
+                    onClose={() => setAddingFarmer(false)}
+                    onSave={(Farmer) =>
                         runWithAlert(
                             async () => {
-                                await createUser(user)
-                                await loadUsers()
-                                setAddingUser(false)
+                                await createFarmer(Farmer)
+                                await loadFarmers()
+                                setAddingFarmer(false)
                             },
-                            'Usuario creado correctamente'
+                            'Caficultor creado correctamente'
                         )
                     }
                     mode="add"
