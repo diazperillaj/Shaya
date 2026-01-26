@@ -3,8 +3,8 @@ from sqlalchemy import or_
 from app.models.farmer import Farmer
 from app.models.person import Person
 from app.api.api_v1.farmers.schema import FarmerCreate, FarmerUpdate
-from app.core.security import get_password_hash
 from sqlalchemy import desc
+from typing import List
 
 #Manejo de excepciones
 from fastapi import HTTPException, status
@@ -78,7 +78,7 @@ class FarmerService:
 
 
 
-    def get_farmers(self):
+    def get_farmers(self) -> List[Farmer]:
         """
         Obtiene la lista de caficultores registrados.
 
@@ -164,7 +164,7 @@ class FarmerService:
     
 
 
-    def update_farmer(self, farmer_id: int, farmer_data: FarmerUpdate):
+    def update_farmer(self, farmer_id: int, farmer_data: FarmerUpdate) -> Farmer:
         """
         Actualiza la información de un caficultor existente.
 
@@ -180,6 +180,24 @@ class FarmerService:
 
         farmer = self.db.query(Farmer).filter(Farmer.id == farmer_id).first()
 
+        if farmer_data.person and farmer_data.person.document:
+            raise_if_exists(
+                self.db.query(Person).filter(
+                    Person.document == farmer_data.person.document,
+                    Person.id != farmer.person.id
+                ),
+                "El documento ya existe"
+            )
+            
+        if farmer_data.person and farmer_data.person.email:
+            raise_if_exists(
+                self.db.query(Person).filter(
+                    Person.email == farmer_data.person.email,
+                    Person.id != farmer.person.id
+                ),
+                "El correo ya existe"
+            )
+        
         if not farmer:
             return None
 
@@ -233,7 +251,7 @@ class FarmerService:
 
 
 
-    def get_farmers_filtered(self, search: str = None):
+    def get_farmers_filtered(self, search: str = None) -> List[Farmer]:
         """
         Obtiene caficultores aplicando filtros opcionales.
 

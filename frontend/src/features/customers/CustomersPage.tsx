@@ -5,55 +5,55 @@ import { CirclePlus, Funnel, Search, X } from 'lucide-react'
 
 import { runWithAlert } from '../../hooks/useSafeAction'
 
-import { FarmerColumns } from './models/columns'
-import { FarmerFields } from './models/fields'
-import type { Farmer } from './models/types'
+import { CustomerColumns } from './models/columns'
+import { CustomerFields } from './models/fields'
+import type { Customer } from './models/types'
 import {
-  fetchFarmers,
-  createFarmer,
-  updateFarmer,
-  deleteFarmer,
-} from './services/farmer.api'
+  fetchCustomers,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+} from './services/customer.api'
 
 import { useAuth } from '../auth/AuthContext'
 
 /**
- * Página de gestión de caficultores.
+ * Página de gestión de clientes.
  *
  * Permite:
- * - Listar caficultores
- * - Buscar caficultores por texto
- * - Crear nuevos caficultores
- * - Editar caficultores existentes
- * - Eliminar caficultores
+ * - Listar clientees
+ * - Buscar clientees por texto
+ * - Crear nuevos clientees
+ * - Editar clientees existentes
+ * - Eliminar clientees
  *
  * Las acciones de edición y eliminación
  * dependen de los permisos del usuario autenticado.
  */
-export default function FarmersPage() {
+export default function CustomersPage() {
 
   /**
-   * Lista de caficultores obtenida desde la API.
+   * Lista de clientees obtenida desde la API.
    */
-  const [data, setData] = useState<Farmer[]>([])
+  const [data, setData] = useState<Customer[]>([])
 
   /**
-   * Caficultor actualmente seleccionado para edición.
+   * Cliente actualmente seleccionado para edición.
    */
-  const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null)
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
 
   /**
    * Controla la visibilidad del modal de creación.
    */
-  const [addingFarmer, setAddingFarmer] = useState(false)
+  const [addingCustomer, setAddingCustomer] = useState(false)
 
   /**
    * Nombre base utilizado en los títulos de los modales.
    */
-  const [namePage] = useState('caficultor')
+  const [namePage] = useState('cliente')
 
   /**
-   * Texto de búsqueda para filtrar caficultores.
+   * Texto de búsqueda para filtrar clientes.
    */
   const [search, setSearch] = useState('')
 
@@ -64,12 +64,12 @@ export default function FarmersPage() {
   const [role, setRole] = useState('')
 
   /**
-   * Carga la lista de caficultores desde la API
+   * Carga la lista de cliente desde la API
    * aplicando los filtros activos.
    */
-  const loadFarmers = async (): Promise<void> => {
-    const farmers = await fetchFarmers({ search })
-    setData(farmers)
+  const loadCustomers = async (): Promise<void> => {
+    const customers = await fetchCustomers({ search })
+    setData(customers)
   }
 
   /**
@@ -79,20 +79,20 @@ export default function FarmersPage() {
   const { user } = useAuth()
 
   /**
-   * Recarga la lista de caficultores cada vez
+   * Recarga la lista de clientes cada vez
    * que cambian los filtros.
    */
   useEffect(() => {
-    loadFarmers()
+    loadCustomers()
   }, [search, role])
 
     return (
         <div className="flex flex-col gap-6">
             <div className="text-3xl font-semibold flex items-center gap-2">
                 <div className='flex justify-center items-center hover:cursor-pointer hover:scale-105 transition-transform duration-400'>
-                    <CirclePlus onClick={() => setAddingFarmer(true)} className="inline w-8 h-8 text-emerald-900 font-bold" />
+                    <CirclePlus onClick={() => setAddingCustomer(true)} className="inline w-8 h-8 text-emerald-900 font-bold" />
                 </div>
-                Gestión de caficultores
+                Gestión de clientes
             </div>
 
             {/* Filtros */}
@@ -101,7 +101,7 @@ export default function FarmersPage() {
                     {/* Campo de búsqueda */}
                     <div className="flex-1 min-w-[200px]">
                         <label className="flex text-sm font-semibold text-gray-700 mb-2">
-                            Buscar caficultor
+                            Buscar cliente
                         </label>
                         <div className="relative">
                             <input
@@ -118,7 +118,7 @@ export default function FarmersPage() {
                     {/* Botones */}
                     <div className="flex gap-2 flex-col md:flex-row w-max">
                         {/* <button
-                            onClick={loadFarmers} // 🔹 botón Filtrar recarga los datos
+                            onClick={loadCustomers} // 🔹 botón Filtrar recarga los datos
                             className="text-sm h-11 bg-emerald-900 hover:bg-emerald-950 text-white px-6 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
                         >
                             <Funnel className="w-5 h-5" />
@@ -137,32 +137,32 @@ export default function FarmersPage() {
             </div>
 
             <DataTable
-                columns={FarmerColumns}
+                columns={CustomerColumns}
                 data={data}
-                onEdit={setEditingFarmer}
+                onEdit={setEditingCustomer}
                 isAdmin={user?.role === 'admin' ? true : false}
 
             />
 
-            {editingFarmer && (
+            {editingCustomer && (
                 <Modal
-                    item={editingFarmer}
-                    fields={FarmerFields}
-                    onClose={() => setEditingFarmer(null)}
-                    onSave={(Farmer) =>
+                    item={editingCustomer}
+                    fields={CustomerFields}
+                    onClose={() => setEditingCustomer(null)}
+                    onSave={(Customer) =>
                         runWithAlert(
                             async () => {
-                                await updateFarmer(Farmer)
-                                await loadFarmers()
-                                setEditingFarmer(null)
+                                await updateCustomer(Customer)
+                                await loadCustomers()
+                                setEditingCustomer(null)
                             },
-                            'Caficultor editado correctamente'
+                            'Cliente editado correctamente'
                         )
                     }
                     onDelete={async (id) => {
-                        await deleteFarmer(Number(id))
-                        await loadFarmers()
-                        setEditingFarmer(null)
+                        await deleteCustomer(Number(id))
+                        await loadCustomers()
+                        setEditingCustomer(null)
                     }}
                     idKey="id"
                     mode="edit"
@@ -170,19 +170,19 @@ export default function FarmersPage() {
                 />
             )}
 
-            {addingFarmer && (
+            {addingCustomer && (
                 <Modal
-                    item={{} as Farmer}
-                    fields={FarmerFields}
-                    onClose={() => setAddingFarmer(false)}
-                    onSave={(Farmer) =>
+                    item={{} as Customer}
+                    fields={CustomerFields}
+                    onClose={() => setAddingCustomer(false)}
+                    onSave={(Customer) =>
                         runWithAlert(
                             async () => {
-                                await createFarmer(Farmer)
-                                await loadFarmers()
-                                setAddingFarmer(false)
+                                await createCustomer(Customer)
+                                await loadCustomers()
+                                setAddingCustomer(false)
                             },
-                            'Caficultor creado correctamente'
+                            'Cliente creado correctamente'
                         )
                     }
                     mode="add"

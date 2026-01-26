@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from app.api.api_v1.users import router as users_router
 from app.api.api_v1.auth import router as auth_router
 from app.api.api_v1.farmers import router as farmers_router
+from app.api.api_v1.customers import router as customers_router
 
 """
 Router principal de la API versión 1.
@@ -19,3 +20,4 @@ api_router = APIRouter()
 api_router.include_router(users_router.router, prefix="/users", tags=["users"])
 api_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 api_router.include_router(farmers_router.router, prefix="/farmers", tags=["farmers"])
+api_router.include_router(customers_router.router, prefix="/customers", tags=["customers"])

@@ -134,13 +134,13 @@ export default function UsersPage() {
 
                     {/* Botones */}
                     <div className="flex gap-2 flex-col md:flex-row w-max">
-                        <button
+                        {/* <button
                             onClick={loadUsers} // 🔹 botón Filtrar recarga los datos
                             className="text-sm h-11 bg-emerald-900 hover:bg-emerald-950 text-white px-6 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
                         >
                             <Funnel className="w-5 h-5" />
                             Filtrar
-                        </button>
+                        </button> */}
 
                         <button
                             onClick={() => { setSearch(''); setRole('') }} // 🔹 Limpiar filtros

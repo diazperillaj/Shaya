@@ -38,3 +38,10 @@ class Person(Base):
         uselist=False,
         cascade="all, delete"
     )
+    
+    customer = relationship(
+        "Customer",
+        back_populates="person",
+        uselist=False,
+        cascade="all, delete"
+    )

@@ -94,10 +94,6 @@ export const updateFarmer = async (Farmer: Farmer): Promise<Farmer> => {
   if (!res.ok) throw new Error('Error creando caficultor')
 
   return mapFarmerFromApi(data)
-
-  if (!res.ok) throw new Error('Error actualizando caficultor')
-
-  return mapFarmerFromApi(await res.json())
 }
 
 /* =======================

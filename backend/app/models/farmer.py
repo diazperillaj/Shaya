@@ -6,7 +6,7 @@ class Farmer(Base):
     """
     Modelo ORM que representa un usuario del sistema.
 
-    Contiene las credenciales de autenticación y autorización,
+    Contiene la informacion y ubicacion de la finca,
     y mantiene una relación uno a uno con la entidad `Person`,
     donde se almacenan los datos personales.
     """
@@ -14,8 +14,8 @@ class Farmer(Base):
     __tablename__ = "farmers"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    farm_name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    farm_location: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    farm_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    farm_location: Mapped[str] = mapped_column(String(255), nullable=False)
 
     person_id: Mapped[int] = mapped_column(Integer, ForeignKey("persons.id"), unique=True)
     person = relationship("Person", back_populates="farmer")

@@ -20,3 +20,5 @@ engine = create_engine(DATABASE_URL, echo=True)
 # Base declarativa para los modelos
 Base = declarative_base()
 
+
+

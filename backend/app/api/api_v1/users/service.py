@@ -5,6 +5,7 @@ from app.models.person import Person
 from app.api.api_v1.users.schema import UserCreate, UserUpdate
 from app.core.security import get_password_hash
 from sqlalchemy import desc
+from typing import List
 
 #Manejo de excepciones
 from fastapi import HTTPException, status
@@ -78,7 +79,7 @@ class UserService:
 
 
 
-    def get_users(self):
+    def get_users(self) -> List[User]:
         """
         Obtiene la lista de usuarios registrados.
 
@@ -134,20 +135,7 @@ class UserService:
             HTTPException: Si alguno de los datos ya existe.
         """
 
-        raise_if_exists(
-            self.db.query(User).filter(User.username == user_data.username),
-            "El usuario ya existe"
-        )
-
-        raise_if_exists(
-            self.db.query(Person).filter(Person.document == user_data.person.document),
-            "El documento ya existe"
-        )
-
-        raise_if_exists(
-            self.db.query(Person).filter(Person.email == user_data.person.email),
-            "El correo ya existe"
-        )
+        
 
         person = Person(
             full_name=format_name(user_data.person.full_name),
@@ -171,7 +159,7 @@ class UserService:
     
 
 
-    def update_user(self, user_id: int, user_data: UserUpdate):
+    def update_user(self, user_id: int, user_data: UserUpdate) -> User:
         """
         Actualiza la información de un usuario existente.
 
@@ -186,6 +174,35 @@ class UserService:
         """
 
         user = self.db.query(User).filter(User.id == user_id).first()
+
+
+        if user_data.person and user_data.person.document:
+            raise_if_exists(
+                self.db.query(Person).filter(
+                    Person.document == user_data.person.document,
+                    Person.id != user.person.id
+                ),
+                "El documento ya existe"
+            )
+            
+        if user_data.person and user_data.person.email:
+            raise_if_exists(
+                self.db.query(Person).filter(
+                    Person.email == user_data.person.email,
+                    Person.id != user.person.id
+                ),
+                "El correo ya existe"
+            )
+        
+        if user_data.username:
+            raise_if_exists(
+                self.db.query(User).filter(
+                    User.username == user_data.username,
+                    User.id != user.id
+                ),
+                "El usuario ya existe"
+            )
+
 
         if not user:
             return None
@@ -242,7 +259,7 @@ class UserService:
     
 
 
-    def get_users_filtered(self, search: str = None, role: str = None):
+    def get_users_filtered(self, search: str = None, role: str = None) -> List[User]:
         """
         Obtiene usuarios aplicando filtros opcionales.
 

@@ -19,6 +19,34 @@ router = APIRouter()
 from app.core.db.base import Base
 from app.core.db.session import engine
 
+
+
+@router.post("/create-bulk", response_model=List[FarmerResponse])
+def create_farmers_bulk(
+    farmers: List[FarmerCreate],
+    db: Session = Depends(get_db),
+):
+    """
+    Carga masiva de usuarios (modo pruebas).
+    Si un usuario falla, los demás continúan.
+    """
+
+    service = FarmerService(db)
+    created_farmers = []
+
+    for farmer_data in farmers:
+        try:
+            farmer = service.create_farmer(farmer_data)
+            created_farmers.append(farmer)
+        except Exception as e:
+            # logging simple para pruebas
+            print(f"Error creando usuario {farmer_data.person.full_name}: {e}")
+
+    return created_farmers
+
+
+
+
 @router.get('/create/database/tables')
 def create_tables():
     """
@@ -86,7 +114,7 @@ def update_farmer(
 
 
 @router.get("/get/farmer/{farmer_id}", response_model=FarmerResponse)
-def get_user_by_id(
+def get_farmer_by_id(
     farmer_id: int, 
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
@@ -110,7 +138,7 @@ def get_user_by_id(
 
 
 @router.get("/get", response_model=List[FarmerResponse])
-def get_users(
+def get_farmers(
     search: Optional[str] = Query(None, description="Buscar por nombre completo"),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
@@ -136,7 +164,7 @@ def get_users(
 
 
 @router.delete("/delete/{farmer_id}", response_model=dict)
-def delete_user(
+def delete_farmer(
     farmer_id: int, 
     db: Session = Depends(get_db),
     current_user = Depends(require_admin)
@@ -156,6 +184,8 @@ def delete_user(
     """
     service = FarmerService(db)
     if not service.delete_farmer(farmer_id):
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"message": f"User {farmer_id} deleted successfully"}
+        raise HTTPException(status_code=404, detail="Farmer not found")
+    return {"message": f"Farmer {farmer_id} deleted successfully"}
+
+
 

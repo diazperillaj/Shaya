@@ -37,6 +37,39 @@ def create_tables():
 
 
 
+
+from typing import List
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+router = APIRouter()
+
+@router.post("/create-bulk", response_model=List[UserResponse])
+def create_users_bulk(
+    users: List[UserCreate],
+    db: Session = Depends(get_db),
+):
+    """
+    Carga masiva de usuarios (modo pruebas).
+    Si un usuario falla, los demás continúan.
+    """
+
+    service = UserService(db)
+    created_users = []
+
+    for user_data in users:
+        try:
+            user = service.create_user(user_data)
+            created_users.append(user)
+        except Exception as e:
+            # logging simple para pruebas
+            print(f"Error creando usuario {user_data.username}: {e}")
+
+    return created_users
+
+
+
+
 @router.post("/create", response_model=UserResponse)
 def create_user(
     user: UserCreate,
@@ -82,6 +115,7 @@ def update_user(
     Raises:
         HTTPException: Si el usuario no existe.
     """
+    
     service = UserService(db)
     return service.update_user(user_id, user_data)
 
