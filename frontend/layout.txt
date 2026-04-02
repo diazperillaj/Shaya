@@ -1,0 +1,53 @@
+src/
+├── assets/                 # Imágenes, íconos, fuentes
+├── components/             # UI genérica y layout
+│   ├── ui/                 # Botones, inputs, modals, Table base
+│   └── layout/             # Header, Sidebar, Footer
+│
+├── features/               # Cada feature es independiente
+│   ├── dashboard/          # Inicio
+│   │   ├── components/
+│   │   └── DashboardPage.jsx
+│   │
+│   ├── inventario/
+│   │   ├── components/
+│   │   │   └── InventarioTable.jsx
+│   │   ├── columns.js
+│   │   ├── hooks/
+│   │   │   └── useInventarioTable.js
+│   │   ├── services/
+│   │   │   └── inventario.service.js
+│   │   └── InventarioPage.jsx
+│   │
+│   ├── ventas/
+│   │   └── VentasPage.jsx
+│   │
+│   ├── caficultores/
+│   │   ├── components/
+│   │   │   └── CaficultoresTable.jsx
+│   │   ├── columns.js
+│   │   ├── hooks/
+│   │   │   └── useCaficultoresTable.js
+│   │   ├── services/
+│   │   │   └── caficultores.service.js
+│   │   └── CaficultoresPage.jsx
+│   │
+│   ├── clientes/
+│   │   └── ClientesPage.jsx
+│   │
+│   └── usuarios/
+│       └── UsuariosPage.jsx
+│
+├── pages/                  # Pages generales si quieres, como Auth
+│   ├── Login.jsx
+│   └── Register.jsx
+│
+├── routes/                 # React Router
+│   └── AppRouter.jsx
+│
+├── services/               # Conexión con API
+├── models/                 # Tipos y modelos globales
+├── hooks/                  # Hooks reutilizables
+├── context/                # Context API global
+├── utils/                  # Helpers
+└── styles/                 # CSS global (Tailwind)
