@@ -1,0 +1,152 @@
+[
+  {
+    "id": 1,
+    "parchment_info": "Lote Huila 001",
+    "type": "Ground Coffee",
+    "amount": 50,
+    "variety": "Castillo",
+    "roast_level": "Medium Roast",
+    "unity_price": 18000,
+    "total_price": 900000
+  },
+  {
+    "id": 2,
+    "parchment_info": "Lote Huila 002",
+    "type": "Coffee Beans",
+    "amount": 40,
+    "variety": "Caturra",
+    "roast_level": "Light Roast",
+    "unity_price": 19000,
+    "total_price": 760000
+  },
+  {
+    "id": 3,
+    "parchment_info": "Lote Nariño 003",
+    "type": "Ground Coffee",
+    "amount": 35,
+    "variety": "Colombia",
+    "roast_level": "Medium Roast",
+    "unity_price": 20000,
+    "total_price": 700000
+  },
+  {
+    "id": 4,
+    "parchment_info": "Lote Antioquia 004",
+    "type": "Coffee Beans",
+    "amount": 60,
+    "variety": "Bourbon",
+    "roast_level": "Dark Roast",
+    "unity_price": 21000,
+    "total_price": 1260000
+  },
+  {
+    "id": 5,
+    "parchment_info": "Lote Cauca 005",
+    "type": "Ground Coffee",
+    "amount": 45,
+    "variety": "Castillo",
+    "roast_level": "Medium-Dark Roast",
+    "unity_price": 19500,
+    "total_price": 877500
+  },
+  {
+    "id": 6,
+    "parchment_info": "Lote Tolima 006",
+    "type": "Coffee Beans",
+    "amount": 30,
+    "variety": "Typica",
+    "roast_level": "Light Roast",
+    "unity_price": 22000,
+    "total_price": 660000
+  },
+  {
+    "id": 7,
+    "parchment_info": "Lote Huila 007",
+    "type": "Ground Coffee",
+    "amount": 25,
+    "variety": "Castillo",
+    "roast_level": "Medium Roast",
+    "unity_price": 18000,
+    "total_price": 450000
+  },
+  {
+    "id": 8,
+    "parchment_info": "Lote Nariño 008",
+    "type": "Coffee Beans",
+    "amount": 55,
+    "variety": "Caturra",
+    "roast_level": "Medium-Dark Roast",
+    "unity_price": 20500,
+    "total_price": 1127500
+  },
+  {
+    "id": 9,
+    "parchment_info": "Lote Antioquia 009",
+    "type": "Ground Coffee",
+    "amount": 20,
+    "variety": "Bourbon",
+    "roast_level": "Dark Roast",
+    "unity_price": 21000,
+    "total_price": 420000
+  },
+  {
+    "id": 10,
+    "parchment_info": "Lote Cauca 010",
+    "type": "Coffee Beans",
+    "amount": 70,
+    "variety": "Colombia",
+    "roast_level": "Medium Roast",
+    "unity_price": 20000,
+    "total_price": 1400000
+  },
+  {
+    "id": 11,
+    "parchment_info": "Lote Tolima 011",
+    "type": "Ground Coffee",
+    "amount": 33,
+    "variety": "Castillo",
+    "roast_level": "Light Roast",
+    "unity_price": 17500,
+    "total_price": 577500
+  },
+  {
+    "id": 12,
+    "parchment_info": "Lote Huila 012",
+    "type": "Coffee Beans",
+    "amount": 48,
+    "variety": "Caturra",
+    "roast_level": "Medium Roast",
+    "unity_price": 19000,
+    "total_price": 912000
+  },
+  {
+    "id": 13,
+    "parchment_info": "Lote Nariño 013",
+    "type": "Ground Coffee",
+    "amount": 28,
+    "variety": "Typica",
+    "roast_level": "Dark Roast",
+    "unity_price": 21500,
+    "total_price": 602000
+  },
+  {
+    "id": 14,
+    "parchment_info": "Lote Antioquia 014",
+    "type": "Coffee Beans",
+    "amount": 52,
+    "variety": "Bourbon",
+    "roast_level": "Medium-Dark Roast",
+    "unity_price": 20500,
+    "total_price": 1066000
+  },
+  {
+    "id": 15,
+    "parchment_info": "Lote Cauca 015",
+    "type": "Ground Coffee",
+    "amount": 38,
+    "variety": "Colombia",
+    "roast_level": "Medium Roast",
+    "unity_price": 19500,
+    "total_price": 741000
+  }
+]
