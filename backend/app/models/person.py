@@ -14,9 +14,9 @@ class Person(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    document: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    document: Mapped[str] = mapped_column(String(255), unique=True, nullable=True)
     phone: Mapped[str] = mapped_column(String(20), nullable=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=True)
     observation: Mapped[str] = mapped_column(Text, nullable=True)
     
     created_at: Mapped[DateTime] = mapped_column(

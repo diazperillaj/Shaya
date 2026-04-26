@@ -133,15 +133,22 @@ class FarmerService:
             HTTPException: Si alguno de los datos ya existe.
         """
 
-        raise_if_exists(
-            self.db.query(Person).filter(Person.document == farmer_data.person.document),
-            "El documento ya existe"
-        )
+        if farmer_data.person:
+            if farmer_data.person.document is not None:
+                raise_if_exists(
+                    self.db.query(Person).filter(
+                        Person.document == farmer_data.person.document
+                    ),
+                    "El documento ya existe"
+                )
 
-        raise_if_exists(
-            self.db.query(Person).filter(Person.email == farmer_data.person.email),
-            "El correo ya existe"
-        )
+            if farmer_data.person.email is not None:
+                raise_if_exists(
+                    self.db.query(Person).filter(
+                        Person.email == farmer_data.person.email
+                    ),
+                    "El correo ya existe"
+                )
 
         person = Person(
             full_name=format_name(farmer_data.person.full_name),
@@ -153,7 +160,8 @@ class FarmerService:
 
         farmer = Farmer(
             farm_name=farmer_data.farm_name,
-            farm_location=farmer_data.farm_location,
+            village=farmer_data.village,
+            municipality=farmer_data.municipality,
             person=person
         )
 
@@ -180,29 +188,32 @@ class FarmerService:
 
         farmer = self.db.query(Farmer).filter(Farmer.id == farmer_id).first()
 
-        if farmer_data.person and farmer_data.person.document:
-            raise_if_exists(
-                self.db.query(Person).filter(
-                    Person.document == farmer_data.person.document,
-                    Person.id != farmer.person.id
-                ),
-                "El documento ya existe"
-            )
-            
-        if farmer_data.person and farmer_data.person.email:
-            raise_if_exists(
-                self.db.query(Person).filter(
-                    Person.email == farmer_data.person.email,
-                    Person.id != farmer.person.id
-                ),
-                "El correo ya existe"
-            )
+        if farmer_data.person:
+            if farmer_data.person.document is not None:
+                raise_if_exists(
+                    self.db.query(Person).filter(
+                        Person.document == farmer_data.person.document,
+                        Person.id != farmer.person.id
+                    ),
+                    "El documento ya existe"
+                )
+            if farmer_data.person.email is not None:
+                raise_if_exists(
+                    self.db.query(Person).filter(
+                        Person.email == farmer_data.person.email,
+                        Person.id != farmer.person.id
+                    ),
+                    "El correo ya existe"
+                )
         
         if not farmer:
             return None
 
-        if farmer_data.farm_location is not None:
-            farmer.farm_location = farmer_data.farm_location
+        if farmer_data.village is not None:
+            farmer.village = farmer_data.village
+
+        if farmer_data.municipality is not None:
+            farmer.municipality = farmer_data.municipality
 
         if farmer_data.farm_name is not None:
             farmer.farm_name = farmer_data.farm_name

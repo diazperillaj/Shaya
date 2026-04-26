@@ -20,13 +20,13 @@ export const mapUserFromApi = (u: UserApiResponse): User => ({
   name: u.person.full_name,
 
   /** Documento de identificación */
-  document: u.person.document,
+  document: u.person.document ?? "Sin documento",
 
   /** Nombre de usuario */
   username: u.username,
 
   /** Correo electrónico */
-  email: u.person.email,
+  email: u.person.email ?? "Sin correo",
 
   /** Teléfono de contacto */
   phone: u.person.phone,

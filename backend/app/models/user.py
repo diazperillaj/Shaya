@@ -20,3 +20,10 @@ class User(Base):
 
     person_id: Mapped[int] = mapped_column(Integer, ForeignKey("persons.id"), unique=True)
     person = relationship("Person", back_populates="user")
+    
+    
+    fast_sales = relationship(
+        "FastSale",
+        back_populates="user",
+        cascade="all, delete-orphan" 
+    )

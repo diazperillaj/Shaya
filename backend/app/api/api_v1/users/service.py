@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from app.models.user import User
 from app.models.person import Person
-from app.api.api_v1.users.schema import UserCreate, UserUpdate
+from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash
 from sqlalchemy import desc
 from typing import List

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, StringConstraints
+from pydantic import BaseModel, EmailStr, StringConstraints, field_validator
 from typing import Optional
 from typing_extensions import Annotated
 from datetime import datetime
@@ -84,10 +84,22 @@ class PersonCreate(BaseModel):
     """
 
     full_name: str
-    document: Document
+    document: Optional[Document] = None
+    email: Optional[EmailStr] = None
     phone: Phone
-    email: EmailStr
     observation: Optional[str] = None
+    
+    @field_validator("document", mode="before")
+    def empty_to_none(cls, v):
+        if v == "":
+            return None
+        return v
+    
+    @field_validator("email", mode="before")
+    def empty_to_none(cls, v):
+        if v == "":
+            return None
+        return v
 
 
 # =========================
@@ -113,9 +125,9 @@ class PersonResponse(BaseModel):
 
     id: int
     full_name: str
-    document: str
+    document: Optional[str] = None
     phone: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     observation: Optional[str] = None
     created_at: datetime
 

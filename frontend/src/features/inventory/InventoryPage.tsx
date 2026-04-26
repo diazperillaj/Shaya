@@ -6,7 +6,7 @@ import { CirclePlus, Search, X, Replace } from "lucide-react";
 import { runWithAlert } from "../../hooks/useSafeAction";
 
 import { InventoryColumns } from "./models/columns";
-import { InventoryFields } from "./models/fields";
+import { InventoryFields, InventoryEditFields } from "./models/fields";
 import type { Inventory } from "./models/types";
 import {
   fetchInventorys,
@@ -45,7 +45,9 @@ interface SidebarProps {
  * Las acciones de edición y eliminación
  * dependen de los permisos del usuario autenticado.
  */
-export default function InventoryProcessedPage({ setActiveMenuItem }: SidebarProps) {
+export default function InventoryProcessedPage({
+  setActiveMenuItem,
+}: SidebarProps) {
   /**
    * Lista de clientees obtenida desde la API.
    */
@@ -103,6 +105,7 @@ export default function InventoryProcessedPage({ setActiveMenuItem }: SidebarPro
   }, [search, role]);
 
   const [fields, setFields] = useState(InventoryFields);
+  const [editFields, setEditFields] = useState(InventoryEditFields);
 
   useEffect(() => {
     const loadFarmers = async () => {
@@ -111,6 +114,12 @@ export default function InventoryProcessedPage({ setActiveMenuItem }: SidebarPro
       const farmerOptions = [{ label: "Seleccionar", value: "" }, ...farmers];
 
       setFields((prev) =>
+        prev.map((f) =>
+          f.accessor === "farmer" ? { ...f, options: farmerOptions } : f,
+        ),
+      );
+
+      setEditFields((prev) =>
         prev.map((f) =>
           f.accessor === "farmer" ? { ...f, options: farmerOptions } : f,
         ),
@@ -136,10 +145,10 @@ export default function InventoryProcessedPage({ setActiveMenuItem }: SidebarPro
           </div>
 
           {/* Derecha */}
-          <button 
+          <button
             className="text-xl bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
             onClick={() => setActiveMenuItem(6)}
-            >
+          >
             <Replace className="w-5 h-5" />
             Inventario de cafe procesado1
           </button>
@@ -189,18 +198,16 @@ export default function InventoryProcessedPage({ setActiveMenuItem }: SidebarPro
           </div>
         </div>
       </div>
-
       <DataTable
         columns={InventoryColumns}
         data={data}
         onEdit={setEditingInventory}
         isAdmin={user?.role === "admin" ? true : false}
       />
-
       {editingInventory && (
         <Modal
           item={editingInventory}
-          fields={fields}
+          fields={editFields}
           onClose={() => setEditingInventory(null)}
           onSave={(Inventory) =>
             runWithAlert(async () => {

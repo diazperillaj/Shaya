@@ -108,6 +108,9 @@ def update_farmer(
     Raises:
         HTTPException: Si el caficultor no existe.
     """
+    
+    print(f"Updating farmer {farmer_id} with data: {farmer_data}")
+
     service = FarmerService(db)
     return service.update_farmer(farmer_id, farmer_data)
 

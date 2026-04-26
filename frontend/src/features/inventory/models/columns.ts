@@ -13,98 +13,62 @@ import type { Inventory } from './types'
  */
 export const InventoryColumns: ColumnDef<Inventory>[] = [
 
-  /** Identificador único del inventario */
   {
     accessorKey: 'id',
     header: 'ID',
-    cell: info => info.getValue(),
   },
 
-  /** Caficultor */
   {
     accessorKey: 'farmer',
     header: 'Caficultor',
-    cell: info => info.getValue(),
+    cell: ({ row }) => row.original.farmer.person.full_name,
   },
 
-  /** Variedad del cafe */
   {
     accessorKey: 'variety',
     header: 'Variedad',
-    cell: info => info.getValue(),
   },
 
-  /** Altitud del lote */
   {
     accessorKey: 'elevation',
-    header: 'Altitud',
-    cell: info => info.getValue(),
+    header: 'Altitud (m.s.n.m)',
   },
 
-  /** Humedad del lote */
   {
     accessorKey: 'humidity',
-    header: 'Humedad',
-    cell: info => info.getValue(),
+    header: 'Humedad (%)',
   },
 
-  /** Factor de rendimiento del lote */
-  {
-    accessorKey: 'yield_factor',
-    header: 'Factor de rendimiento',
-    cell: info => info.getValue(),
-  },
-
-  /** Precio de compra */
   {
     accessorKey: 'price',
     header: 'Precio de compra',
-    cell: info => info.getValue(),
   },
 
-  /** Precio de compra */
   {
     accessorKey: 'full_price',
-    header: 'Precio por carga',
-    cell: info => info.getValue(),
+    header: 'Precio por carga ',
   },
 
-    /** Cantidad inicial */
   {
     accessorKey: 'quantity',
-    header: 'Cantidad inicial',
-    cell: info => info.getValue(),
+    header: 'Cantidad inicial (Kg)',
   },
 
-      /** Stock actual */
   {
-    accessorKey: 'stock',
-    header: 'Cantidad restante',
-    cell: info => info.getValue(),
+    accessorKey: 'remaining_quantity',
+    header: 'Cantidad restante (Kg)',
   },
 
-      /** Fecha de compra */
   {
     accessorKey: 'date',
     header: 'Fecha de compra',
-    cell: info => info.getValue(),
   },
 
-
-  /** Observaciones adicionales del cliente */
   {
     accessorKey: 'observation',
     header: 'Observaciones',
-    cell: info => info.getValue(),
   },
 
-  /**
-   * Columna de acciones.
-   *
-   * El contenido se renderiza dinámicamente
-   * desde el componente `DataTable` mediante
-   * callbacks como `onEdit`.
-   */
   {
     accessorKey: 'edit',
     header: 'Acciones',

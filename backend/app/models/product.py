@@ -8,6 +8,7 @@ class ProductTypeEnum(enum.Enum):
     """Enumeración para tipos de producto"""
     parchment = "parchment"
     processed = "processed"
+    other = "other"
 
 class Product(Base):
     """
@@ -21,6 +22,7 @@ class Product(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     type: Mapped[ProductTypeEnum] = mapped_column(
         Enum(ProductTypeEnum),
         nullable=False
@@ -31,6 +33,12 @@ class Product(Base):
     # Relaciones
     inventories = relationship(
         "Inventory",
+        back_populates="product",
+        cascade="all, delete-orphan"
+    )
+    
+    fast_sales = relationship(
+        "FastSale",
         back_populates="product",
         cascade="all, delete-orphan"
     )

@@ -57,8 +57,15 @@ export const FarmerColumns: ColumnDef<Farmer>[] = [
 
   /** Ubicación de la finca */
   {
-    accessorKey: 'farm_location',
-    header: 'Ubicación finca',
+    accessorKey: 'village',
+    header: 'Vereda',
+    cell: info => info.getValue(),
+  },
+
+  /** Ubicación de la finca */
+  {
+    accessorKey: 'municipality',
+    header: 'Municipio',
     cell: info => info.getValue(),
   },
 

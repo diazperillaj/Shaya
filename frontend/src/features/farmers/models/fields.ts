@@ -23,7 +23,10 @@ export const FarmerFields: TableField<Farmer>[] = [
   { accessor: 'farm_name', header: 'Finca', type: 'text' },
 
   /** Ubicación de la finca */
-  { accessor: 'farm_location', header: 'Ubicación finca', type: 'text' },
+  { accessor: 'village', header: 'Vereda', type: 'text' },
+
+  /** Municipio de la finca */
+  { accessor: 'municipality', header: 'Municipio', type: 'text' },
 
   /** Correo electrónico */
   { accessor: 'email', header: 'Correo', type: 'text' },

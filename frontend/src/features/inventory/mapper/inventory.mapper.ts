@@ -1,56 +1,24 @@
 import type { InventoryApiResponse } from '../models/types'
 
-/**
- * Mapea un registro de inventario proveniente de la API
- * al modelo utilizado en el frontend.
- *
- * Este mapper desacopla el contrato del backend
- * del modelo plano consumido por la interfaz.
- *
- * @param i Inventario recibido desde la API
- * @returns Inventario adaptado al modelo del frontend
- */
 export const mapInventoryFromApi = (i: InventoryApiResponse) => ({
-
-  /** Identificador único del lote */
   id: i.id,
 
-  /** Producto */
-  product: i.product,
-
-  /** Caficultor */
+  product: i.inventory.product,
   farmer: i.farmer,
 
-  /** Variedad */
   variety: i.variety,
 
-  /** Altitud del lote */
-  elevation: i.elevation,
+  elevation: Number(i.altitude),
+  humidity: Number(i.humidity),
 
-  /** Humedad del lote */
-  humidity: i.humidity,
+  price: Number(i.purchase_price),
+  full_price: Number(i.full_price),
 
-  /** Factor de rendimiento del lote */
-  yield_factor: i.yield_factor,
+  quantity: Number(i.initial_quantity),
+  remaining_quantity: Number(i.remaining_quantity),
+  stock: Number(i.remaining_quantity),
 
-  /** Precio de compra */
-  price: i.price,
+  date: i.purchase_date,
 
-  /** Precio por carga */
-  full_price: i.full_price,
-
-  /** Cantidad inicial */
-  quantity: i.quantity,
-
-  /** Stock actual */
-  stock: i.stock,
-
-  /** Fecha de compra */
-  date: i.date,
-
-  /**
-   * Observaciones.
-   * Se normaliza a string si la API envía null.
-   */
-  observation: i.observation ?? 'Sin observación',
+  observation: i.inventory.observations?.trim() || 'Sin observación',
 })
