@@ -6,6 +6,8 @@ import FarmersPage from "../features/farmers/FarmersPage";
 import CustomersPage from "../features/customers/CustomersPage";
 import InventorysPage from "../features/inventory/InventoryPage";
 import InventoryProcessedPage from "../features/inventoryProcessed/InventoryProcessedPage";
+import ProductsPage from "../features/products/ProductsPage";
+import SalesPage from "../features/fast_sales/SalesPage";
 
 
 export default function Dashboard() {
@@ -21,7 +23,7 @@ export default function Dashboard() {
             case 1:
               return <InventorysPage setActiveMenuItem={setActiveMenuItem} />;
             case 2:
-              return <h1>Ventas</h1>;
+              return <SalesPage />;
             case 3:
               return <CustomersPage />;
             case 4:
@@ -30,6 +32,8 @@ export default function Dashboard() {
               return <UsersPage />;
             case 6:
               return <InventoryProcessedPage setActiveMenuItem={setActiveMenuItem} />;
+            case 7:
+              return <ProductsPage  />;
             default:
               return <h1>Inicio</h1>;
           }

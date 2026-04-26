@@ -15,7 +15,8 @@ class Farmer(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     farm_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    farm_location: Mapped[str] = mapped_column(String(255), nullable=False)
+    village: Mapped[str] = mapped_column(String(255), nullable=False)
+    municipality: Mapped[str] = mapped_column(String(255), nullable=False)
 
     person_id: Mapped[int] = mapped_column(Integer, ForeignKey("persons.id"), unique=True)
     person = relationship("Person", back_populates="farmer")

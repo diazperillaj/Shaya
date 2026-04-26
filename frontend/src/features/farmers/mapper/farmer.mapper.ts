@@ -19,16 +19,19 @@ export const mapFarmerFromApi = (u: FarmerApiResponse) => ({
   name: u.person.full_name,
 
   /** Documento de identificación */
-  document: u.person.document,
+  document: u.person.document ?? "Sin documento",
 
   /** Correo electrónico */
-  email: u.person.email,
+  email: u.person.email ?? "Sin correo",
 
   /** Nombre de la finca */
   farm_name: u.farm_name,
 
   /** Ubicación de la finca */
-  farm_location: u.farm_location,
+  village: u.village,
+
+  
+  municipality: u.municipality,
 
   /** Teléfono de contacto */
   phone: u.person.phone,

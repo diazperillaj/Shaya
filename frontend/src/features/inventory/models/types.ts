@@ -1,5 +1,20 @@
 // src/features/Inventory/types.ts
 
+import type { Farmer } from "../../farmers/models/types"
+
+interface ProductType {
+  id: number
+  name: string
+}
+
+interface InventoryType {
+  id: number
+  product: ProductType
+  quantity: string
+  observations: string
+  date: string
+}
+
 /**
  * Representa un registro de inventario en el frontend.
  *
@@ -9,16 +24,15 @@
  *
  * Es un modelo plano, desacoplado de la estructura del backend.
  */
+            
 export interface Inventory {
 
   /** Identificador único del lote */
   id: number
 
-  /** Producto (ej: Café verde, tostado, etc.) */
-  product: string
+  product: ProductType
 
-  /** Nombre del caficultor */
-  farmer: string
+  farmer: Farmer
 
   /** Variedad del café */
   variety: string
@@ -28,9 +42,6 @@ export interface Inventory {
 
   /** Humedad del lote (%) */
   humidity: number
-
-  /** Factor de rendimiento del lote */
-  yield_factor: number
 
   /** Precio de compra */
   price: number
@@ -42,13 +53,14 @@ export interface Inventory {
   quantity: number
 
   /** Stock actual disponible */
-  stock: number
+  remaining_quantity: number
 
   /** Fecha de compra */
   date: string
 
   /** Observaciones adicionales */
   observation?: string
+
 }
 
 /**
@@ -71,43 +83,18 @@ export interface InventorysQuery {
  * y debe usarse únicamente en servicios y mappers.
  */
 export interface InventoryApiResponse {
-
-  /** Identificador único */
   id: number
 
-  /** Producto */
-  product: string
+  inventory: InventoryType
 
-  /** Caficultor */
-  farmer: string
+  farmer: Farmer
 
-  /** Variedad */
   variety: string
-
-  /** Altitud */
-  elevation: number
-
-  /** Humedad */
-  humidity: number
-
-  /** Factor de rendimiento */
-  yield_factor: number
-
-  /** Precio de compra */
-  price: number
-
-  /** Precio por carga */
-  full_price: number
-
-  /** Cantidad inicial */
-  quantity: number
-
-  /** Stock actual */
-  stock: number
-
-  /** Fecha de compra */
-  date: string
-
-  /** Observaciones */
-  observation?: string | null
+  altitude: string
+  humidity: string
+  purchase_price: string
+  full_price: string
+  initial_quantity: string
+  remaining_quantity: string
+  purchase_date: string
 }

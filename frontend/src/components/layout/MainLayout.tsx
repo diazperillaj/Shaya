@@ -60,6 +60,7 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
     { id: 3, name: "Clientes", icon: Users, label: "clients" },
     { id: 4, name: "Caficultores", icon: PersonStanding, label: "farmers" },
     { id: 5, name: "Usuarios", icon: UserCog, label: "users" },
+    { id: 7, name: "Productos", icon: Wheat, label: "products" },
   ];
 
   /** Hook de navegación de React Router */

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from app.api.api_v1.users.schema import UserCreate, UserResponse, UserUpdate, UserUpdateResponse
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, UserUpdateResponse
 from app.api.api_v1.users.service import UserService
 from app.core.db.session import get_db
 from typing import List, Optional
@@ -74,7 +74,7 @@ def create_users_bulk(
 def create_user(
     user: UserCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_admin)
+    #current_user = Depends(require_admin)
 ):
     """
     Crea un nuevo usuario en el sistema.

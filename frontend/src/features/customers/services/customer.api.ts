@@ -4,6 +4,13 @@ import { mapCustomerFromApi } from '../mapper/customer.mapper'
 
 const BASE_URL = 'http://localhost:8000/api/v1/customers'
 
+function normalizeFields(doc: string | null | undefined): string | null {
+  if (!doc || doc.trim() === "" || doc === "Sin documento" || doc === "Sin correo" || doc === "Sin dirección") {
+    return null;
+  }
+  return doc;
+}
+
 /* =======================
    GET
 ======================= */
@@ -31,12 +38,12 @@ export const fetchCustomers = async (filters?: CustomersQuery): Promise<Customer
 export const createCustomer = async (Customer: Customer): Promise<Customer> => {
   const payload = {
     customerType: Customer.customerType  || 'Minorista',
-    address: Customer.address,
+    address: normalizeFields(Customer.address),
     city: Customer.city,
     person: {
       full_name: Customer.name,
-      document: Customer.document,
-      email: Customer.email,
+      document: normalizeFields(Customer.document),
+      email: normalizeFields(Customer.email),
       phone: Customer.phone,
       observation: Customer.observation,
     },
@@ -71,12 +78,12 @@ export const createCustomer = async (Customer: Customer): Promise<Customer> => {
 export const updateCustomer = async (Customer: Customer): Promise<Customer> => {
   const payload: any = {
     customerType: Customer.customerType || 'Minorista',
-    address: Customer.address,
+    address: normalizeFields(Customer.address),
     city: Customer.city,
     person: {
       full_name: Customer.name,
-      document: Customer.document,
-      email: Customer.email,
+      document: normalizeFields(Customer.document),
+      email: normalizeFields(Customer.email),
       phone: Customer.phone,
       observation: Customer.observation,
     },

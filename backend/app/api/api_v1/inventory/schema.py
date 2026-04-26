@@ -30,7 +30,7 @@ class ParchmentCreate(BaseModel):
     variety: Optional[ValidationLength] = Field(None, max_length=100, description="Variedad del café")
     altitude: Optional[Decimal] = Field(None, ge=0, le=9999.99, description="Altitud en metros")
     humidity: Optional[Decimal] = Field(None, ge=0, le=100, description="Porcentaje de humedad")
-    purchase_price: Decimal = Field(..., gt=0, description="Precio de compra por kg")
+    full_price: Decimal = Field(..., gt=0, description="Precio de compra por kg")
     initial_quantity: Decimal = Field(..., gt=0, description="Cantidad en kg")
     purchase_date: date = Field(..., description="Fecha de compra del pergamino")
     origin_batch: Optional[str] = Field(None, max_length=100, description="Lote del caficultor")
@@ -133,10 +133,17 @@ class ParchmentUpdate(BaseModel):
     (las cantidades se manejan por movimientos).
     """
     
+    farmer_id: Optional[int] = Field(None, gt=0, description="ID del nuevo caficultor vendedor")
+    
     variety: Optional[ValidationLength] = Field(None, max_length=100)
     altitude: Optional[Decimal] = Field(None, ge=0, le=9999.99)
     humidity: Optional[Decimal] = Field(None, ge=0, le=100)
     origin_batch: Optional[str] = Field(None, max_length=100)
+    remaining_quantity: Optional[Decimal] = Field(None, ge=0, le=9999.99)
+    purchase_price: Optional[Decimal] = Field(None, ge=0)
+    full_price: Optional[Decimal] = Field(None, ge=0)
+    observations: Optional[str] = None
+    purchase_date: Optional[date] = None
     
     @field_validator('altitude')
     @classmethod

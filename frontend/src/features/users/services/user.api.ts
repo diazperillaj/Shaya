@@ -7,6 +7,14 @@ import { mapUserFromApi } from '../mapper/user.mapper'
  */
 const BASE_URL = 'http://localhost:8000/api/v1/users'
 
+
+function normalizeFields(doc: string | null | undefined): string | null {
+  if (!doc || doc.trim() === "" || doc === "Sin documento" || doc === "Sin correo") {
+    return null;
+  }
+  return doc;
+}
+
 /* =======================
    GET
 ======================= */
@@ -61,8 +69,8 @@ export const createUser = async (user: User): Promise<User> => {
     role: user.role || 'user',
     person: {
       full_name: user.name,
-      document: user.document,
-      email: user.email,
+      document: normalizeFields(user.document),
+      email: normalizeFields(user.email),
       phone: user.phone,
       observation: user.observation,
     },
@@ -110,8 +118,8 @@ export const updateUser = async (user: User): Promise<User> => {
     role: user.role || 'user',
     person: {
       full_name: user.name,
-      document: user.document,
-      email: user.email,
+      document: normalizeFields(user.document),
+      email: normalizeFields(user.email),
       phone: user.phone,
       observation: user.observation,
     },

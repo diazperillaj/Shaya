@@ -30,6 +30,29 @@ router = APIRouter()
 # PARCHMENT ENDPOINTS
 # ============================================================================
 
+@router.post("/create-bulk", response_model=List[ParchmentResponse])
+def create_parchments_bulk(
+    parchments: List[ParchmentCreate],
+    db: Session = Depends(get_db),
+):
+    """
+    Carga masiva de productos (modo pruebas).
+    Si un producto falla, los demás continúan.
+    """
+
+    service = ParchmentService(db)
+    created_parchments = []
+
+    for parchment_data in parchments:
+        try:
+            parchment = service.create_parchment(parchment_data)
+            created_parchments.append(parchment)
+        except Exception as e:
+            # logging simple para pruebas
+            print(f"Error creando pergamino {parchment_data.name}: {e}")
+
+    return created_parchments
+
 @router.post("/create", response_model=ParchmentResponse, tags=["Parchments"])
 def create_parchment(
     parchment: ParchmentCreate,
@@ -79,7 +102,7 @@ def update_parchment(
         
     Raises:
         HTTPException: Si el pergamino no existe.
-    """
+    """    
     service = ParchmentService(db)
     return service.update_parchment(parchment_id, parchment_data)
 

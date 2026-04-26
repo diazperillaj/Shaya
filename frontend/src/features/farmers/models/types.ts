@@ -26,8 +26,11 @@ export interface Farmer {
   /** Nombre de la finca */
   farm_name: string
 
-  /** Ubicación de la finca */
-  farm_location: string
+  /** Vereda de la finca */
+  village: string
+
+  /** Municipio de la finca */
+  municipality: string
 
   /** Teléfono de contacto */
   phone: string
@@ -64,7 +67,10 @@ export interface FarmerApiResponse {
   farm_name: string
 
   /** Ubicación de la finca */
-  farm_location: string
+  village: string
+
+  /** Municipio de la finca */
+  municipality: string
 
   /** Información personal asociada al caficultor */
   person: {

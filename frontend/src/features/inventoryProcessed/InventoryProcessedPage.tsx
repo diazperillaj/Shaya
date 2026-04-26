@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DataTable from "../../components/ui/DataTable";
-import Modal from "../../components/ui/Modal";
+import ModalBig from "../../components/ui/DetailModal";
 import { CirclePlus, Search, X, Replace } from "lucide-react";
 
 import { runWithAlert } from "../../hooks/useSafeAction";
@@ -198,7 +198,7 @@ export default function InventorysPage({ setActiveMenuItem }: SidebarProps) {
       />
 
       {editingInventory && (
-        <Modal
+        <ModalBig
           item={editingInventory}
           fields={fields}
           onClose={() => setEditingInventory(null)}
@@ -221,7 +221,7 @@ export default function InventorysPage({ setActiveMenuItem }: SidebarProps) {
       )}
 
       {addingInventory && (
-        <Modal
+        <ModalBig
           item={{} as Inventory}
           fields={fields}
           onClose={() => setAddingInventory(false)}

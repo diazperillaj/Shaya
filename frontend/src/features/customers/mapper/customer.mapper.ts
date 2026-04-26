@@ -19,16 +19,16 @@ export const mapCustomerFromApi = (u: CustomerApiResponse) => ({
   name: u.person.full_name,
 
   /** Documento de identificación */
-  document: u.person.document,
+  document: u.person.document ?? "Sin documento",
 
   /** Correo electrónico */
-  email: u.person.email,
+  email: u.person.email ?? "Sin correo",
 
   /** Tipo de cliente */
   customerType: u.customerType,
 
   /** Direccion del cliente */
-  address: u.address,
+  address: u.address ?? "Sin dirección",
 
   /** Ciudad del cliente */
   city: u.city,

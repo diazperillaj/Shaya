@@ -133,15 +133,19 @@ class CustomerService:
             HTTPException: Si alguno de los datos ya existe.
         """
 
-        raise_if_exists(
-            self.db.query(Person).filter(Person.document == customer_data.person.document),
-            "El documento ya existe"
-        )
+        if customer_data.person.document is not None:
+            raise_if_exists(
+                self.db.query(Person).filter(
+                    Person.document == customer_data.person.document
+                ),
+                "El documento ya existe"
+            )
 
-        raise_if_exists(
-            self.db.query(Person).filter(Person.email == customer_data.person.email),
-            "El correo ya existe"
-        )
+        if customer_data.person.email is not None:
+            raise_if_exists(
+                self.db.query(Person).filter(Person.email == customer_data.person.email),
+                "El correo ya existe"
+            )
 
         person = Person(
             full_name=format_name(customer_data.person.full_name),

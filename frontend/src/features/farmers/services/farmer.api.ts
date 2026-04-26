@@ -4,6 +4,13 @@ import { mapFarmerFromApi } from '../mapper/farmer.mapper'
 
 const BASE_URL = 'http://localhost:8000/api/v1/farmers'
 
+function normalizeFields(doc: string | null | undefined): string | null {
+  if (!doc || doc.trim() === "" || doc === "Sin documento" || doc === "Sin correo") {
+    return null;
+  }
+  return doc;
+}
+
 /* =======================
    GET
 ======================= */
@@ -31,11 +38,12 @@ export const fetchFarmers = async (filters?: FarmersQuery): Promise<Farmer[]> =>
 export const createFarmer = async (Farmer: Farmer): Promise<Farmer> => {
   const payload = {
     farm_name: Farmer.farm_name,
-    farm_location: Farmer.farm_location,
+    village: Farmer.village,
+    municipality: Farmer.municipality,
     person: {
       full_name: Farmer.name,
-      document: Farmer.document,
-      email: Farmer.email,
+      document: normalizeFields(Farmer.document),
+      email: normalizeFields(Farmer.email),
       phone: Farmer.phone,
       observation: Farmer.observation,
     },
@@ -66,11 +74,12 @@ export const createFarmer = async (Farmer: Farmer): Promise<Farmer> => {
 export const updateFarmer = async (Farmer: Farmer): Promise<Farmer> => {
   const payload: any = {
     farm_name: Farmer.farm_name,
-    farm_location: Farmer.farm_location,
+    village: Farmer.village,
+    municipality: Farmer.municipality,
     person: {
       full_name: Farmer.name,
-      document: Farmer.document,
-      email: Farmer.email,
+      document: normalizeFields(Farmer.document),
+      email: normalizeFields(Farmer.email),
       phone: Farmer.phone,
       observation: Farmer.observation,
     },

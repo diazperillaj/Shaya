@@ -1,3 +1,38 @@
+# Para este modulo se usa app.schemas.user para evitar dependencias circulares con app.models.user
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 from pydantic import BaseModel, StringConstraints
 from typing import Optional
 from app.schemas.person import PersonCreate, PersonResponse

@@ -19,7 +19,8 @@ class FarmerCreate(BaseModel):
     """
 
     farm_name: ValidationLength
-    farm_location: ValidationLength
+    village: ValidationLength
+    municipality: ValidationLength
     person: PersonCreate
 
 class FarmerResponse(BaseModel):
@@ -30,7 +31,8 @@ class FarmerResponse(BaseModel):
 
     id: int
     farm_name: str
-    farm_location: str
+    village: str
+    municipality: str
     person: PersonResponse
 
     class Config:
@@ -45,7 +47,8 @@ class FarmerUpdate(BaseModel):
     """
 
     farm_name: Optional[ValidationLength] = None
-    farm_location: Optional[ValidationLength] = None
+    village: Optional[ValidationLength] = None
+    municipality: Optional[ValidationLength] = None
     person: Optional[PersonCreate] = None
 
 class FarmerUpdateResponse(BaseModel):
@@ -55,5 +58,6 @@ class FarmerUpdateResponse(BaseModel):
 
     id: int
     farm_name: str
-    farm_location: str
+    village: str
+    municipality: str
     person: PersonResponse

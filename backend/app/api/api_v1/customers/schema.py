@@ -1,4 +1,4 @@
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, StringConstraints, field_validator
 from typing import Optional
 from app.schemas.person import PersonCreate, PersonResponse
 from typing_extensions import Annotated       
@@ -6,7 +6,7 @@ from typing_extensions import Annotated
 ValidationLength = Annotated[
     str,
     StringConstraints(min_length=2),
-]        
+]
 
         
 class CustomerCreate(BaseModel):
@@ -18,9 +18,15 @@ class CustomerCreate(BaseModel):
     """
 
     customerType: ValidationLength
-    address: ValidationLength
+    address: Optional[ValidationLength] = None
     city: ValidationLength
     person: PersonCreate
+    
+    @field_validator("address", mode="before")
+    def empty_to_none(cls, v):
+        if v == "":
+            return None
+        return v
 
 class CustomerResponse(BaseModel):
     """
@@ -30,7 +36,7 @@ class CustomerResponse(BaseModel):
 
     id: int
     customerType: str
-    address: str
+    address: Optional[str] = None
     city: str
     person: PersonResponse
 
@@ -57,6 +63,6 @@ class CustomerUpdateResponse(BaseModel):
 
     id: int
     customerType: str
-    address: str
+    address: Optional[str] = None
     city: str
     person: PersonResponse

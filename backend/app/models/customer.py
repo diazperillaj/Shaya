@@ -15,7 +15,7 @@ class Customer(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     customerType: Mapped[str] = mapped_column(String(255), nullable=False)
-    address: Mapped[str] = mapped_column(String(255), nullable=False)
+    address: Mapped[str] = mapped_column(String(255), nullable=True)
     city: Mapped[str] = mapped_column(String(255), nullable=False)
 
     person_id: Mapped[int] = mapped_column(Integer, ForeignKey("persons.id"), unique=True)
