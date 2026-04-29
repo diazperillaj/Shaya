@@ -1,137 +1,161 @@
-import type { Inventory, InventorysQuery } from '../models/types'
-import { mapInventoryFromApi } from '../mapper/inventoryProcessed.mapper'
+// features/inventoryProcessed/services/inventoryProcessed.api.ts
 
+import type {
+  Process,
+  ProcessDetail,
+  ProcessQuery,
+  CreateProcessPayload,
+} from '../models/types'
+import { mapDetalleFromApi, mapProcesoFromApi } from '../mapper/inventoryProcessed.mapper'
+import type { Parchment  } from '../mapper/parchment.mapper'
+import { mapParchmentFromApi } from '../mapper/parchment.mapper'
+import type { Product } from '../../products/models/types'
+import { mapProductFromApi } from '../../products/mapper/product.mapper'
 
-const BASE_URL = 'http://localhost:8000/api/v1/inventory'
+const BASE_URL = 'http://localhost:8000/api/v1/processes'
+const PARCHMENT_URL = 'http://localhost:8000/api/v1/inventory'
+const PRODUCT_URL = 'http://localhost:8000/api/v1/products'
 
-const FARMER_URL = 'http://localhost:8000/api/v1/farmers'
+// import type { Inventory } from '../../inventory/models/types';
+  
 
-/* =======================
-   GET
-======================= */
-export const fetchInventorys = async (filters?: InventorysQuery): Promise<Inventory[]> => {
-  const query = new URLSearchParams()
-
-  if (filters?.search) query.append('search', filters?.search)
-
-  const res = await fetch(`/processedData.json`,
-    {
-      credentials: 'include',
-    })
-  if (!res.ok) throw new Error('Error obteniendo inventario')
-
-  const data = await res.json()
-
-  console.log(data)
-
-  return data.map(mapInventoryFromApi)
-}
-
-
-/* =======================
-   GET FARMERS TO SELECT
-======================= */
-export interface FarmerOption {
-  label: string
-  value: number
-}
-
-export const getFarmers = async (): Promise<FarmerOption[]> => {
-  const res = await fetch(`${FARMER_URL}/get`, {
+export const fetchParchments = async (): Promise<Parchment[]> => {
+  const res = await fetch(`${PARCHMENT_URL}/get`, {
     credentials: 'include',
   })
 
+  if (!res.ok) {
+    throw new Error('Error fetching parchments')
+  }
+
   const data = await res.json()
 
-  return data.map((f: any) => ({
-    label: `ID: ${f.person.id} - ${f.person.full_name}`,
-    value: f.person.id,
-  }))
+  return data.map(mapParchmentFromApi)
 }
 
 
-/* =======================
-   CREATE
-======================= */
-export const createInventory = async (Inventory: Inventory): Promise<Inventory> => {
-  const payload = {
-  parchment_info: Inventory.parchment_info,
-  type: Inventory.type,
-  amount: Inventory.amount,
-  variety: Inventory.variety,
-  roast_level: Inventory.roast_level,
-  unity_price: Inventory.unity_price,
-  total_price: Inventory.total_price,
-}
-  console.log(payload)
+export const fetchProducts = async (): Promise<Product[]> => {
+  const res = await fetch(`${PRODUCT_URL}/get`, {
+    credentials: 'include',
+  })
 
+  if (!res.ok) {
+    throw new Error('Error fetching products')
+  }
+
+  const data = await res.json()
+
+  return data.map(mapProductFromApi)
+}
+
+
+
+// ─── GET all processes ────────────────────────────────────────────────────────
+
+export const fetchProcesos = async (filters?: ProcessQuery): Promise<Process[]> => {
+  const query = new URLSearchParams()
+  if (filters?.search) query.append('search', filters.search)
+
+  const res = await fetch(`${BASE_URL}/get?${query.toString()}`, {
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error('Error fetching processes')
+
+  const data = await res.json()
+  return data.map(mapProcesoFromApi)
+}
+
+// ─── GET details of a single process ─────────────────────────────────────────
+
+export const fetchDetallesByProceso = async (
+  procesoId: number,
+): Promise<ProcessDetail[]> => {
+  const res = await fetch(`${BASE_URL}/${procesoId}/details`, {
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error('Error fetching process details')
+
+  const data = await res.json()
+  return data.map(mapDetalleFromApi)
+}
+
+// ─── CREATE process + details in one request ──────────────────────────────────
+/*
+  Expected backend endpoint:  POST /api/v1/processes/create
+  Expected payload shape:
+  {
+    invoice_number:  string,
+    process_date:    string,        // "YYYY-MM-DD"
+    farmer_name:     string,
+    parchment_kg:    number,
+    observations?:   string,
+    details: [
+      {
+        product_name:  string,
+        bag_quantity:  number,
+        grams_per_bag: number,
+        unit_value:    number,
+        observations?: string,
+      }
+    ]
+  }
+
+  The backend should:
+  - Compute resultant_kg = sum(bag_quantity * grams_per_bag / 1000)
+  - Compute yield_percentage = (resultant_kg / parchment_kg) * 100
+  - Compute subtotal = sum(unit_value * bag_quantity) per detail
+  - Compute IVA = subtotal * 0.052
+  - Compute total = subtotal + IVA
+  - Persist Proceso + DetallesProceso and return the created Proceso
+*/
+export const createProceso = async (
+  payload: CreateProcessPayload,
+): Promise<Process> => {
   const res = await fetch(`${BASE_URL}/create`, {
     method: 'POST',
-    credentials: "include",
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-
-  const data = await res.json()
 
   
-  console.log(data.detail)
+  console.log(payload);
+  
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail || 'Error creating process')
 
-  if (!res.ok) {
-    throw new Error(data.detail || 'Error creando inventario')
-  }
-
-  if (!res.ok) throw new Error('Error creando inventario')
-
-  return mapInventoryFromApi(data)
+  return mapProcesoFromApi(data)
 }
 
-/* =======================
-   UPDATE
-======================= */
-export const updateInventory = async (Inventory: Inventory): Promise<Inventory> => {
-    const payload = {
-  parchment_info: Inventory.parchment_info,
-  type: Inventory.type,
-  amount: Inventory.amount,
-  variety: Inventory.variety,
-  roast_level: Inventory.roast_level,
-  unity_price: Inventory.unity_price,
-  total_price: Inventory.total_price,
-}
-
-  const res = await fetch(`${BASE_URL}/update/${Inventory.id}`, {
+// ─── UPDATE process (header only; details managed separately) ────────────────
+/*
+  Expected backend endpoint:  PUT /api/v1/processes/update/:id
+  Payload: same shape as create but without `details`.
+  Returns the updated Proceso.
+*/
+export const updateProceso = async (
+  id: number,
+  payload: Omit<CreateProcessPayload, 'details'>,
+): Promise<Process> => {
+  const res = await fetch(`${BASE_URL}/update/${id}`, {
     method: 'PUT',
-    credentials: "include",
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
 
   const data = await res.json()
+  if (!res.ok) throw new Error(data.detail || 'Error updating process')
 
-  console.log(data.detail)
-
-  if (!res.ok) {
-    throw new Error(data.detail || 'Error actualizando inventario')
-  }
-
-  if (!res.ok) throw new Error('Error actualizando inventario')
-
-  return mapInventoryFromApi(data)
+  return mapProcesoFromApi(data)
 }
 
-/* =======================
-   DELETE
-======================= */
+// ─── DELETE process ───────────────────────────────────────────────────────────
 
-export const deleteInventory = async (id: number): Promise<void> => {
+export const deleteProceso = async (id: number): Promise<void> => {
   const res = await fetch(`${BASE_URL}/delete/${id}`, {
     method: 'DELETE',
-    credentials: "include",
+    credentials: 'include',
   })
-
-  if (!res.ok) throw new Error('Error eliminando cliente')
+  if (!res.ok) throw new Error('Error deleting process')
 }
-
-
-

@@ -21,7 +21,7 @@ export default function Dashboard() {
             case 0:
               return <h1>Inicio</h1>;
             case 1:
-              return <InventorysPage setActiveMenuItem={setActiveMenuItem} />;
+              return <InventoryProcessedPage setActiveMenuItem={setActiveMenuItem} />;
             case 2:
               return <SalesPage />;
             case 3:
@@ -31,7 +31,7 @@ export default function Dashboard() {
             case 5:
               return <UsersPage />;
             case 6:
-              return <InventoryProcessedPage setActiveMenuItem={setActiveMenuItem} />;
+              return <InventorysPage setActiveMenuItem={setActiveMenuItem} />;
             case 7:
               return <ProductsPage  />;
             default:

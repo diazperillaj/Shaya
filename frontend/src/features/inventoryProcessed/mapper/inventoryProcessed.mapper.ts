@@ -1,38 +1,35 @@
-import type { InventoryApiResponse } from '../models/types'
+// features/inventoryProcessed/mapper/inventoryProcessed.mapper.ts
 
-/**
- * Mapea un registro de inventario proveniente de la API
- * al modelo utilizado en el frontend.
- *
- * Este mapper desacopla el contrato del backend
- * del modelo plano consumido por la interfaz.
- *
- * @param i Inventario recibido desde la API
- * @returns Inventario adaptado al modelo del frontend
- */
-export const mapInventoryFromApi = (i: InventoryApiResponse) => ({
+import type {
+  ProcessApiResponse,
+  ProcessDetailApiResponse,
+  Process,
+  ProcessDetail,
+} from '../models/types'
 
-  /** Identificador único del inventario */
-  id: i.id,
+export const mapProcesoFromApi = (p: ProcessApiResponse): Process => ({
+  id: p.id,
+  invoice_number: p.invoice_number,
+  process_date: p.process_date,
+  parchment_id: p.parchment_id,
+  parchment_kg: Number(p.parchment_kg),
+  resultant_kg: Number(p.resultant_kg),
+  yield_percentage: Number(p.yield_percentage),
+  subtotal: Number(p.subtotal),
+  iva: Number(p.iva),
+  total: Number(p.total),
+  observations: p.observations?.trim() || undefined,
+})
 
-  /** Información del lote de pergamino */
-  parchment_info: i.parchment_info,
-
-  /** Tipo de producto (ej: Ground Coffee, Coffee Beans) */
-  type: i.type,
-
-  /** Cantidad del producto */
-  amount: i.amount,
-
-  /** Variedad del café */
-  variety: i.variety,
-
-  /** Nivel de tostión */
-  roast_level: i.roast_level,
-
-  /** Precio por unidad */
-  unity_price: i.unity_price,
-
-  /** Precio total */
-  total_price: i.total_price,
+export const mapDetalleFromApi = (d: ProcessDetailApiResponse): ProcessDetail => ({
+  id: d.id,
+  p_id: d.process_id,
+  process_date  : d.date,
+  product_id: d.product_id,
+  bag_quantity: d.bag_quantity,
+  grams_per_bag: d.grams_per_bag,
+  unit_value: Number(d.unit_value),
+  iva: Number(d.iva),
+  total: Number(d.total),
+  observations: d.observations?.trim() || undefined,
 })

@@ -42,7 +42,7 @@ export interface TableField<T> {
    * Propiedad del modelo asociada al campo.
    * Debe existir en el tipo T.
    */
-  accessor: keyof T
+  accessor: keyof T | string
 
   /** Título visible del campo o columna */
   header: string

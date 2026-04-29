@@ -1,80 +1,131 @@
-// src/features/Inventory/types.ts
+// features/inventoryProcessed/models/types.ts
+
+// ─── Process ─────────────────────────────────────────────────────────────────
 
 /**
- * Representa un registro de inventario en el frontend.
- *
- * Este modelo se utiliza para:
- * - Mostrar información en tablas y formularios
- * - Enviar datos a la API al crear o actualizar inventario
- *
- * Es un modelo plano, desacoplado de la estructura del backend.
+ * Represents a roasting/processing batch in the frontend.
+ * A process consumes parchment coffee and yields roasted bags.
  */
-export interface Inventory {
-
-  /** Identificador único del inventario */
+export interface Process {
   id: number
 
-  /** Información del lote de pergamino */
-  parchment_info: string
+  /** Invoice / bill number from the roaster */
+  invoice_number: string
 
-  /** Tipo de producto (ej: Ground Coffee, Coffee Beans) */
-  type: string
+  /** Date the process took place */
+  process_date: string
 
-  /** Cantidad del producto */
-  amount: number
+  /** Farmer linked to the parchment used */
+  parchment_id: number
 
-  /** Variedad del café */
-  variety: string
+  /** Parchment coffee sent (Kg) — entered manually */
+  parchment_kg: number
 
-  /** Nivel de tostión */
-  roast_level: string
+  /** Resulting roasted weight (Kg) — sum of detail lines */
+  resultant_kg: number
 
-  /** Precio por unidad */
-  unity_price: number
+  /** Rendimiento = (Resultante / Pergamino_Kg) * 100 */
+  yield_percentage: number
 
-  /** Precio total */
-  total_price: number
+  /** Sum of (Valor_Unitario * Cantidad_Bolsas) for all detail lines */
+  subtotal: number
+
+  /** Subtotal * 0.052 */
+  iva: number
+
+  /** Subtotal + IVA */
+  total: number
+
+  /** Optional notes */
+  observations?: string
 }
 
-/**
- * Filtros disponibles para la consulta de inventario.
- */
-export interface InventorysQuery {
+// ─── Process Detail ──────────────────────────────────────────────────────────
 
-  /** Texto de búsqueda (lote, tipo, variedad, etc.) */
+/**
+ * A single line inside a process (one product/presentation).
+ */
+export interface ProcessDetail {
+  id: number
+
+  /** FK to Proceso */
+  p_id: number
+
+  /** Date (usually same as the parent process) */
+  process_date: string
+
+  /** Product name (e.g. "Tostado 250g", "Tostado 1Kg") */
+  product_id: number
+
+  /** Number of bags produced */
+  bag_quantity: number
+
+  /** Weight per bag in grams */
+  grams_per_bag: number
+
+  /** Price per bag */
+  unit_value: number
+
+  /** unit_value * bag_quantity * 0.052 */
+  iva: number
+
+  /** (unit_value * bag_quantity) + IVA */
+  total: number
+
+  /** Optional notes */
+  observations?: string
+}
+
+// ─── Query filters ────────────────────────────────────────────────────────────
+
+export interface ProcessQuery {
   search?: string
 }
 
-/**
- * Representa la estructura del inventario
- * tal como la envía la API.
- *
- * Este tipo refleja fielmente el contrato del backend
- * y debe usarse únicamente en servicios y mappers.
- */
-export interface InventoryApiResponse {
+// ─── API response shapes ──────────────────────────────────────────────────────
 
-  /** Identificador único */
+export interface ProcessApiResponse {
   id: number
+  invoice_number: string
+  process_date: string
+  parchment_id: number
+  parchment_kg: string
+  resultant_kg: string
+  yield_percentage: string
+  subtotal: string
+  iva: string
+  total: string
+  observations?: string
+}
 
-  /** Información del lote de pergamino */
-  parchment_info: string
+export interface ProcessDetailApiResponse {
+  id: number
+  process_id: number
+  date: string
+  product_id: number
+  bag_quantity: number
+  grams_per_bag: number
+  unit_value: string
+  iva: string
+  total: string
+  observations?: string
+}
 
-  /** Tipo de producto */
-  type: string
+// ─── Create payloads (what we send to the backend) ───────────────────────────
 
-  /** Cantidad */
-  amount: number
+export interface CreateProcessDetailPayload {
+  product_id: number | null
+  bag_quantity: number
+  grams_per_bag: number
+  unit_value: number
+  observations?: string
+}
 
-  /** Variedad */
-  variety: string
-
-  /** Nivel de tostión */
-  roast_level: string
-
-  /** Precio por unidad */
-  unity_price: number
-
-  /** Precio total */
-  total_price: number
+export interface CreateProcessPayload {
+  invoice_number: string
+  process_date: string
+  parchment_id: number
+  parchment_kg: number
+  observations?: string
+  details: CreateProcessDetailPayload[]
 }
