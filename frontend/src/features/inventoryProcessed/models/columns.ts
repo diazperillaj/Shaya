@@ -1,85 +1,84 @@
-  // src/features/Inventorys/columns.ts
-  import type { ColumnDef } from '@tanstack/react-table'
-  import type { Inventory } from './types'
+// features/inventoryProcessed/models/columns.ts
 
-  /**
-   * Definición de las columnas de la tabla de clientes.
-   *
-   * Este arreglo describe cómo se deben mostrar los datos
-   * del modelo `Inventory` dentro de la tabla.
-   *
-   * Es consumido por el componente `DataTable`, que se encarga
-   * de renderizar las filas y manejar acciones como edición.
-   */
-  export const InventoryColumns: ColumnDef<Inventory>[] = [
+import type { ColumnDef } from '@tanstack/react-table'
+import type { Process } from './types'
 
-    /** Identificador único del inventario */
-    {
-      accessorKey: 'id',
-      header: 'ID',
-      cell: info => info.getValue(),
-    },
+const fmtCOP = (n: number): string =>
+  n.toLocaleString('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  })
 
-    /** Parchment info */
-    {
-      accessorKey: 'parchment_info',
-      header: 'Info lote',
-      cell: info => info.getValue(),
-    },
+export const ProcessColumns: ColumnDef<Process>[] = [
+  {
+    accessorKey: 'id',
+    header: 'ID',
+  },
 
-    /** Type */
-    {
-      accessorKey: 'type',
-      header: 'Tipo',
-      cell: info => info.getValue(),
-    },
+  {
+    accessorKey: 'No_Factura',
+    header: 'No. Factura',
+  },
 
-    /** Amount */
-    {
-      accessorKey: 'amount',
-      header: 'Cantidad',
-      cell: info => info.getValue(),
-    },
-    
-    /** Variety */
-    {
-      accessorKey: 'variety',
-      header: 'Variedad',
-      cell: info => info.getValue(),
-    },
+  {
+    accessorKey: 'Fecha',
+    header: 'Fecha',
+  },
 
-    /** Roast level */
-    {
-      accessorKey: 'roast_level',
-      header: 'Nivel de tostión',
-      cell: info => info.getValue(),
-    },
+  {
+    accessorKey: 'Farmer_Nombre',
+    header: 'Caficultor',
+  },
 
-    /** Price per unity */
-    {
-      accessorKey: 'unity_price',
-      header: 'Precio por unidad',
-      cell: info => info.getValue(),
-    },
+  {
+    accessorKey: 'Pergamino_Kg',
+    header: 'Pergamino (Kg)',
+    cell: ({ getValue }) => `${(getValue() as number).toFixed(2)} Kg`,
+  },
 
-    /** Total price */
-    {
-      accessorKey: 'total_price',
-      header: 'Precio total',
-      cell: info => info.getValue(),
-    },
+  {
+    accessorKey: 'Resultante',
+    header: 'Resultante (Kg)',
+    cell: ({ getValue }) => `${(getValue() as number).toFixed(2)} Kg`,
+  },
 
+  {
+    accessorKey: 'Rendimiento',
+    header: 'Rendimiento (%)',
+    cell: ({ getValue }) => `${(getValue() as number).toFixed(1)} %`,
+  },
 
-    /**
-     * Columna de acciones.
-     *
-     * El contenido se renderiza dinámicamente
-     * desde el componente `DataTable` mediante
-     * callbacks como `onEdit`.
-     */
-    {
-      accessorKey: 'edit',
-      header: 'Acciones',
-      cell: () => null,
-    },
-  ]
+  {
+    accessorKey: 'Subtotal',
+    header: 'Subtotal',
+    cell: ({ getValue }) => fmtCOP(getValue() as number),
+  },
+
+  {
+    accessorKey: 'IVA',
+    header: 'IVA',
+    cell: ({ getValue }) => fmtCOP(getValue() as number),
+  },
+
+  {
+    accessorKey: 'Total',
+    header: 'Total',
+    cell: ({ getValue }) => fmtCOP(getValue() as number),
+  },
+
+  {
+    accessorKey: 'Observaciones',
+    header: 'Observaciones',
+    cell: ({ getValue }) => (getValue() as string | undefined) ?? '—',
+  },
+
+  {
+    // This column is handled by DataTable to render Edit + View buttons.
+    // The cell renderer is overridden in InventoryProcessedPage via the
+    // DataTable `extraActions` prop (or however your DataTable exposes it).
+    accessorKey: 'edit',
+    header: 'Acciones',
+    cell: () => null,
+  },
+]

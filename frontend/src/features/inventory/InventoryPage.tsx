@@ -147,7 +147,7 @@ export default function InventoryProcessedPage({
           {/* Derecha */}
           <button
             className="text-xl bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
-            onClick={() => setActiveMenuItem(6)}
+            onClick={() => setActiveMenuItem(1)}
           >
             <Replace className="w-5 h-5" />
             Inventario de cafe procesado1

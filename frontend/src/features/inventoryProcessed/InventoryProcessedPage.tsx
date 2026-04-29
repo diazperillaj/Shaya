@@ -1,164 +1,193 @@
+// features/inventoryProcessed/InventoryProcessedPage.tsx
+
 import { useEffect, useState } from "react";
-import DataTable from "../../components/ui/DataTable";
-import ModalBig from "../../components/ui/DetailModal";
-import { CirclePlus, Search, X, Replace } from "lucide-react";
+import { CirclePlus, Search, X, Replace, Eye } from "lucide-react";
+
 
 import { runWithAlert } from "../../hooks/useSafeAction";
 
-import { InventoryColumns } from "./models/columns";
-import { InventoryFields } from "./models/fields";
-import type { Inventory } from "./models/types";
+import { ProcessColumns } from "./models/columns";
+import type {
+  Process,
+  ProcessDetail,
+  CreateProcessPayload,
+} from "./models/types";
 import {
-  fetchInventorys,
-  createInventory,
-  updateInventory,
-  deleteInventory,
-  getFarmers,
+  fetchProcesos,
+  createProceso,
+  fetchDetallesByProceso,
+  fetchParchments,
+  fetchProducts,
+  
 } from "./services/inventoryProcessed.api";
+
+import DataTable from "../../components/ui/DataTable";
+import ProcessFormModal from "./components/ProcessFormModal";
+import ProcesoDetailModal from "./components/ProcessModal";
 
 import { useAuth } from "../auth/AuthContext";
 
-/**
- * Tipo de la función encargada de cambiar
- * el item activo del menú.
- */
+
+// import type { Inventory } from "../inventory/models/types";
+
+import type { Parchment } from "./mapper/parchment.mapper";
+import type { Product } from "../products/models/types";
+
+
+
 type setActiveMenuItem = (item: number) => void;
 
-/**
- * Props del componente Sidebar.
- */
 interface SidebarProps {
-  /** Callback para cambiar la vista activa del menú */
   setActiveMenuItem: setActiveMenuItem;
 }
 
-
 /**
- * Página de gestión de clientes.
+ * Page for managing the processed (roasted) coffee inventory.
  *
- * Permite:
- * - Listar clientees
- * - Buscar clientees por texto
- * - Crear nuevos clientees
- * - Editar clientees existentes
- * - Eliminar clientees
- *
- * Las acciones de edición y eliminación
- * dependen de los permisos del usuario autenticado.
+ * Allows:
+ * - Listing all processes
+ * - Searching processes
+ * - Creating new processes with detail lines
+ * - Viewing the detail of a process in a read-only modal
  */
-export default function InventorysPage({ setActiveMenuItem }: SidebarProps) {
-  /**
-   * Lista de clientees obtenida desde la API.
-   */
-  const [data, setData] = useState<Inventory[]>([]);
-
-  /**
-   * Cliente actualmente seleccionado para edición.
-   */
-  const [editingInventory, setEditingInventory] = useState<Inventory | null>(
-    null,
-  );
-
-  /**
-   * Controla la visibilidad del modal de creación.
-   */
-  const [addingInventory, setAddingInventory] = useState(false);
-
-  /**
-   * Nombre base utilizado en los títulos de los modales.
-   */
-  const [namePage] = useState("inventario");
-
-  /**
-   * Texto de búsqueda para filtrar clientes.
-   */
+export default function InventoryProcessedPage({
+  setActiveMenuItem,
+}: SidebarProps) {
+  const [data, setData] = useState<Process[]>([]);
   const [search, setSearch] = useState("");
 
-  /**
-   * Estado reservado para futuros filtros.
-   * (Actualmente no se utiliza en la consulta).
-   */
-  const [role, setRole] = useState("");
+  // ── Create modal ────────────────────────────────────────────────────────────
+  const [addingProceso, setAddingProceso] = useState(false);
 
-  /**
-   * Carga la lista de cliente desde la API
-   * aplicando los filtros activos.
-   */
-  const loadInventorys = async (): Promise<void> => {
-    const Inventorys = await fetchInventorys({ search });
-    setData(Inventorys);
-  };
+  // ── Detail view modal ───────────────────────────────────────────────────────
+  const [viewingProceso, setViewingProceso] = useState<Process | null>(null);
+  const [detalles, setDetalles] = useState<ProcessDetail[]>([]);
+  const [loadingDetalles, setLoadingDetalles] = useState(false);
 
-  /**
-   * Usuario autenticado actual.
-   * Se utiliza para validar permisos.
-   */
   const { user } = useAuth();
 
-  /**
-   * Recarga la lista de clientes cada vez
-   * que cambian los filtros.
-   */
-  useEffect(() => {
-    loadInventorys();
-  }, [search, role]);
 
-  const [fields, setFields] = useState(InventoryFields);
+
+
+
+  const [parchments, setParchments] = useState<Parchment[]>([]);
 
   useEffect(() => {
-    const loadFarmers = async () => {
-      const farmers = await getFarmers();
-
-      const farmerOptions = [{ label: "Seleccionar", value: "" }, ...farmers];
-
-      setFields((prev) =>
-        prev.map((f) =>
-          f.accessor === "farmer" ? { ...f, options: farmerOptions } : f,
-        ),
-      );
-    };
-
-    loadFarmers();
+    fetchParchments().then(setParchments);
   }, []);
+  
+  
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    fetchProducts().then(setProducts);
+  }, []);
+
+  // ── Data loading ────────────────────────────────────────────────────────────
+
+  const loadProcesos = async (): Promise<void> => {
+    const procesos = await fetchProcesos({ search });
+    setData(procesos);
+  };
+
+  useEffect(() => {
+    loadProcesos();
+  }, [search]);
+
+  // ── Open detail modal ────────────────────────────────────────────────────────
+
+  const handleView = async (proceso: Process) => {
+    setViewingProceso(proceso);
+    setDetalles([]);
+    setLoadingDetalles(true);
+    try {
+      const result = await fetchDetallesByProceso(proceso.id);
+      setDetalles(result);
+    } finally {
+      setLoadingDetalles(false);
+    }
+  };
+
+  // ── Create ───────────────────────────────────────────────────────────────────
+
+  const handleCreate = async (payload: CreateProcessPayload): Promise<void> => {
+    await runWithAlert(async () => {
+      await createProceso(payload);
+      await loadProcesos();
+      setAddingProceso(false);
+    }, "Proceso creado correctamente");
+  };
+
+  // ── Columns with custom "Ver" action ─────────────────────────────────────────
+  //
+  // We inject a custom render for the `edit` column so the table shows
+  // both the standard Edit button (managed by DataTable) and a "Ver" button.
+  // If your DataTable doesn't support injecting extra cells this way,
+  // you can pass an `extraActions` prop or render the column here directly.
+  //
+  // The column definition below replaces the `edit` column's cell renderer
+  // so DataTable doesn't need modifications.
+
+  const columnsWithView = ProcessColumns.map((col) => {
+    if ((col as any).accessorKey === "edit") {
+      return {
+        ...col,
+        cell: ({ row }: any) => (
+          <div className="flex items-center gap-2">
+            {/* Ver */}
+            <button
+              onClick={() => handleView(row.original)}
+              className="flex items-center gap-1.5 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-lg font-medium transition-all duration-200 hover:scale-105"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              Ver
+            </button>
+          </div>
+        ),
+      };
+    }
+    return col;
+  });
+
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Page title */}
       <div className="flex flex-col gap-6">
         <div className="text-3xl font-semibold flex items-center justify-between">
-          {/* Izquierda */}
           <div className="flex items-center gap-2">
             <div className="flex justify-center items-center hover:cursor-pointer hover:scale-105 transition-transform duration-400">
               <CirclePlus
-                onClick={() => setAddingInventory(true)}
+                onClick={() => setAddingProceso(true)}
                 className="inline w-8 h-8 text-emerald-900 font-bold"
               />
             </div>
-            Gestión de inventario procesado
+            Gestión de inventario café procesado
           </div>
 
-          {/* Derecha */}
-          <button 
-            onClick={() => setActiveMenuItem(1)}
-            className="text-xl bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2">
+          <button
+            className="text-xl bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+            onClick={() => setActiveMenuItem(6)}
+          >
             <Replace className="w-5 h-5" />
-            Inventario de pergamino
+            Inventario pergamino
           </button>
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filters */}
       <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
         <div className="flex flex-wrap gap-4 items-end">
-          {/* Campo de búsqueda */}
           <div className="flex-1 min-w-[200px]">
             <label className="flex text-sm font-semibold text-gray-700 mb-2">
-              Buscar inventario
+              Buscar proceso
             </label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Buscar"
-                value={search} // 🔹 conectamos al estado
+                placeholder="Buscar por factura, caficultor…"
+                value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="text-sm w-full border border-gray-200 rounded-xl px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-emerald-900 focus:border-transparent transition-all duration-200 hover:border-emerald-900"
               />
@@ -166,21 +195,9 @@ export default function InventorysPage({ setActiveMenuItem }: SidebarProps) {
             </div>
           </div>
 
-          {/* Botones */}
           <div className="flex gap-2 flex-col md:flex-row w-max">
-            {/* <button
-                            onClick={loadInventorys} // 🔹 botón Filtrar recarga los datos
-                            className="text-sm h-11 bg-emerald-900 hover:bg-emerald-950 text-white px-6 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
-                        >
-                            <Funnel className="w-5 h-5" />
-                            Filtrar
-                        </button> */}
-
             <button
-              onClick={() => {
-                setSearch("");
-                setRole("");
-              }} // 🔹 Limpiar filtros
+              onClick={() => setSearch("")}
               className="text-sm h-11 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200 flex items-center gap-2 border border-gray-200"
             >
               <X className="w-5 h-5" />
@@ -190,50 +207,34 @@ export default function InventorysPage({ setActiveMenuItem }: SidebarProps) {
         </div>
       </div>
 
+      {/* Table */}
       <DataTable
-        columns={InventoryColumns}
+        columns={columnsWithView}
         data={data}
-        onEdit={setEditingInventory}
-        isAdmin={user?.role === "admin" ? true : false}
+        onEdit={() => {}} // edit not used for processes (view-only detail)
+        isAdmin={user?.role === "admin"}
       />
 
-      {editingInventory && (
-        <ModalBig
-          item={editingInventory}
-          fields={fields}
-          onClose={() => setEditingInventory(null)}
-          onSave={(Inventory) =>
-            runWithAlert(async () => {
-              await updateInventory(Inventory);
-              await loadInventorys();
-              setEditingInventory(null);
-            }, "Cliente editado correctamente")
-          }
-          onDelete={async (id) => {
-            await deleteInventory(Number(id));
-            await loadInventorys();
-            setEditingInventory(null);
-          }}
-          idKey="id"
-          mode="edit"
-          title={namePage}
+      {/* Create modal */}
+      {addingProceso && (
+        <ProcessFormModal
+          onClose={() => setAddingProceso(false)}
+          onSave={handleCreate}
+          parchments={parchments}
+          products={products}
         />
       )}
 
-      {addingInventory && (
-        <ModalBig
-          item={{} as Inventory}
-          fields={fields}
-          onClose={() => setAddingInventory(false)}
-          onSave={(Inventory) =>
-            runWithAlert(async () => {
-              await createInventory(Inventory);
-              await loadInventorys();
-              setAddingInventory(false);
-            }, "Cliente creado correctamente")
-          }
-          mode="add"
-          title={namePage}
+      {/* Detail view modal */}
+      {viewingProceso && (
+        <ProcesoDetailModal
+          proceso={viewingProceso}
+          detalles={detalles}
+          loading={loadingDetalles}
+          onClose={() => {
+            setViewingProceso(null);
+            setDetalles([]);
+          }}
         />
       )}
     </div>
