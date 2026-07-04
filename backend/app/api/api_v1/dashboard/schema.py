@@ -1,0 +1,55 @@
+from decimal import Decimal
+from typing import List, Optional
+from pydantic import BaseModel
+
+
+# ─── Coffee price ─────────────────────────────────────────────────────────────
+
+class CoffeePriceResponse(BaseModel):
+    price_raw: str           # e.g. "$ 2.320.000,00"
+    price_value: Optional[float]  # numeric value for display
+    source: str
+    error: Optional[str] = None
+
+
+# ─── KPIs ─────────────────────────────────────────────────────────────────────
+
+class DashboardKPIs(BaseModel):
+    # Sales
+    sales_total_month: float         # total revenue this month
+    sales_count_month: int           # number of sales this month
+    sales_total_all_time: float      # all-time revenue
+    sales_count_all_time: int        # all-time sale count
+    # Inventory
+    parchment_available_kg: float    # total remaining parchment (kg)
+    roasted_bags_available: int      # total remaining roasted bags
+    roasted_bags_total: int          # total produced roasted bags
+    # Coffee price (scraped)
+    coffee_price_raw: str
+    coffee_price_value: Optional[float]
+
+
+# ─── Charts ───────────────────────────────────────────────────────────────────
+
+class ChartPoint(BaseModel):
+    label: str
+    value: float
+
+
+class ChartSeries(BaseModel):
+    name: str
+    data: List[float]
+
+
+class BarChartData(BaseModel):
+    labels: List[str]
+    series: List[ChartSeries]
+
+
+class DashboardCharts(BaseModel):
+    # Chart 1: Monthly sales revenue (last 6 months)
+    sales_by_month: BarChartData
+    # Chart 2: Top 5 best-selling products by units sold
+    top_products: BarChartData
+    # Chart 3: Roasted inventory – available vs sold per product
+    inventory_status: BarChartData
