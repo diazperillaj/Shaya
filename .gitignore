@@ -22,3 +22,6 @@ frontend/dist/
 .vscode/
 .idea/
 Thumbs.db
+
+# Scripts locales (específicos de máquina)
+run.bat
