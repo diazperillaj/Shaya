@@ -14,6 +14,8 @@ class MovementTypeEnum(enum.Enum):
     adjustment = "adjustment"
     spoilage = "spoilage"
     devolution = "devolution"
+    fair_entrance = "fair_entrance"
+    fair_return = "fair_return"
 
 class ProductMovementTypeEnum(enum.Enum):
     """Enumeración para tipo de producto en movimiento"""
@@ -53,28 +55,30 @@ class InventoryMovement(Base):
         ForeignKey("parchments.id", ondelete="CASCADE"),
         nullable=True
     )
-    processed_id: Mapped[int] = mapped_column(
+    process_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("processed.id", ondelete="CASCADE"),
+        ForeignKey("processes.id", ondelete="CASCADE"),
+        nullable=True
+    )
+    sale_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("sales.id", ondelete="CASCADE"),
+        nullable=True
+    )
+    fair_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("fairs.id", ondelete="CASCADE"),
         nullable=True
     )
     quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     reason: Mapped[str] = mapped_column(String(255), nullable=True)
-    sale_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("sales.id", ondelete="SET NULL"),
-        nullable=True
-    )
-    toll_process_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("toll_processes.id", ondelete="SET NULL"),
-        nullable=True
-    )
+
+
     responsible: Mapped[str] = mapped_column(String(255), nullable=True)
     observations: Mapped[str] = mapped_column(Text, nullable=True)
     
     # Relaciones
     parchment = relationship("Parchment", back_populates="movements")
-    processed = relationship("Processed", back_populates="movements")
+    process = relationship("Process", back_populates="movements")
     sale = relationship("Sale", back_populates="movements")
-    toll_process = relationship("TollProcess", back_populates="movements")
+    fair = relationship("Fair", back_populates="movements")

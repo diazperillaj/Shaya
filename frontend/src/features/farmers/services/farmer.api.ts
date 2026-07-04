@@ -2,7 +2,7 @@ import type { Farmer, FarmersQuery } from '../models/types'
 import { mapFarmerFromApi } from '../mapper/farmer.mapper'
 
 
-const BASE_URL = 'http://localhost:8000/api/v1/farmers'
+const BASE_URL = '/api/v1/farmers'
 
 function normalizeFields(doc: string | null | undefined): string | null {
   if (!doc || doc.trim() === "" || doc === "Sin documento" || doc === "Sin correo") {

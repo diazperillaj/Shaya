@@ -1,6 +1,7 @@
 // src/features/users/columns.ts
 import type { ColumnDef } from '@tanstack/react-table'
 import type { User } from './types'
+import { fmtPhone } from '../../../hooks/formatPhone'
 
 /**
  * Definición de las columnas de la tabla de usuarios.
@@ -48,7 +49,8 @@ export const userColumns: ColumnDef<User>[] = [
   {
     accessorKey: 'phone',
     header: 'Teléfono',
-    cell: info => info.getValue(),
+    cell: ({ getValue }) =>
+      fmtPhone(getValue() as number | string | undefined),
   },
 
   /** Rol asignado al usuario dentro del sistema */

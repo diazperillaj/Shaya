@@ -37,6 +37,7 @@ export interface Farmer {
 
   /** Observaciones adicionales */
   observation?: string
+
 }
 
 /**

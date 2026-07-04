@@ -2,7 +2,7 @@ import type { Customer, CustomersQuery } from '../models/types'
 import { mapCustomerFromApi } from '../mapper/customer.mapper'
 
 
-const BASE_URL = 'http://localhost:8000/api/v1/customers'
+const BASE_URL = '/api/v1/customers'
 
 function normalizeFields(doc: string | null | undefined): string | null {
   if (!doc || doc.trim() === "" || doc === "Sin documento" || doc === "Sin correo" || doc === "Sin dirección") {

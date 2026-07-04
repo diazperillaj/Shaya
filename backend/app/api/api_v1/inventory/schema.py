@@ -195,7 +195,7 @@ class ParchmentInventoryAdjustment(BaseModel):
     @classmethod
     def validate_movement_type(cls, v: str) -> str:
         """Valida que el tipo de movimiento sea válido"""
-        allowed_types = ['adjustment', 'spoilage', 'devolution']
+        allowed_types = ['adjustment', 'spoilage', 'devolution', 'parchment_entrace', 'parchment_exit', 'processed_entrace', 'processed_exit']
         if v not in allowed_types:
             raise ValueError(f'Movement type must be one of: {", ".join(allowed_types)}')
         return v

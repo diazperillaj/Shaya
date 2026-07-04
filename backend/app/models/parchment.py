@@ -44,14 +44,8 @@ class Parchment(Base):
     inventory = relationship("Inventory", back_populates="parchment")
     farmer = relationship("Farmer", back_populates="parchments")
     
-    processed = relationship(
-        "Processed",
-        back_populates="parchment",
-        cascade="all, delete-orphan"
-    )
-    
-    toll_process = relationship(
-        "TollProcess",
+    processes = relationship(
+        "Process",
         back_populates="parchment",
         cascade="all, delete-orphan"
     )
@@ -59,13 +53,6 @@ class Parchment(Base):
     movements = relationship(
         "InventoryMovement",
         foreign_keys="[InventoryMovement.parchment_id]",
-        back_populates="parchment",
-        cascade="all, delete-orphan"
-    )
-    
-    sale_details = relationship(
-        "SaleDetail",
-        foreign_keys="[SaleDetail.parchment_id]",
         back_populates="parchment",
         cascade="all, delete-orphan"
     )

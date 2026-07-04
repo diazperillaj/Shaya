@@ -3,8 +3,8 @@ import { useAuth } from '../../auth/AuthContext'
 import type { Sale, SalesQuery } from '../models/types'
 import { mapSaleFromApi } from '../mapper/sale.mapper'
 
-const BASE_URL = "http://localhost:8000/api/v1/fast-sale";
-const PRODUCT_URL = "http://localhost:8000/api/v1/products";
+const BASE_URL = "/api/v1/fast-sale";
+const PRODUCT_URL = "/api/v1/products";
 
 /**
  * Hook personalizado para el servicio de ventas.

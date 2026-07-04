@@ -29,6 +29,7 @@ class ProductCreate(BaseModel):
     quantity: int
     type: ProductTypeEnum
     description: Optional[str] = None
+    generates_inventory: Optional[bool] = True
     
     @field_validator("description", mode="before")
     def empty_to_none(cls, v):
@@ -46,7 +47,7 @@ class ProductResponse(BaseModel):
     quantity: int
     type: ProductTypeEnum
     description: Optional[str] = None
-
+    generates_inventory: Optional[bool] = True
     # En Pydantic V2, `Config: orm_mode = True` se reemplaza por `model_config`
     model_config = ConfigDict(from_attributes=True)
         
@@ -60,6 +61,7 @@ class ProductUpdate(BaseModel):
     quantity: Optional[int] = None
     type: Optional[ProductTypeEnum] = None
     description: Optional[str] = None
+    generates_inventory: Optional[bool] = True
     
     @field_validator("description", mode="before")
     def empty_to_none(cls, v):
@@ -76,3 +78,4 @@ class ProductUpdateResponse(BaseModel):
     quantity: int
     type: ProductTypeEnum
     description: Optional[str] = None
+    generates_inventory: Optional[bool] = True

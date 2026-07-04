@@ -14,6 +14,10 @@ class Settings(BaseSettings):
 
     FRONTEND_URL: str
 
+    # True solo cuando la app se sirve por HTTPS (la cookie de sesión
+    # deja de enviarse por HTTP plano).
+    COOKIE_SECURE: bool = False
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8"

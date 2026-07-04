@@ -5,7 +5,7 @@ import { mapUserFromApi } from '../mapper/user.mapper'
  * URL base del módulo de usuarios.
  * Centraliza el endpoint para facilitar cambios de entorno.
  */
-const BASE_URL = 'http://localhost:8000/api/v1/users'
+const BASE_URL = '/api/v1/users'
 
 
 function normalizeFields(doc: string | null | undefined): string | null {

@@ -1,5 +1,5 @@
 import type { TableField } from '../../../models/common'
-import type { Product } from './types'
+import type { Product, ProductExpense } from './types'
 
 /**
  * Definición de los campos del formulario de productos.
@@ -36,4 +36,33 @@ export const ProductFields: TableField<Product>[] = [
 
   /** Descripción adicional del producto */
   { accessor: 'description', header: 'Descripción', type: 'textarea' },
+  { accessor: 'generates_inventory', header: 'Genera Inventario', type: 'checkbox' },
+]
+
+/**
+ * Etiquetas en español para las categorías de costos de producción.
+ * Los valores coinciden con el enum del backend (ProductExpenseCategoryEnum).
+ */
+export const PRODUCT_EXPENSE_CATEGORY_LABELS: Record<string, string> = {
+  packaging: 'Empaque',
+  label: 'Etiqueta',
+  supplies: 'Insumos',
+  other: 'Otro',
+}
+
+/**
+ * Campos del formulario de costos de producción por producto.
+ * Consumidos por el Modal genérico.
+ */
+export const ProductExpenseFields: TableField<ProductExpense>[] = [
+  {
+    accessor: 'category',
+    header: 'Categoría',
+    type: 'select',
+    options: Object.entries(PRODUCT_EXPENSE_CATEGORY_LABELS).map(
+      ([value, label]) => ({ label, value }),
+    ),
+  },
+  { accessor: 'amount', header: 'Valor por bolsa', type: 'number' },
+  { accessor: 'observations', header: 'Observaciones', type: 'textarea' },
 ]

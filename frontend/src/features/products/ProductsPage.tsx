@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import DataTable from '../../components/ui/DataTable'
 import Modal from '../../components/ui/Modal'
-import { CirclePlus, Funnel, Search, X } from 'lucide-react'
+import { CirclePlus, Search, Wheat } from 'lucide-react'
 
 import { runWithAlert } from '../../hooks/useSafeAction'
 
 import { ProductColumns } from './models/columns'
 import { ProductFields } from './models/fields'
 import type { Product } from './models/types'
+import ProductExpensesModal from './components/ProductExpensesModal'
 import {
   fetchProducts,
   createProduct,
@@ -48,6 +49,11 @@ export default function ProductsPage() {
   const [addingProduct, setAddingProduct] = useState(false)
 
   /**
+   * Producto cuyo modal de costos de producción está abierto.
+   */
+  const [viewingExpensesProduct, setViewingExpensesProduct] = useState<Product | null>(null)
+
+  /**
    * Nombre base utilizado en los títulos de los modales.
    */
   const [namePage] = useState('caficultor')
@@ -61,7 +67,7 @@ export default function ProductsPage() {
    * Estado reservado para futuros filtros.
    * (Actualmente no se utiliza en la consulta).
    */
-  const [role, setRole] = useState('')
+  const [role] = useState('')
 
   /**
    * Carga la lista de caficultores desde la API
@@ -88,61 +94,48 @@ export default function ProductsPage() {
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="text-3xl font-semibold flex items-center gap-2">
-                <div className='flex justify-center items-center hover:cursor-pointer hover:scale-105 transition-transform duration-400'>
-                    <CirclePlus onClick={() => setAddingProduct(true)} className="inline w-8 h-8 text-emerald-900 font-bold" />
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-100 rounded-xl">
+                  <Wheat className="w-6 h-6 text-emerald-800" />
                 </div>
-                Gestión de productos
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Productos</h1>
+                  <p className="text-sm text-gray-400">{data.length} producto{data.length !== 1 ? 's' : ''} registrado{data.length !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              {user?.role === 'admin' && (
+                <button onClick={() => setAddingProduct(true)} className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition-all">
+                  <CirclePlus className="w-4 h-4" /> Nuevo producto
+                </button>
+              )}
             </div>
 
-            {/* Filtros */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                <div className="flex flex-wrap gap-4 items-end">
-                    {/* Campo de búsqueda */}
-                    <div className="flex-1 min-w-[200px]">
-                        <label className="flex text-sm font-semibold text-gray-700 mb-2">
-                            Buscar caficultor
-                        </label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Buscar"
-                                value={search} // 🔹 conectamos al estado
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="text-sm w-full border border-gray-200 rounded-xl px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-emerald-900 focus:border-transparent transition-all duration-200 hover:border-emerald-900"
-                            />
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        </div>
-                    </div>
-
-                    {/* Botones */}
-                    <div className="flex gap-2 flex-col md:flex-row w-max">
-                        {/* <button
-                            onClick={loadProducts} // 🔹 botón Filtrar recarga los datos
-                            className="text-sm h-11 bg-emerald-900 hover:bg-emerald-950 text-white px-6 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
-                        >
-                            <Funnel className="w-5 h-5" />
-                            Filtrar
-                        </button> */}
-
-                        <button
-                            onClick={() => { setSearch(''); setRole('') }} // 🔹 Limpiar filtros
-                            className="text-sm h-11 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200 flex items-center gap-2 border border-gray-200"
-                        >
-                            <X className="w-5 h-5" />
-                            Limpiar
-                        </button>
-                    </div>
-                </div>
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar producto…"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700 bg-white"
+              />
             </div>
 
             <DataTable
                 columns={ProductColumns}
                 data={data}
                 onEdit={setEditingProduct}
+                onView={setViewingExpensesProduct}
                 isAdmin={user?.role === 'admin' ? true : false}
 
             />
+
+            {viewingExpensesProduct && (
+                <ProductExpensesModal
+                    product={viewingExpensesProduct}
+                    onClose={() => setViewingExpensesProduct(null)}
+                />
+            )}
 
             {editingProduct && (
                 <Modal
@@ -159,11 +152,16 @@ export default function ProductsPage() {
                             'Caficultor editado correctamente'
                         )
                     }
-                    onDelete={async (id) => {
-                        await deleteProduct(Number(id))
-                        await loadProducts()
-                        setEditingProduct(null)
-                    }}
+                    onDelete={(id) =>
+                        runWithAlert(
+                            async () => {
+                                await deleteProduct(Number(id))
+                                await loadProducts()
+                                setEditingProduct(null)
+                            },
+                            'Producto eliminado correctamente'
+                        )
+                    }
                     idKey="id"
                     mode="edit"
                     title={namePage}

@@ -16,38 +16,11 @@ from app.models.person import Person
 router = APIRouter()
 
 
-from app.core.db.base import Base
-from app.core.db.session import engine
-
-@router.get('/create/database/tables')
-def create_tables():
-    """
-    Crea todas las tablas definidas en los modelos de SQLAlchemy.
-
-    ⚠️ ADVERTENCIA:
-        Este endpoint está diseñado únicamente para entornos de desarrollo o pruebas.
-        No debe exponerse en producción.
-
-    Returns:
-        dict: Mensaje de confirmación de creación de tablas.
-    """
-    Base.metadata.create_all(bind=engine)
-
-    return {"message":"Tables created"}
-
-
-
-
-from typing import List
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-
-router = APIRouter()
-
 @router.post("/create-bulk", response_model=List[UserResponse])
 def create_users_bulk(
     users: List[UserCreate],
     db: Session = Depends(get_db),
+    current_user = Depends(require_admin),
 ):
     """
     Carga masiva de usuarios (modo pruebas).
@@ -74,7 +47,7 @@ def create_users_bulk(
 def create_user(
     user: UserCreate,
     db: Session = Depends(get_db),
-    #current_user = Depends(require_admin)
+    current_user = Depends(require_admin)
 ):
     """
     Crea un nuevo usuario en el sistema.

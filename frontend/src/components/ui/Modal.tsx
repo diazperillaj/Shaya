@@ -87,6 +87,24 @@ export default function Modal<T>({
                   </select>
                 )}
 
+                {/* CHECK */}
+                {field.type === "checkbox" && (
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData[field.accessor])}
+                    onChange={(e) =>
+                      setFormData(
+                        (prev) =>
+                          ({
+                            ...prev,
+                            [field.accessor]: e.target.checked,
+                          }) as T,
+                      )
+                    }
+                    className="ms-2 h-5 w-5 rounded border-gray-300"
+                  />
+                )}
+
                 {/* TEXTAREA */}
                 {field.type === "textarea" && (
                   <textarea
@@ -110,7 +128,8 @@ export default function Modal<T>({
                 {(field.type === "text" ||
                   field.type === "password" ||
                   field.type === "number" ||
-                  field.type === "date") && (
+                  field.type === "date" ||
+                  field.type === "datetime-local") && (
                   <div className="relative">
                     <input
                       type={

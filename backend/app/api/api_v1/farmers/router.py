@@ -25,6 +25,7 @@ from app.core.db.session import engine
 def create_farmers_bulk(
     farmers: List[FarmerCreate],
     db: Session = Depends(get_db),
+    current_user = Depends(require_admin),
 ):
     """
     Carga masiva de usuarios (modo pruebas).
@@ -45,23 +46,6 @@ def create_farmers_bulk(
     return created_farmers
 
 
-
-
-@router.get('/create/database/tables')
-def create_tables():
-    """
-    Crea todas las tablas definidas en los modelos de SQLAlchemy.
-
-    ⚠️ ADVERTENCIA:
-        Este endpoint está diseñado únicamente para entornos de desarrollo o pruebas.
-        No debe exponerse en producción.
-
-    Returns:
-        dict: Mensaje de confirmación de creación de tablas.
-    """
-    Base.metadata.create_all(bind=engine)
-
-    return {"message":"Tables created"}
 
 
 

@@ -34,9 +34,3 @@ class Inventory(Base):
         cascade="all, delete-orphan"
     )
     
-    processed = relationship(
-        "Processed",
-        back_populates="inventory",
-        uselist=False,
-        cascade="all, delete-orphan"
-    )

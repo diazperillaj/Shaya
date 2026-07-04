@@ -126,7 +126,7 @@ class PersonResponse(BaseModel):
     id: int
     full_name: str
     document: Optional[str] = None
-    phone: str
+    phone: Optional[str] = None
     email: Optional[EmailStr] = None
     observation: Optional[str] = None
     created_at: datetime

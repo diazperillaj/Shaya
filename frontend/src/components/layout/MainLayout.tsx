@@ -1,17 +1,8 @@
 import React, { useState } from "react";
-import {
-  Clipboard,
-  Home,
-  ShoppingBag,
-  Users,
-  UserCog,
-  PersonStanding,
-  ChevronLeft,
-  ChevronRight,
-  Wheat,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { logout } from "../../features/auth/service";
 import { useNavigate } from "react-router-dom";
+import { menuItems } from "../../config/menuConfig";
 
 /**
  * Tipo de la función encargada de cambiar
@@ -53,15 +44,6 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
    * Definición de los ítems del menú principal.
    * Cada ítem representa una sección de la aplicación.
    */
-  const menuItems = [
-    { id: 0, name: "Inicio", icon: Home, label: "home" },
-    { id: 1, name: "Inventario", icon: Clipboard, label: "inventory" },
-    { id: 2, name: "Ventas", icon: ShoppingBag, label: "sales" },
-    { id: 3, name: "Clientes", icon: Users, label: "clients" },
-    { id: 4, name: "Caficultores", icon: PersonStanding, label: "farmers" },
-    { id: 5, name: "Usuarios", icon: UserCog, label: "users" },
-    { id: 7, name: "Productos", icon: Wheat, label: "products" },
-  ];
 
   /** Hook de navegación de React Router */
   const navigate = useNavigate();
@@ -100,8 +82,8 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
           <div
             className={`flex items-center gap-3 transition-all duration-300 ${isSidebarOpen ? "justify-start" : "justify-center"}`}
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200">
-              <Wheat className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl shadow-lg transform hover:scale-110 transition-transform duration-200 flex-shrink-0">
+              <img src="/logo.png" alt="Shaya Café" className="w-full h-full object-contain" />
             </div>
             {isSidebarOpen && (
               <div className="overflow-hidden">
@@ -117,7 +99,7 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
         </div>
 
         {/* Menu Items */}
-        <nav className="flex-1 px-3 py-6 space-y-1 scrollbar-thin scrollbar-thumb-emerald-700 scrollbar-track-transparent">
+        <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-1 scrollbar-thin scrollbar-thumb-emerald-700 scrollbar-track-transparent">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
             return (

@@ -24,6 +24,8 @@ export interface Product {
 
   /** Descripción adicional del producto */
   description?: string
+  
+  generates_inventory: boolean
 }
 
 /**
@@ -38,6 +40,27 @@ export interface ProductsQuery {
   
   /** Filtro opcional por tipo de producto */
   type?: 'parchment' | 'processed' | 'other'
+}
+
+/**
+ * Costo de producción por bolsa de un producto (empaque, etiqueta, etc.).
+ *
+ * Los cambios aplican solo a procesos futuros: los lotes ya
+ * producidos conservan su costo histórico.
+ */
+export interface ProductExpense {
+  id: number
+  product_id: number
+  category: string
+  amount: number
+  observations?: string
+}
+
+/** Payload de creación/edición de un costo de producción */
+export interface ProductExpensePayload {
+  category: string
+  amount: number
+  observations?: string
 }
 
 /**
@@ -62,4 +85,6 @@ export interface ProductApiResponse {
 
   /** Descripción del producto (puede ser nula desde el backend) */
   description: string | null
+
+  generates_inventory: boolean
 }

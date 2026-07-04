@@ -13,6 +13,7 @@ export type FieldType =
   | 'textarea'
   | 'number'
   | 'date'
+  | 'datetime-local'
   | 'checkbox'
   | 'radio'
 
@@ -42,7 +43,7 @@ export interface TableField<T> {
    * Propiedad del modelo asociada al campo.
    * Debe existir en el tipo T.
    */
-  accessor: keyof T | string
+  accessor: keyof T
 
   /** Título visible del campo o columna */
   header: string
@@ -59,3 +60,4 @@ export interface TableField<T> {
    */
   options?: SelectOption[]
 }
+

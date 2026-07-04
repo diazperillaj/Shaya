@@ -1,6 +1,7 @@
 // src/features/Farmers/columns.ts
 import type { ColumnDef } from '@tanstack/react-table'
 import type { Farmer } from './types'
+import { fmtPhone } from '../../../hooks/formatPhone'
 
 /**
  * Definición de las columnas de la tabla de caficultores.
@@ -38,7 +39,8 @@ export const FarmerColumns: ColumnDef<Farmer>[] = [
   {
     accessorKey: 'phone',
     header: 'Teléfono',
-    cell: info => info.getValue(),
+    cell: ({ getValue }) =>
+      fmtPhone(getValue() as number | string | undefined),
   },
 
   /** Correo electrónico */

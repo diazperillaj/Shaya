@@ -135,7 +135,8 @@ class ProductService:
             name=product_data.name,
             quantity=product_data.quantity,
             type=product_data.type,
-            description=product_data.description
+                description=product_data.description,
+                generates_inventory=product_data.generates_inventory
         )
 
         self.db.add(product)
@@ -174,6 +175,9 @@ class ProductService:
         if product_data.description is not None:
             product.description = product_data.description
 
+        if product_data.generates_inventory is not None:
+            product.generates_inventory = product_data.generates_inventory
+
         self.db.commit()
         self.db.refresh(product)
         return product
@@ -197,10 +201,52 @@ class ProductService:
         if not product:
             return False
 
+        self._raise_if_product_has_children(product)
+
         self.db.delete(product)
         self.db.commit()
 
         return True
+
+    def _raise_if_product_has_children(self, product: Product) -> None:
+        """
+        Bloquea la eliminación de un producto relacionado con procesos,
+        lotes de maquilado o costos de producción, indicando dónde.
+        """
+        from app.models.detail_process import DetailProcess
+        from app.models.product_expense import ProductExpense
+
+        relations: List[str] = []
+
+        process_count = (
+            self.db.query(DetailProcess)
+            .filter(DetailProcess.product_id == product.id)
+            .count()
+        )
+        if process_count:
+            relations.append(f"{process_count} línea(s) de procesos de maquila")
+
+        lot_count = len(product.roasted_coffee_details)
+        if lot_count:
+            relations.append(f"{lot_count} lote(s) de inventario maquilado")
+
+        expense_count = (
+            self.db.query(ProductExpense)
+            .filter(ProductExpense.product_id == product.id)
+            .count()
+        )
+        if expense_count:
+            relations.append(f"{expense_count} costo(s) de producción")
+
+        if relations:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"No se puede eliminar el producto '{product.name}': "
+                    f"está relacionado con {'; '.join(relations)}. "
+                    "Para eliminarlo, borra primero esos registros."
+                ),
+            )
     
 
 

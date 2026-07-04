@@ -1,8 +1,8 @@
 import type { Inventory, InventorysQuery } from '../models/types'
 import { mapInventoryFromApi } from '../mapper/inventory.mapper'
 
-const BASE_URL = 'http://localhost:8000/api/v1/inventory'
-const FARMER_URL = 'http://localhost:8000/api/v1/farmers'
+const BASE_URL = '/api/v1/inventory'
+const FARMER_URL = '/api/v1/farmers'
 
 /* =======================
    HELPER: extrae el farmer_id sin importar si llega
@@ -21,7 +21,7 @@ export const fetchInventorys = async (filters?: InventorysQuery): Promise<Invent
   const query = new URLSearchParams()
   if (filters?.search) query.append('search', filters.search)
 
-  const res = await fetch(`${BASE_URL}/get`, { credentials: 'include' })
+  const res = await fetch(`${BASE_URL}/get?${query.toString()}`, { credentials: 'include' })
   if (!res.ok) throw new Error('Error obteniendo inventario')
 
   const data = await res.json()
@@ -130,5 +130,8 @@ export const deleteInventory = async (id: number): Promise<void> => {
     credentials: 'include',
   })
 
-  if (!res.ok) throw new Error('Error eliminando inventario')
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.detail || 'Error eliminando inventario')
+  }
 }

@@ -25,6 +25,7 @@ from app.core.db.session import engine
 def create_products_bulk(
     products: List[ProductCreate],
     db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
 ):
     """
     Carga masiva de productos (modo pruebas).
@@ -47,29 +48,11 @@ def create_products_bulk(
 
 
 
-@router.get('/create/database/tables')
-def create_tables():
-    """
-    Crea todas las tablas definidas en los modelos de SQLAlchemy.
-
-    ⚠️ ADVERTENCIA:
-        Este endpoint está diseñado únicamente para entornos de desarrollo o pruebas.
-        No debe exponerse en producción.
-
-    Returns:
-        dict: Mensaje de confirmación de creación de tablas.
-    """
-    Base.metadata.create_all(bind=engine)
-
-    return {"message":"Tables created"}
-
-
-
 @router.post("/create", response_model=ProductResponse)
 def create_product(
     product: ProductCreate,
     db: Session = Depends(get_db),
-    # current_user = Depends(require_admin)
+    current_user = Depends(require_admin)
 ):
     """
     Crea un nuevo caficultor en el sistema.
@@ -91,9 +74,9 @@ def create_product(
 @router.put("/update/{product_id}", response_model=ProductUpdateResponse)
 def update_product(
     product_id: int, 
-    product_data: ProductUpdate, 
+    product_data: ProductUpdate,
     db: Session = Depends(get_db),
-    # current_user = Depends(require_admin)
+    current_user = Depends(require_admin)
 ):
     """
     Actualiza la información de un caficultor existente.
@@ -118,9 +101,9 @@ def update_product(
 
 @router.get("/get/product/{product_id}", response_model=ProductResponse)
 def get_product_by_id(
-    product_id: int, 
+    product_id: int,
     db: Session = Depends(get_db),
-    #Producurrent_user = Depends(get_current_user)ct
+    current_user = Depends(get_current_user)
 ):
     """
     Obtiene un caficultor a partir de su identificador único.
@@ -144,8 +127,7 @@ def get_product_by_id(
 def get_products(
     search: Optional[str] = Query(None, description="Buscar por nombre completo"),
     db: Session = Depends(get_db),
-    #Producurrent_user = Depends(get_current_user)ct
-
+    current_user = Depends(get_current_user)
 ):
     """
     Obtiene una lista de usuarios registrados en el sistema.
@@ -168,9 +150,9 @@ def get_products(
 
 @router.delete("/delete/{product_id}", response_model=dict)
 def delete_product(
-    product_id: int, 
+    product_id: int,
     db: Session = Depends(get_db),
-    # current_user = Depends(require_admin)
+    current_user = Depends(require_admin)
 ):
     """
     Elimina un caficultor del sistema usando su identificador.

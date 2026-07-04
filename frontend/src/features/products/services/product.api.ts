@@ -1,7 +1,7 @@
 import type { Product, ProductsQuery } from "../models/types";
 import { mapProductFromApi } from "../mapper/product.mapper";
 
-const BASE_URL = "http://localhost:8000/api/v1/products";
+const BASE_URL = "/api/v1/products";
 
 /* =======================
    GET
@@ -34,6 +34,7 @@ export const createProduct = async (Product: Product): Promise<Product> => {
     quantity: Product.quantity,
     type: Product.type || 'processed',
     description: Product.description,
+    generates_inventory: Product.generates_inventory,
   };
 
   const res = await fetch(`${BASE_URL}/create`, {
@@ -63,6 +64,7 @@ export const updateProduct = async (Product: Product): Promise<Product> => {
     quantity: Product.quantity,
     type: Product.type || 'processed',
     description: Product.description,
+    generates_inventory: Product.generates_inventory,
   };
 
   const res = await fetch(`${BASE_URL}/update/${Product.id}`, {
@@ -95,5 +97,8 @@ export const deleteProduct = async (id: number): Promise<void> => {
     credentials: "include",
   });
 
-  if (!res.ok) throw new Error("Error eliminando producto");
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || "Error eliminando producto");
+  }
 };

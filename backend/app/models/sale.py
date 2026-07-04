@@ -1,80 +1,45 @@
-# app/models/sale.py
-from sqlalchemy import Integer, String, Text, DateTime, Numeric, ForeignKey, Enum, Index, func as sql_func
-from sqlalchemy.orm import relationship, Mapped, mapped_column
-from app.core.db.base import Base
-from decimal import Decimal
 import enum
+from datetime import date
+from decimal import Decimal
+from typing import Optional
 
+from sqlalchemy import Date, Enum, ForeignKey, Index, Integer, Numeric, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-class PaymentTypeEnum(enum.Enum):
-    """Enumeración para tipos de pago"""
-    cash = "cash"
-    transfer = "transfer"
-    credit = "credit"
+from app.core.db.base import Base
 
 
 class SaleStatusEnum(enum.Enum):
-    """Enumeración para estados de venta"""
     completed = "completed"
-    pending = "pending"
-    canceled = "canceled"
+    in_progress = "in_progress"
 
 
 class Sale(Base):
-    """
-    Modelo ORM que representa una venta realizada en el sistema.
-    
-    Registra las ventas de café (pergamino o maquilado) con información
-    del cliente, método de pago y estado de la transacción.
-    """
-
     __tablename__ = "sales"
     __table_args__ = (
-        Index('idx_sale_date', 'sale_date'),
+        Index("idx_sale_customer_id", "customer_id"),
+        Index("idx_sale_user_id", "user_id"),
+        Index("idx_sale_date", "sale_date"),
+        Index("idx_sale_status", "status"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-
-    customer_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("customers.id", ondelete="SET NULL"),
-        nullable=True
+    customer_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("customers.id", ondelete="RESTRICT"), nullable=True
     )
-
-    sale_date: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=sql_func.now()
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
-
+    sale_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[SaleStatusEnum] = mapped_column(
+        Enum(SaleStatusEnum), nullable=False, default=SaleStatusEnum.in_progress
+    )
+    observations: Mapped[str] = mapped_column(Text, nullable=True)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    iva: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
-    payment_type: Mapped[PaymentTypeEnum] = mapped_column(
-        Enum(PaymentTypeEnum),
-        default=PaymentTypeEnum.cash,
-        nullable=False
-    )
-
-    status: Mapped[SaleStatusEnum] = mapped_column(
-        Enum(SaleStatusEnum),
-        default=SaleStatusEnum.completed,
-        nullable=False
-    )
-
-    notes: Mapped[str] = mapped_column(Text, nullable=True)
-
-    # Relaciones
     customer = relationship("Customer", back_populates="sales")
-
-    sale_details = relationship(
-        "SaleDetail",
-        back_populates="sale",
-        cascade="all, delete-orphan"
-    )
-
-    movements = relationship(
-        "InventoryMovement",
-        foreign_keys="[InventoryMovement.sale_id]",
-        back_populates="sale",
-        cascade="all, delete-orphan"
-    )
+    user = relationship("User", back_populates="sales")
+    details = relationship("DetailSale", back_populates="sale", cascade="all, delete-orphan")
+    movements = relationship("InventoryMovement", back_populates="sale", cascade="all, delete-orphan")

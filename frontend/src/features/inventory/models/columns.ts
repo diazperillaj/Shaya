@@ -11,6 +11,17 @@ import type { Inventory } from './types'
  * Es consumido por el componente `DataTable`, que se encarga
  * de renderizar las filas y manejar acciones como edición.
  */
+
+
+const fmtCOP = (n: number | null | undefined): string => {
+  if (typeof n !== 'number' || Number.isNaN(n)) return '$ 0'
+  return n.toLocaleString('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  })
+}
+
 export const InventoryColumns: ColumnDef<Inventory>[] = [
 
   {
@@ -21,7 +32,10 @@ export const InventoryColumns: ColumnDef<Inventory>[] = [
   {
     accessorKey: 'farmer',
     header: 'Caficultor',
-    cell: ({ row }) => row.original.farmer.person.full_name,
+    // El API envía el farmer con su person anidada; el tipo Farmer del front es plano
+    cell: ({ row }) =>
+      (row.original.farmer as unknown as { person?: { full_name?: string } })
+        ?.person?.full_name ?? '—',
   },
 
   {
@@ -42,11 +56,13 @@ export const InventoryColumns: ColumnDef<Inventory>[] = [
   {
     accessorKey: 'price',
     header: 'Precio de compra',
+    cell: ({ getValue }) => fmtCOP(getValue() as number),
   },
 
   {
     accessorKey: 'full_price',
     header: 'Precio por carga ',
+    cell: ({ getValue }) => fmtCOP(getValue() as number),
   },
 
   {

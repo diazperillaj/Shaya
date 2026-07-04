@@ -30,33 +30,11 @@ router = APIRouter()
 # PARCHMENT ENDPOINTS
 # ============================================================================
 
-@router.post("/create-bulk", response_model=List[ParchmentResponse])
-def create_parchments_bulk(
-    parchments: List[ParchmentCreate],
-    db: Session = Depends(get_db),
-):
-    """
-    Carga masiva de productos (modo pruebas).
-    Si un producto falla, los demás continúan.
-    """
-
-    service = ParchmentService(db)
-    created_parchments = []
-
-    for parchment_data in parchments:
-        try:
-            parchment = service.create_parchment(parchment_data)
-            created_parchments.append(parchment)
-        except Exception as e:
-            # logging simple para pruebas
-            print(f"Error creando pergamino {parchment_data.name}: {e}")
-
-    return created_parchments
-
 @router.post("/create", response_model=ParchmentResponse, tags=["Parchments"])
 def create_parchment(
     parchment: ParchmentCreate,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Crea un nuevo registro de café pergamino en el inventario.
@@ -111,7 +89,7 @@ def update_parchment(
 def get_parchment_by_id(
     parchment_id: int,
     db: Session = Depends(get_db),
-    # current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     """
     Obtiene un pergamino a partir de su identificador único.
@@ -148,11 +126,9 @@ def get_parchment_by_id(
 @router.get("/get", response_model=List[ParchmentResponse], tags=["Parchments"])
 def get_parchments(
     search: Optional[str] = Query(None, description="Buscar por caficultor, variedad o lote"),
-    farmer_id: Optional[int] = Query(None, description="Filtrar por ID de caficultor"),
     variety: Optional[str] = Query(None, description="Filtrar por variedad de café"),
-    min_quantity: Optional[Decimal] = Query(None, description="Cantidad mínima disponible"),
     db: Session = Depends(get_db),
-    # current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     """
     Obtiene una lista de pergaminos registrados en el sistema.
@@ -171,12 +147,9 @@ def get_parchments(
     """
     service = ParchmentService(db)
     
-    if search or farmer_id or variety or min_quantity:
+    if search or variety :
         return service.get_parchments_filtered(
             search=search,
-            farmer_id=farmer_id,
-            variety=variety,
-            min_quantity=min_quantity
         )
     
     return service.get_parchments()

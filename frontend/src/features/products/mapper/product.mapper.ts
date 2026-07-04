@@ -25,4 +25,7 @@ export const mapProductFromApi = (p: ProductApiResponse) => ({
    * Se asigna un valor por defecto si la API no lo envía o es nulo.
    */
   description: p.description ?? 'Sin descripción',
+
+  generates_inventory: p.generates_inventory,
+
 })

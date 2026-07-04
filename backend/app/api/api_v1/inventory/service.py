@@ -1,6 +1,6 @@
 from app.models.product import Product
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, desc, func
+from sqlalchemy import or_, desc, func, cast, String
 from app.models.parchment import Parchment
 from app.models.farmer import Farmer
 from app.models.person import Person
@@ -57,14 +57,18 @@ def raise_if_not_exists(obj, detail: str):
 
 def calculate_purchase_price(total_price: Decimal, quantity: Decimal) -> Decimal:
     """
-    Calcula el precio unitario de compra a partir del precio total y la cantidad.
+    Calcula el precio TOTAL pagado por el lote de pergamino mediante
+    regla de 3 sobre el precio de la carga de 125 kg.
+
+    Ejemplo: si la carga (125 kg) vale $3.000.000 y se compraron 86.2 kg,
+    el lote costó 86.2 * 3.000.000 / 125 = $2.068.800.
 
     Args:
-        total_price (Decimal): Precio total pagado por el pergamino.
-        quantity (Decimal): Cantidad de pergamino en kilogramos.
+        total_price (Decimal): Precio de la carga de 125 kg (full_price).
+        quantity (Decimal): Cantidad comprada en kilogramos.
 
     Returns:
-        Decimal: Precio unitario de compra por kilogramo.
+        Decimal: Precio total pagado por el lote completo (purchase_price).
 
     Raises:
         ValueError: Si la cantidad es cero o negativa.
@@ -251,11 +255,18 @@ class ParchmentService:
         if not parchment:
             return False
 
-        # Verificar si tiene productos maquilados derivados
-        if parchment.processed:
+        # Verificar si tiene procesos derivados: hay que borrarlos primero
+        if parchment.processes:
+            invoices = ", ".join(
+                f"#{p.id} (factura {p.invoice_number})" for p in parchment.processes
+            )
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete parchment with processed products"
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"No se puede eliminar el pergamino #{parchment_id}: "
+                    f"está relacionado con los procesos {invoices}. "
+                    "Para eliminarlo, borra primero esos procesos."
+                ),
             )
 
         # Eliminar el inventario asociado (cascada elimina parchment y movimientos)
@@ -299,17 +310,21 @@ class ParchmentService:
 
         previous_quantity = parchment.remaining_quantity
 
+
         # 1. Calcular la diferencia con signo para el historial (ej: 40 - 50 = -10)
         difference = Decimal(str(adjustment_data.quantity)) - Decimal(str(previous_quantity))
 
         # 2. Asignar el valor final exacto al inventario
-        parchment.remaining_quantity = adjustment_data.quantity
+        parchment.remaining_quantity = adjustment_data.quantity if adjustment_data.movement_type not in ['parchment_exit'] else previous_quantity - abs(Decimal(str(adjustment_data.quantity)))
+
 
         # Determinar tipo de movimiento
         movement_type_map = {
             'adjustment': MovementTypeEnum.adjustment,
             'spoilage': MovementTypeEnum.spoilage,
-            'devolution': MovementTypeEnum.devolution
+            'devolution': MovementTypeEnum.devolution,
+            'parchment_entrance': MovementTypeEnum.parchment_entrance,
+            'parchment_exit': MovementTypeEnum.parchment_exit
         }
 
         # Crear movimiento
@@ -318,10 +333,11 @@ class ParchmentService:
             movement_type=movement_type_map[adjustment_data.movement_type],
             product_type=ProductMovementTypeEnum.parchment,
             parchment_id=parchment.id,
-            quantity=difference,
+            quantity=adjustment_data.quantity if adjustment_data.movement_type in ['parchment_exit'] else difference,
             reason=adjustment_data.reason,
             responsible=adjustment_data.responsible,
-            observations=adjustment_data.observations
+            observations=adjustment_data.observations,
+            process_id=None
         )
 
         self.db.add(movement)
@@ -423,31 +439,19 @@ class ParchmentService:
         return parchment
 
     def get_parchments_filtered(
-        self, 
+        self,
         search: Optional[str] = None,
-        farmer_id: Optional[int] = None,
-        variety: Optional[str] = None,
-        min_quantity: Optional[Decimal] = None
     ) -> List[Parchment]:
         """
-        Obtiene pergaminos aplicando filtros opcionales.
+        Obtiene pergaminos aplicando un filtro de búsqueda general.
 
-        Permite buscar por:
+        El texto de búsqueda puede coincidir con:
         - Nombre del caficultor
-        - Variedad de café
+        - ID del caficultor
+        - Variedad
         - Lote de origen
-        - ID de caficultor específico
-        - Cantidad mínima disponible
-
-        Args:
-            search (str, opcional): Texto de búsqueda.
-            farmer_id (int, opcional): Filtrar por caficultor.
-            variety (str, opcional): Filtrar por variedad.
-            min_quantity (Decimal, opcional): Cantidad mínima disponible.
-
-        Returns:
-            List[Parchment]: Pergaminos que cumplen los criterios.
         """
+
         query = (
             self.db.query(Parchment)
             .options(
@@ -457,22 +461,18 @@ class ParchmentService:
         )
 
         if search:
-            query = query.join(Parchment.farmer).join(Farmer.person).filter(
-                or_(
-                    Person.full_name.ilike(f"%{search}%"),
-                    Parchment.variety.ilike(f"%{search}%"),
-                    Parchment.origin_batch.ilike(f"%{search}%")
+            query = (
+                query.join(Parchment.farmer)
+                .join(Farmer.person)
+                .filter(
+                    or_(
+                        Person.full_name.ilike(f"%{search}%"),
+                        Parchment.variety.ilike(f"%{search}%"),
+                        Parchment.origin_batch.ilike(f"%{search}%"),
+                        cast(Parchment.farmer_id, String).ilike(f"%{search}%")
+                    )
                 )
             )
-
-        if farmer_id:
-            query = query.filter(Parchment.farmer_id == farmer_id)
-
-        if variety:
-            query = query.filter(Parchment.variety.ilike(f"%{variety}%"))
-
-        if min_quantity is not None:
-            query = query.filter(Parchment.remaining_quantity >= min_quantity)
 
         return query.order_by(desc(Parchment.purchase_date)).all()
 
@@ -535,4 +535,4 @@ class ParchmentService:
             "total_kg_used": total_kg_used,
             "total_inventory_value": total_inventory_value,
             "average_purchase_price": avg_purchase_price
-        }
+        }    

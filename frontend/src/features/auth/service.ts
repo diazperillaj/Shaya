@@ -3,7 +3,7 @@ import type { LoginPayload, User } from './schema'
 /**
  * URL base del módulo de autenticación.
  */
-const API_URL = 'http://localhost:8000/api/v1/auth'
+const API_URL = '/api/v1/auth'
 
 /* =======================
    LOGIN

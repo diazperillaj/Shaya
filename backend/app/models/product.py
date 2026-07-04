@@ -29,6 +29,8 @@ class Product(Base):
     )
     description: Mapped[str] = mapped_column(Text, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    generates_inventory: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    
     
     # Relaciones
     inventories = relationship(
@@ -37,8 +39,11 @@ class Product(Base):
         cascade="all, delete-orphan"
     )
     
-    fast_sales = relationship(
-        "FastSale",
-        back_populates="product",
-        cascade="all, delete-orphan"
+    roasted_coffee_details = relationship(
+        "DetailRoastedCoffee",
+        back_populates="product"
     )
+
+    # Sin cascade de borrado: los costos de producción bloquean la
+    # eliminación del producto (FK RESTRICT) y deben borrarse primero.
+    expenses = relationship("ProductExpense", back_populates="product")

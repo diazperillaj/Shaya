@@ -20,8 +20,8 @@ class Customer(Base):
 
     person_id: Mapped[int] = mapped_column(Integer, ForeignKey("persons.id"), unique=True)
     person = relationship("Person", back_populates="customer")
-    
     sales = relationship("Sale", back_populates="customer")
+    
     
     
     
