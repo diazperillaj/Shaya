@@ -1,0 +1,5 @@
+{$CADDY_DOMAIN} {
+	# Certificado HTTPS automático de Let's Encrypt (se renueva solo).
+	# Todo el tráfico se reenvía al contenedor web (nginx + frontend + /api).
+	reverse_proxy web:80
+}
