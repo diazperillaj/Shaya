@@ -42,6 +42,8 @@ export function mapFairSaleFromApi(sale: FairSaleApi): FairSale {
     fairId: sale.fair_id,
     fairInventoryId: sale.fair_inventory_id,
     productName,
+    paymentMethodId: sale.payment_method_id,
+    paymentMethodName: sale.payment_method?.name ?? '—',
     saleDatetime: sale.sale_datetime,
     quantity: sale.quantity,
     unitValue: parseFloat(sale.unit_value),

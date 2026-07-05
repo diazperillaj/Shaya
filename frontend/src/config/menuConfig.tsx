@@ -11,6 +11,7 @@ import {
   PersonStanding,
   UserCog,
   ArrowRightLeft,
+  Receipt,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -25,6 +26,7 @@ import InventorysPage from "../features/inventory/InventoryPage";
 import FarmersPage from "../features/farmers/FarmersPage";
 import MovementsPage from "../features/roasted_movements/MovementsPage";
 import UsersPage from "../features/users/UsersPage";
+import ExpensesPage from "../features/expenses/ExpensesPage";
 
 export interface MenuItem {
   id: number;
@@ -49,6 +51,13 @@ export const menuItems: MenuItem[] = [
     icon: ShoppingBag,
     label: "sales",
     component: SalesPage,
+  },
+  {
+    id: 11,
+    name: "Gastos",
+    icon: Receipt,
+    label: "expenses",
+    component: ExpensesPage,
   },
   {
     id: 2,

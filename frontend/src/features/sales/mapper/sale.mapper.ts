@@ -27,6 +27,8 @@ export const mapSaleFromApi = (s: SaleApiResponse): Sale => ({
   customer_city: s.customer?.city ?? '—',
   user_id: s.user_id,
   user_name: s.user?.person?.full_name ?? s.user?.username ?? '—',
+  payment_method_id: s.payment_method_id ?? undefined,
+  payment_method_name: s.payment_method?.name ?? '—',
   sale_date: s.sale_date,
   status: s.status as SaleStatus,
   observations: s.observations?.trim() || undefined,

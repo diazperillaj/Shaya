@@ -10,6 +10,7 @@ import type {
 } from '../models/types'
 import type { Customer } from '../../customers/models/types'
 import type { User } from '../../users/models/types'
+import type { PaymentMethod } from '../../expenses/models/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ interface SaleFormModalProps {
   customers: Customer[]
   users: User[]
   products: RoastedCoffeeProduct[]
+  paymentMethods: PaymentMethod[]
   initialSale?: Sale
   initialDetails?: SaleDetail[]
   isEdit?: boolean
@@ -59,6 +61,7 @@ export default function SaleFormModal({
   customers,
   users,
   products,
+  paymentMethods,
   initialSale,
   initialDetails = [],
   isEdit = false,
@@ -67,6 +70,7 @@ export default function SaleFormModal({
   // ── Header state ────────────────────────────────────────────────────────────
   const [customerId, setCustomerId] = useState('')
   const [userId, setUserId] = useState('')
+  const [paymentMethodId, setPaymentMethodId] = useState('')
   const [saleDate, setSaleDate] = useState('')
   const [status, setStatus] = useState<SaleStatus>('in_progress')
   const [observations, setObservations] = useState('')
@@ -79,6 +83,7 @@ export default function SaleFormModal({
     if (!initialSale) return
     setCustomerId(String(initialSale.customer_id))
     setUserId(String(initialSale.user_id))
+    setPaymentMethodId(initialSale.payment_method_id ? String(initialSale.payment_method_id) : '')
     setSaleDate(initialSale.sale_date)
     setStatus(initialSale.status)
     setObservations(initialSale.observations ?? '')
@@ -114,6 +119,7 @@ export default function SaleFormModal({
 
   const handleSave = async () => {
     if (!customerId) return setError('Selecciona un cliente.')
+    if (!paymentMethodId) return setError('Selecciona un método de pago.')
     if (!saleDate) return setError('La fecha es requerida.')
     if (details.length === 0) return setError('Agrega al menos un producto.')
     if (details.some((d) => !d.detail_roasted_coffee_id))
@@ -129,6 +135,7 @@ export default function SaleFormModal({
       const payload: CreateSalePayload = {
         customer_id: parseInt(customerId),
         user_id: isAdmin && userId ? parseInt(userId) : undefined,
+        payment_method_id: parseInt(paymentMethodId),
         sale_date: saleDate,
         status,
         observations: observations.trim() || undefined,
@@ -223,6 +230,19 @@ export default function SaleFormModal({
                   onChange={(e) => setSaleDate(e.target.value)}
                   className={inputCls}
                 />
+              </FormField>
+
+              <FormField label="Método de pago" required>
+                <select
+                  value={paymentMethodId}
+                  onChange={(e) => setPaymentMethodId(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="" disabled>Selecciona un método</option>
+                  {paymentMethods.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
               </FormField>
 
               <FormField label="Estado" required>

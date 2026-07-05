@@ -12,6 +12,7 @@ from app.models.customer import Customer
 from app.models.detail_roasted_coffe import DetailRoastedCoffee
 from app.models.detail_sale import DetailSale
 from app.models.inventory_movement import InventoryMovement, MovementTypeEnum, ProductMovementTypeEnum
+from app.models.payment_method import PaymentMethod
 from app.models.sale import Sale, SaleStatusEnum
 from app.models.user import User
 
@@ -28,6 +29,7 @@ class SaleService:
             .options(
                 joinedload(Sale.customer).joinedload(Customer.person),
                 joinedload(Sale.user).joinedload(User.person),
+                joinedload(Sale.payment_method),
             )
         )
         if search:
@@ -44,6 +46,7 @@ class SaleService:
             .options(
                 joinedload(Sale.customer).joinedload(Customer.person),
                 joinedload(Sale.user).joinedload(User.person),
+                joinedload(Sale.payment_method),
                 joinedload(Sale.details)
                     .joinedload(DetailSale.detail_roasted_coffee)
                     .joinedload(DetailRoastedCoffee.product),
@@ -60,6 +63,7 @@ class SaleService:
     def create_sale(self, payload: SaleCreate, current_user: User) -> Sale:
         user_id = self._resolve_user_id(payload, current_user)
         self._get_customer_or_404(payload.customer_id)
+        self._get_payment_method_or_404(payload.payment_method_id)
         sale_date = self._parse_date(payload.sale_date)
         sale_status = SaleStatusEnum(payload.status)
 
@@ -71,6 +75,7 @@ class SaleService:
             sale = Sale(
                 customer_id=payload.customer_id,
                 user_id=user_id,
+                payment_method_id=payload.payment_method_id,
                 sale_date=sale_date,
                 status=sale_status,
                 observations=payload.observations,
@@ -116,6 +121,7 @@ class SaleService:
 
         user_id = self._resolve_user_id(payload, current_user)
         self._get_customer_or_404(payload.customer_id)
+        self._get_payment_method_or_404(payload.payment_method_id)
         sale_date = self._parse_date(payload.sale_date)
         sale_status = SaleStatusEnum(payload.status)
 
@@ -153,6 +159,7 @@ class SaleService:
 
             sale.customer_id = payload.customer_id
             sale.user_id = user_id
+            sale.payment_method_id = payload.payment_method_id
             sale.sale_date = sale_date
             sale.status = sale_status
             sale.observations = payload.observations
@@ -246,6 +253,15 @@ class SaleService:
             ))
 
         return detail_rows, total_subtotal, total_iva
+
+    def _get_payment_method_or_404(self, method_id: int) -> PaymentMethod:
+        method = self.db.query(PaymentMethod).filter(PaymentMethod.id == method_id).first()
+        if not method:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Método de pago no encontrado",
+            )
+        return method
 
     def _get_customer_or_404(self, customer_id: int) -> Customer:
         customer = self.db.query(Customer).filter(Customer.id == customer_id).first()

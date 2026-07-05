@@ -24,6 +24,7 @@ from app.models.fair_expense import ExpenseCategoryEnum, FairExpense
 from app.models.fair_inventory import FairInventory
 from app.models.fair_sale import FairSale
 from app.models.inventory_movement import InventoryMovement, MovementTypeEnum, ProductMovementTypeEnum
+from app.models.payment_method import PaymentMethod
 from app.models.product import Product
 from app.models.sale import Sale, SaleStatusEnum
 from app.models.user import User
@@ -49,6 +50,7 @@ class FairService:
                     .joinedload(FairSale.fair_inventory)
                     .joinedload(FairInventory.detail_roasted_coffee)
                     .joinedload(DetailRoastedCoffee.product),
+                joinedload(Fair.fair_sales).joinedload(FairSale.payment_method),
                 joinedload(Fair.expenses).joinedload(FairExpense.user).joinedload(User.person),
             )
         )
@@ -71,6 +73,7 @@ class FairService:
                     .joinedload(FairSale.fair_inventory)
                     .joinedload(FairInventory.detail_roasted_coffee)
                     .joinedload(DetailRoastedCoffee.product),
+                joinedload(Fair.fair_sales).joinedload(FairSale.payment_method),
                 joinedload(Fair.expenses).joinedload(FairExpense.user).joinedload(User.person),
             )
             .filter(Fair.id == fair_id)
@@ -314,6 +317,7 @@ class FairService:
         fair = self._get_fair_or_404(fair_id)
         self._require_open(fair)
         inv = self._get_fair_inventory_or_404(payload.fair_inventory_id, fair_id)
+        self._get_payment_method_or_404(payload.payment_method_id)
 
         if payload.quantity > inv.remaining_quantity:
             raise HTTPException(
@@ -331,6 +335,7 @@ class FairService:
             sale = FairSale(
                 fair_id=fair_id,
                 fair_inventory_id=payload.fair_inventory_id,
+                payment_method_id=payload.payment_method_id,
                 sale_datetime=sale_dt,
                 quantity=payload.quantity,
                 unit_value=payload.unit_value,
@@ -354,6 +359,7 @@ class FairService:
         self._get_fair_or_404(fair_id)
         sale = self._get_fair_sale_or_404(sale_id, fair_id)
         inv = self._get_fair_inventory_or_404(sale.fair_inventory_id, fair_id)
+        self._get_payment_method_or_404(payload.payment_method_id)
 
         # Restore old quantity then validate new
         available_after_restore = inv.remaining_quantity + sale.quantity
@@ -372,6 +378,7 @@ class FairService:
         try:
             inv.remaining_quantity = available_after_restore - payload.quantity
             sale.fair_inventory_id = payload.fair_inventory_id
+            sale.payment_method_id = payload.payment_method_id
             sale.sale_datetime = sale_dt
             sale.quantity = payload.quantity
             sale.unit_value = payload.unit_value
@@ -790,6 +797,19 @@ class FairService:
                 detail=f"Ítem de inventario {inv_id} no encontrado en esta feria",
             )
         return inv
+
+    def _get_payment_method_or_404(self, method_id: int) -> PaymentMethod:
+        method = (
+            self.db.query(PaymentMethod)
+            .filter(PaymentMethod.id == method_id)
+            .first()
+        )
+        if not method:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Método de pago no encontrado",
+            )
+        return method
 
     def _get_fair_sale_or_404(self, sale_id: int, fair_id: int) -> FairSale:
         sale = (

@@ -16,11 +16,20 @@ from app.api.api_v1.dashboard.schema import (
 )
 from app.models.detail_roasted_coffe import DetailRoastedCoffee
 from app.models.detail_sale import DetailSale
+from app.models.expense_category import ExpenseCategory
+from app.models.general_expense import GeneralExpense
 from app.models.parchment import Parchment
+from app.models.payment_method import PaymentMethod
 from app.models.product import Product
 from app.models.sale import Sale, SaleStatusEnum
 
 COFFEE_PRICE_URL = "https://www.larepublica.co/indicadores-economicos/commodities/cafe"
+
+MONTH_NAMES = {
+    1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr",
+    5: "May", 6: "Jun", 7: "Jul", 8: "Ago",
+    9: "Sep", 10: "Oct", 11: "Nov", 12: "Dic",
+}
 
 HEADERS = {
     "User-Agent": (
@@ -129,6 +138,34 @@ class DashboardService:
         roasted_bags_total = int(roasted[0] or 0)
         roasted_bags_available = int(roasted[1] or 0)
 
+        # ── General expenses ──────────────────────────────────────────────────
+        month_expenses = (
+            self.db.query(func.sum(GeneralExpense.amount), func.count(GeneralExpense.id))
+            .filter(
+                extract("year", GeneralExpense.expense_date) == now.year,
+                extract("month", GeneralExpense.expense_date) == now.month,
+            )
+            .one()
+        )
+        expenses_total_month = float(month_expenses[0] or 0)
+        expenses_count_month = month_expenses[1] or 0
+
+        prev_year = now.year if now.month > 1 else now.year - 1
+        prev_month = now.month - 1 if now.month > 1 else 12
+        expenses_total_prev_month = float(
+            self.db.query(func.sum(GeneralExpense.amount))
+            .filter(
+                extract("year", GeneralExpense.expense_date) == prev_year,
+                extract("month", GeneralExpense.expense_date) == prev_month,
+            )
+            .scalar()
+            or 0
+        )
+
+        expenses_total_all_time = float(
+            self.db.query(func.sum(GeneralExpense.amount)).scalar() or 0
+        )
+
         # ── Coffee price ──────────────────────────────────────────────────────
         price_data = self.get_coffee_price()
 
@@ -137,6 +174,12 @@ class DashboardService:
             sales_count_month=sales_count_month,
             sales_total_all_time=sales_total_all_time,
             sales_count_all_time=sales_count_all_time,
+            expenses_total_month=expenses_total_month,
+            expenses_count_month=expenses_count_month,
+            expenses_total_prev_month=expenses_total_prev_month,
+            expenses_total_all_time=expenses_total_all_time,
+            net_month=sales_total_month - expenses_total_month,
+            net_all_time=sales_total_all_time - expenses_total_all_time,
             parchment_available_kg=float(parchment_available),
             roasted_bags_available=roasted_bags_available,
             roasted_bags_total=roasted_bags_total,
@@ -151,7 +194,24 @@ class DashboardService:
             sales_by_month=self._sales_by_month(),
             top_products=self._top_products(),
             inventory_status=self._inventory_status(),
+            income_vs_expenses=self._income_vs_expenses(),
+            expenses_by_category=self._expenses_by_category(),
+            sales_by_payment_method=self._sales_by_payment_method(),
         )
+
+    @staticmethod
+    def _last_months(n: int = 6) -> list:
+        """[(year, month), ...] de los últimos n meses en orden cronológico."""
+        now = date.today()
+        months = []
+        for i in range(n - 1, -1, -1):
+            month = now.month - i
+            year = now.year
+            while month <= 0:
+                month += 12
+                year -= 1
+            months.append((year, month))
+        return months
 
     def _sales_by_month(self) -> BarChartData:
         """Total revenue per month for the last 6 months."""
@@ -258,6 +318,110 @@ class DashboardService:
                 ChartSeries(name="Disponible", data=remaining_data),
                 ChartSeries(name="Vendido", data=sold_data),
             ],
+        )
+
+    def _income_vs_expenses(self) -> BarChartData:
+        """Ingresos vs gastos generales vs utilidad, últimos 6 meses."""
+        months = self._last_months(6)
+
+        sales_rows = (
+            self.db.query(
+                extract("year", Sale.sale_date).label("yr"),
+                extract("month", Sale.sale_date).label("mo"),
+                func.sum(Sale.total).label("total"),
+            )
+            .filter(
+                Sale.status == SaleStatusEnum.completed,
+                Sale.sale_date >= date(months[0][0], months[0][1], 1),
+            )
+            .group_by("yr", "mo")
+            .all()
+        )
+        expense_rows = (
+            self.db.query(
+                extract("year", GeneralExpense.expense_date).label("yr"),
+                extract("month", GeneralExpense.expense_date).label("mo"),
+                func.sum(GeneralExpense.amount).label("total"),
+            )
+            .filter(GeneralExpense.expense_date >= date(months[0][0], months[0][1], 1))
+            .group_by("yr", "mo")
+            .all()
+        )
+
+        sales_map = {(int(r.yr), int(r.mo)): float(r.total) for r in sales_rows}
+        exp_map = {(int(r.yr), int(r.mo)): float(r.total) for r in expense_rows}
+
+        labels = [f"{MONTH_NAMES[m]}/{str(y)[2:]}" for y, m in months]
+        income = [sales_map.get((y, m), 0.0) for y, m in months]
+        expenses = [exp_map.get((y, m), 0.0) for y, m in months]
+        net = [i - e for i, e in zip(income, expenses)]
+
+        return BarChartData(
+            labels=labels,
+            series=[
+                ChartSeries(name="Ingresos", data=income),
+                ChartSeries(name="Gastos", data=expenses),
+                ChartSeries(name="Utilidad", data=net),
+            ],
+        )
+
+    def _expenses_by_category(self) -> BarChartData:
+        """Total gastado por categoría (histórico completo)."""
+        rows = (
+            self.db.query(
+                ExpenseCategory.name,
+                func.sum(GeneralExpense.amount).label("total"),
+            )
+            .join(GeneralExpense, GeneralExpense.category_id == ExpenseCategory.id)
+            .group_by(ExpenseCategory.id, ExpenseCategory.name)
+            .order_by(func.sum(GeneralExpense.amount).desc())
+            .all()
+        )
+
+        labels = [r.name for r in rows] or ["Sin gastos"]
+        totals = [float(r.total) for r in rows] or [0.0]
+
+        return BarChartData(
+            labels=labels,
+            series=[ChartSeries(name="Total gastado", data=totals)],
+        )
+
+    def _sales_by_payment_method(self) -> BarChartData:
+        """Ventas completadas agrupadas por método de pago."""
+        rows = (
+            self.db.query(
+                PaymentMethod.name,
+                func.sum(Sale.total).label("total"),
+            )
+            .outerjoin(Sale, Sale.payment_method_id == PaymentMethod.id)
+            .filter(Sale.status == SaleStatusEnum.completed)
+            .group_by(PaymentMethod.id, PaymentMethod.name)
+            .order_by(func.sum(Sale.total).desc())
+            .all()
+        )
+
+        # Ventas sin método (p. ej. consolidadas de feria nuevas)
+        no_method = float(
+            self.db.query(func.sum(Sale.total))
+            .filter(
+                Sale.status == SaleStatusEnum.completed,
+                Sale.payment_method_id.is_(None),
+            )
+            .scalar()
+            or 0
+        )
+
+        labels = [r.name for r in rows]
+        totals = [float(r.total or 0) for r in rows]
+        if no_method > 0:
+            labels.append("Sin método")
+            totals.append(no_method)
+        if not labels:
+            labels, totals = ["Sin ventas"], [0.0]
+
+        return BarChartData(
+            labels=labels,
+            series=[ChartSeries(name="Total vendido", data=totals)],
         )
 
     # ─── Helpers ──────────────────────────────────────────────────────────────

@@ -42,6 +42,11 @@ export const SaleColumns: ColumnDef<Sale>[] = [
   },
 
   {
+    accessorKey: 'payment_method_name',
+    header: 'Pago',
+  },
+
+  {
     accessorKey: 'status',
     header: 'Estado',
     cell: ({ getValue }) => {

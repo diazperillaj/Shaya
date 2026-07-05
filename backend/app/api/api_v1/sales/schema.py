@@ -25,6 +25,13 @@ class CustomerBasicResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PaymentMethodBasicResponse(BaseModel):
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserBasicResponse(BaseModel):
     id: int
     username: str
@@ -91,6 +98,7 @@ class SaleCreate(BaseModel):
         gt=0,
         description="Solo un admin puede asignar la venta a otro usuario",
     )
+    payment_method_id: int = Field(..., gt=0, description="Método de pago (obligatorio)")
     sale_date: str = Field(..., description="Fecha en formato YYYY-MM-DD")
     status: str = Field(default="in_progress")
     observations: Optional[str] = Field(default=None, max_length=500)
@@ -115,6 +123,8 @@ class SaleResponse(BaseModel):
     customer: Optional[CustomerBasicResponse] = None
     user_id: int
     user: Optional[UserBasicResponse] = None
+    payment_method_id: Optional[int] = None
+    payment_method: Optional[PaymentMethodBasicResponse] = None
     sale_date: date
     status: str
     observations: Optional[str] = None

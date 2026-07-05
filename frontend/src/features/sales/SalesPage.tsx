@@ -22,6 +22,8 @@ import SaleDetailModal from './components/SaleDetailModal'
 import { useAuth } from '../auth/AuthContext'
 import type { Customer } from '../customers/models/types'
 import type { User } from '../users/models/types'
+import type { PaymentMethod } from '../expenses/models/types'
+import { fetchPaymentMethods } from '../expenses/services/expenses.api'
 
 export default function SalesPage() {
   const [data, setData] = useState<Sale[]>([])
@@ -42,11 +44,13 @@ export default function SalesPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [products, setProducts] = useState<RoastedCoffeeProduct[]>([])
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
 
   useEffect(() => {
     fetchSaleCustomers().then(setCustomers).catch(() => setCustomers([]))
     fetchSaleUsers().then(setUsers).catch(() => setUsers([]))
     fetchRoastedCoffeeInventory().then(setProducts).catch(() => setProducts([]))
+    fetchPaymentMethods().then(setPaymentMethods).catch(() => setPaymentMethods([]))
   }, [])
 
   // ── Data loading ───────────────────────────────────────────────────────────
@@ -162,6 +166,7 @@ export default function SalesPage() {
           customers={customers}
           users={users}
           products={products}
+          paymentMethods={paymentMethods}
           isAdmin={isAdmin}
         />
       )}
@@ -178,6 +183,7 @@ export default function SalesPage() {
           customers={customers}
           users={users}
           products={products}
+          paymentMethods={paymentMethods}
           initialSale={editingSale}
           initialDetails={editingDetails}
           isEdit

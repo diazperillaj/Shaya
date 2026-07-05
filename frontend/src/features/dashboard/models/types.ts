@@ -10,6 +10,14 @@ export interface DashboardKPIsApi {
   roasted_bags_total: number
   coffee_price_raw: string
   coffee_price_value: number | null
+  // Gastos generales
+  expenses_total_month: number
+  expenses_count_month: number
+  expenses_total_prev_month: number
+  expenses_total_all_time: number
+  // Después de gastos
+  net_month: number
+  net_all_time: number
 }
 
 export interface ChartSeriesApi {
@@ -26,6 +34,9 @@ export interface DashboardChartsApi {
   sales_by_month: BarChartDataApi
   top_products: BarChartDataApi
   inventory_status: BarChartDataApi
+  income_vs_expenses: BarChartDataApi
+  expenses_by_category: BarChartDataApi
+  sales_by_payment_method: BarChartDataApi
 }
 
 // ─── Recharts-ready shape ─────────────────────────────────────────────────────
@@ -42,4 +53,7 @@ export interface DashboardCharts {
   salesByMonth: RechartsChart
   topProducts: RechartsChart
   inventoryStatus: RechartsChart
+  incomeVsExpenses: RechartsChart
+  expensesByCategory: RechartsChart
+  salesByPaymentMethod: RechartsChart
 }

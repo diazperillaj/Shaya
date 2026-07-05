@@ -24,6 +24,12 @@ class UserBasicResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PaymentMethodBasicResponse(BaseModel):
+    id: int
+    name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ProductBasicResponse(BaseModel):
     id: int
     name: str
@@ -111,6 +117,7 @@ class FairInventoryResponse(BaseModel):
 
 class FairSaleCreate(BaseModel):
     fair_inventory_id: int = Field(..., gt=0)
+    payment_method_id: int = Field(..., gt=0, description="Método de pago (obligatorio)")
     quantity: int = Field(..., gt=0, description="Número de bolsas a vender")
     unit_value: Decimal = Field(..., gt=0, description="Precio de venta por bolsa")
     sale_datetime: Optional[datetime] = Field(default=None)
@@ -126,6 +133,8 @@ class FairSaleResponse(BaseModel):
     fair_id: int
     fair_inventory_id: int
     fair_inventory: Optional[FairInventoryResponse] = None
+    payment_method_id: int
+    payment_method: Optional[PaymentMethodBasicResponse] = None
     sale_datetime: datetime
     quantity: int
     unit_value: Decimal

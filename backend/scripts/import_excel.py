@@ -35,6 +35,9 @@ import app.models.fair             # noqa: F401
 import app.models.fair_inventory   # noqa: F401
 import app.models.fair_sale        # noqa: F401
 import app.models.fair_expense     # noqa: F401
+import app.models.payment_method   # noqa: F401
+import app.models.expense_category # noqa: F401
+import app.models.general_expense  # noqa: F401
 
 from app.core.db.session import SessionLocal
 from app.models.person import Person
@@ -51,6 +54,9 @@ from app.models.detail_roasted_coffe import DetailRoastedCoffee
 from app.models.sale import Sale, SaleStatusEnum
 from app.models.detail_sale import DetailSale
 from app.models.roasted_movement import MovementDirectionEnum, RoastedMovement, RoastedMovementDetail
+from app.models.payment_method import PaymentMethod
+from app.models.expense_category import ExpenseCategory
+from app.models.general_expense import GeneralExpense
 
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 EXCEL_PATH = Path(__file__).parent.parent / "data" / "Inventario.xlsx"
@@ -114,6 +120,7 @@ def truncate_all(db) -> None:
     print("Truncando todas las tablas...", end=" ", flush=True)
     db.execute(text(
         "TRUNCATE TABLE "
+        "general_expenses, expense_categories, payment_methods, "
         "fair_expenses, fair_sales, fair_inventories, fairs, "
         "roasted_movement_details, roasted_movements, "
         "inventory_movements, "
@@ -139,6 +146,7 @@ def reset_sequences(db) -> None:
         "detail_roasted_coffees", "sales", "detail_sales",
         "roasted_movements", "roasted_movement_details",
         "inventory_movements", "farmers", "customers", "users",
+        "payment_methods", "expense_categories", "general_expenses",
     ]
     for table in tables:
         db.execute(text(
@@ -547,7 +555,7 @@ def import_detail_roasted_coffees(db, wb, rc_map: dict) -> dict:
 
 # ─── Step 10: Sales + DetailSale ─────────────────────────────────────────────
 
-def import_sales(db, wb, drc_map: dict) -> None:
+def import_sales(db, wb, drc_map: dict, nequi_id: int) -> None:
     print("Importando ventas...", end=" ", flush=True)
     rows = read_sheet_rows(wb, "Sales")
     used_ids: set[int] = set()
@@ -587,6 +595,7 @@ def import_sales(db, wb, drc_map: dict) -> None:
         sale_kwargs = dict(
             customer_id=cli_id if cli_id > 0 else None,
             user_id=user_id,
+            payment_method_id=nequi_id,  # ventas históricas: todas por Nequi
             sale_date=to_date(fecha),
             status=status,
             observations=str(obs) if obs else None,
@@ -626,6 +635,67 @@ def import_sales(db, wb, drc_map: dict) -> None:
     if warnings:
         msg += f"  [{warnings} advertencias sin DRC]"
     print(msg)
+
+
+# ─── Step 10b: Payment methods (seed) ─────────────────────────────────────────
+
+def seed_payment_methods(db) -> int:
+    """Crea Efectivo, Nequi y Nu. Retorna el ID de Nequi (backfill de ventas)."""
+    print("Sembrando métodos de pago...", end=" ", flush=True)
+    nequi_id = None
+    for name in ("Efectivo", "Nequi", "Nu"):
+        method = PaymentMethod(name=name)
+        db.add(method)
+        db.flush()
+        if name == "Nequi":
+            nequi_id = method.id
+    print("OK (Efectivo, Nequi, Nu)")
+    return nequi_id
+
+
+# ─── Step 10c: Gastos -> ExpenseCategory + GeneralExpense ─────────────────────
+
+def import_general_expenses(db, wb) -> None:
+    """
+    Importa la pestaña Gastos (ID, Fecha2, Cantidad, Categoria, Motivo).
+    Las categorías se crean sobre la marcha. Las columnas laterales de la
+    hoja (totales, Efectivo/Nequi/Nu, porcentajes) se ignoran: son cálculos
+    que ahora hace el dashboard.
+    """
+    print("Importando gastos generales...", end=" ", flush=True)
+    rows = read_sheet_rows(wb, "Gastos")
+    categories: dict[str, int] = {}
+    count = 0
+
+    for row in rows:
+        gid, fecha, cantidad, categoria, motivo = row[0], row[1], row[2], row[3], row[4]
+        if gid is None:
+            continue
+        try:
+            gid = int(gid)
+        except (ValueError, TypeError):
+            continue
+
+        cat_name = str(categoria).strip() if categoria else "Otro"
+        if cat_name not in categories:
+            category = ExpenseCategory(name=cat_name)
+            db.add(category)
+            db.flush()
+            categories[cat_name] = category.id
+
+        db.add(GeneralExpense(
+            id=gid,
+            expense_date=to_date(fecha),
+            amount=to_dec(cantidad),
+            category_id=categories[cat_name],
+            payment_method_id=None,  # el Excel no registra con qué se pagó
+            description=str(motivo).strip() if motivo else "Sin descripción",
+            created_by=1,
+        ))
+        count += 1
+
+    db.flush()
+    print(f"OK ({count} gastos, {len(categories)} categorías)")
 
 
 # ─── Step 11: Movements -> RoastedMovement + RoastedMovementDetail ────────────
@@ -728,7 +798,13 @@ def main():
         drc_map = import_detail_roasted_coffees(db, wb, rc_map)
         db.commit()
 
-        import_sales(db, wb, drc_map)
+        nequi_id = seed_payment_methods(db)
+        db.commit()
+
+        import_sales(db, wb, drc_map, nequi_id)
+        db.commit()
+
+        import_general_expenses(db, wb)
         db.commit()
 
         import_movements(db, wb, drc_map)

@@ -27,6 +27,8 @@ export interface FairSaleApi {
   fair_id: number
   fair_inventory_id: number
   fair_inventory?: FairInventoryApi
+  payment_method_id: number
+  payment_method?: { id: number; name: string } | null
   sale_datetime: string
   quantity: number
   unit_value: string
@@ -79,6 +81,8 @@ export interface FairSale {
   fairId: number
   fairInventoryId: number
   productName: string
+  paymentMethodId: number
+  paymentMethodName: string
   saleDatetime: string
   quantity: number
   unitValue: number
@@ -191,6 +195,7 @@ export interface UpdateFairInventoryPayload {
 
 export interface CreateFairSalePayload {
   fair_inventory_id: number
+  payment_method_id: number
   quantity: number
   unit_value: number
   observations?: string

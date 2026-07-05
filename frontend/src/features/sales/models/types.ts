@@ -29,6 +29,11 @@ export interface ProductApi {
   quantity: number // grams per bag
 }
 
+export interface PaymentMethodApi {
+  id: number
+  name: string
+}
+
 export interface DetailRoastedCoffeeApi {
   id: number
   roasted_coffee_id: number
@@ -76,6 +81,8 @@ export interface Sale {
   customer_city: string
   user_id: number
   user_name: string
+  payment_method_id?: number
+  payment_method_name: string
   sale_date: string
   status: SaleStatus
   observations?: string
@@ -91,6 +98,8 @@ export interface SaleApiResponse {
   customer?: CustomerApi
   user_id: number
   user?: UserApi
+  payment_method_id?: number | null
+  payment_method?: PaymentMethodApi | null
   sale_date: string
   status: string
   observations?: string
@@ -132,6 +141,7 @@ export interface CreateSaleDetailPayload {
 export interface CreateSalePayload {
   customer_id: number
   user_id?: number          // admin only
+  payment_method_id: number
   sale_date: string
   status: SaleStatus
   observations?: string

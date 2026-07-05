@@ -31,6 +31,9 @@ from app.models.fair_expense import FairExpense
 from app.models.roasted_movement import RoastedMovement, RoastedMovementDetail
 from app.models.process_expense import ProcessExpense
 from app.models.product_expense import ProductExpense
+from app.models.payment_method import PaymentMethod
+from app.models.expense_category import ExpenseCategory
+from app.models.general_expense import GeneralExpense
 
 config = context.config
 

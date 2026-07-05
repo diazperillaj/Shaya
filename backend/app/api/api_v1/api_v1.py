@@ -13,6 +13,9 @@ from app.api.api_v1.fairs import router as fairs_router
 from app.api.api_v1.roasted_movements import router as roasted_movements_router
 from app.api.api_v1.process_expenses import router as process_expenses_router
 from app.api.api_v1.product_expenses import router as product_expenses_router
+from app.api.api_v1.general_expenses import router as general_expenses_router
+from app.api.api_v1.expense_categories import router as expense_categories_router
+from app.api.api_v1.payment_methods import router as payment_methods_router
 
 """
 Router principal de la API versión 1.
@@ -41,3 +44,6 @@ api_router.include_router(fairs_router.router, prefix="/fairs", tags=["fairs"])
 api_router.include_router(roasted_movements_router.router, prefix="/roasted-movements", tags=["roasted-movements"])
 api_router.include_router(process_expenses_router.router, prefix="/process-expenses", tags=["process-expenses"])
 api_router.include_router(product_expenses_router.router, prefix="/product-expenses", tags=["product-expenses"])
+api_router.include_router(general_expenses_router.router, prefix="/general-expenses", tags=["general-expenses"])
+api_router.include_router(expense_categories_router.router, prefix="/expense-categories", tags=["expense-categories"])
+api_router.include_router(payment_methods_router.router, prefix="/payment-methods", tags=["payment-methods"])

@@ -23,6 +23,9 @@ class FairSale(Base):
     fair_inventory_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("fair_inventories.id", ondelete="RESTRICT"), nullable=False
     )
+    payment_method_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("payment_methods.id", ondelete="RESTRICT"), nullable=False
+    )
     sale_datetime: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=sql_func.now()
     )
@@ -32,4 +35,5 @@ class FairSale(Base):
     observations: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     fair = relationship("Fair", back_populates="fair_sales")
+    payment_method = relationship("PaymentMethod", back_populates="fair_sales")
     fair_inventory = relationship("FairInventory", back_populates="fair_sales")

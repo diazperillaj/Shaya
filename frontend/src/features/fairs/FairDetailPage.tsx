@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, CirclePlus, Lock, Package, ShoppingBag, Receipt, Pencil } from 'lucide-react'
 import Modal from '../../components/ui/Modal'
 import FairSaleModal from './components/FairSaleModal'
@@ -10,6 +10,8 @@ import {
 } from './services/fairs.api'
 import type { Fair, FairInventory, FairSale, FairExpense } from './models/types'
 import type { RoastedCoffeeProduct } from '../sales/models/types'
+import type { PaymentMethod } from '../expenses/models/types'
+import { fetchPaymentMethods } from '../expenses/services/expenses.api'
 
 interface Props {
   fair: Fair
@@ -43,6 +45,11 @@ export default function FairDetailPage({ fair, products, isAdmin, onBack, onFair
   const [addingExp, setAddingExp] = useState(false)
   const [editingExp, setEditingExp] = useState<FairExpense | null>(null)
   const [closing, setClosing] = useState(false)
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+
+  useEffect(() => {
+    fetchPaymentMethods().then(setPaymentMethods).catch(() => setPaymentMethods([]))
+  }, [])
 
   const isOpen = fair.status === 'open'
 
@@ -417,6 +424,7 @@ export default function FairDetailPage({ fair, products, isAdmin, onBack, onFair
       {(addingSale || editingSale) && (
         <FairSaleModal
           inventory={fair.inventory.filter(i => i.remainingQuantity > 0 || i.id === editingSale?.fairInventoryId)}
+          paymentMethods={paymentMethods}
           initial={editingSale ?? undefined}
           isEdit={!!editingSale}
           onClose={() => { setAddingSale(false); setEditingSale(null) }}

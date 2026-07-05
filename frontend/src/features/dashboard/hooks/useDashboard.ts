@@ -49,6 +49,9 @@ export function useDashboard(): UseDashboardResult {
             salesByMonth: toRecharts(chartsData.sales_by_month),
             topProducts: toRecharts(chartsData.top_products),
             inventoryStatus: toRecharts(chartsData.inventory_status),
+            incomeVsExpenses: toRecharts(chartsData.income_vs_expenses),
+            expensesByCategory: toRecharts(chartsData.expenses_by_category),
+            salesByPaymentMethod: toRecharts(chartsData.sales_by_payment_method),
           })
         }
       } catch (err: any) {

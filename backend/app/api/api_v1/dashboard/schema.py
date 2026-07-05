@@ -20,6 +20,14 @@ class DashboardKPIs(BaseModel):
     sales_count_month: int           # number of sales this month
     sales_total_all_time: float      # all-time revenue
     sales_count_all_time: int        # all-time sale count
+    # General expenses
+    expenses_total_month: float      # total expenses this month
+    expenses_count_month: int        # number of expenses this month
+    expenses_total_prev_month: float # previous month (for % variation)
+    expenses_total_all_time: float   # all-time expenses
+    # Net (después de gastos)
+    net_month: float                 # sales - expenses this month
+    net_all_time: float              # sales - expenses all time
     # Inventory
     parchment_available_kg: float    # total remaining parchment (kg)
     roasted_bags_available: int      # total remaining roasted bags
@@ -53,3 +61,9 @@ class DashboardCharts(BaseModel):
     top_products: BarChartData
     # Chart 3: Roasted inventory – available vs sold per product
     inventory_status: BarChartData
+    # Chart 4: Ingresos vs Gastos vs Utilidad (last 6 months)
+    income_vs_expenses: BarChartData
+    # Chart 5: General expenses grouped by category (donut in the front)
+    expenses_by_category: BarChartData
+    # Chart 6: Completed sales grouped by payment method (donut in the front)
+    sales_by_payment_method: BarChartData

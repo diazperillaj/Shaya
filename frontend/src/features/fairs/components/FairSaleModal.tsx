@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { X, Check, Trash2, ShoppingBag } from 'lucide-react'
 import type { FairInventory, FairSale, CreateFairSalePayload } from '../models/types'
+import type { PaymentMethod } from '../../expenses/models/types'
 
 interface Props {
   onClose: () => void
   onSave: (payload: CreateFairSalePayload) => Promise<void>
   onDelete?: () => Promise<void>
   inventory: FairInventory[]
+  paymentMethods: PaymentMethod[]
   initial?: FairSale
   isEdit?: boolean
 }
@@ -14,9 +16,10 @@ interface Props {
 const fmtCOP = (n: number) =>
   n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 
-export default function FairSaleModal({ onClose, onSave, onDelete, inventory, initial, isEdit }: Props) {
+export default function FairSaleModal({ onClose, onSave, onDelete, inventory, paymentMethods, initial, isEdit }: Props) {
   const defaultInv = inventory[0]
   const [invId, setInvId] = useState<number>(initial?.fairInventoryId ?? defaultInv?.id ?? 0)
+  const [paymentMethodId, setPaymentMethodId] = useState<number>(initial?.paymentMethodId ?? 0)
   const [qty, setQty] = useState(initial?.quantity ?? 1)
   const [unitValue, setUnitValue] = useState(initial?.unitValue ?? defaultInv?.unitValue ?? 0)
   const [observations, setObservations] = useState(initial?.observations ?? '')
@@ -35,12 +38,13 @@ export default function FairSaleModal({ onClose, onSave, onDelete, inventory, in
 
   const handleSave = async () => {
     if (!invId || qty < 1 || unitValue <= 0) { setError('Completa todos los campos requeridos'); return }
+    if (!paymentMethodId) { setError('Selecciona el método de pago'); return }
     if (selectedInv && qty > selectedInv.remainingQuantity) {
       setError(`Stock insuficiente. Disponible: ${selectedInv.remainingQuantity} bolsas`); return
     }
     setSaving(true); setError('')
     try {
-      await onSave({ fair_inventory_id: invId, quantity: qty, unit_value: unitValue, observations: observations.trim() || undefined })
+      await onSave({ fair_inventory_id: invId, payment_method_id: paymentMethodId, quantity: qty, unit_value: unitValue, observations: observations.trim() || undefined })
       onClose()
     } catch (e: any) { setError(e.message) }
     finally { setSaving(false) }
@@ -102,6 +106,20 @@ export default function FairSaleModal({ onClose, onSave, onDelete, inventory, in
                 className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-gray-700">Pagado con *</label>
+            <select
+              value={paymentMethodId || ''}
+              onChange={(e) => setPaymentMethodId(Number(e.target.value))}
+              className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
+            >
+              <option value="" disabled>Selecciona el método</option>
+              {paymentMethods.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
           </div>
 
           {total > 0 && (
