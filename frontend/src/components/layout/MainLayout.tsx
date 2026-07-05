@@ -73,9 +73,33 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Sidebar */}
+      {/* Backdrop (solo móvil, con sidebar abierto): al tocar, cierra */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={toggleSidebar}
+          aria-hidden
+        />
+      )}
+
+      {/* Botón flotante para abrir (solo móvil, con sidebar cerrado).
+          Va superpuesto sobre el contenido: no desplaza el layout. */}
+      {!isSidebarOpen && (
+        <button
+          onClick={toggleSidebar}
+          className="fixed bottom-4 left-4 z-50 md:hidden p-2 rounded-lg bg-emerald-900 text-white shadow-lg hover:bg-emerald-800 transition-all duration-200"
+          aria-label="Abrir menú"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
+
+      {/* Sidebar.
+          Móvil: fixed (overlay, no empuja el contenido); cerrado se oculta
+          deslizándose fuera de pantalla.
+          Escritorio: relative en el flujo, alterna ancho w-72 / w-20. */}
       <div
-        className={`relative flex flex-col bg-gradient-to-b from-emerald-900 via-emerald-800 to-emerald-900 text-white transition-all duration-300 ease-in-out shadow-2xl ${isSidebarOpen ? "w-72" : "w-20"}`}
+        className={`fixed md:relative z-40 h-screen flex flex-col bg-gradient-to-b from-emerald-900 via-emerald-800 to-emerald-900 text-white transition-all duration-300 ease-in-out shadow-2xl ${isSidebarOpen ? "w-72 translate-x-0" : "w-20 -translate-x-full md:translate-x-0"}`}
       >
         {/* Logo/Header */}
         <div className="px-6 py-8 border-b border-emerald-700/50">
