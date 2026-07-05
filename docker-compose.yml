@@ -36,32 +36,25 @@ services:
   web:
     build: ./frontend
     restart: unless-stopped
-    # Expuesto solo en loopback: local se llega por http://localhost:8080;
-    # en el server queda interno (Caddy le hace proxy) y no sale a la LAN.
+    # Loopback: acceso local/debug por http://localhost:8080.
     ports:
       - "127.0.0.1:${WEB_PORT:-8080}:80"
+    networks:
+      # default: para hablar con el backend (proxy /api).
+      default: {}
+      # proxy: red compartida para que el Caddy externo lo encuentre
+      # por el alias "shaya-web".
+      proxy:
+        aliases:
+          - shaya-web
     depends_on:
       - backend
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    # Solo arranca en producción (perfil "prod"). Local no lo levanta.
-    profiles:
-      - prod
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      CADDY_DOMAIN: ${CADDY_DOMAIN}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - web
+# Red compartida con el reverse proxy (Caddy vive en otro compose).
+# Debe existir antes: docker network create proxy
+networks:
+  proxy:
+    external: true
 
 volumes:
   pgdata:
-  caddy_data:
-  caddy_config:
