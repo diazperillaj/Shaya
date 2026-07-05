@@ -36,12 +36,19 @@ services:
   web:
     build: ./frontend
     restart: unless-stopped
+    # Expuesto solo en loopback: local se llega por http://localhost:8080;
+    # en el server queda interno (Caddy le hace proxy) y no sale a la LAN.
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
     depends_on:
       - backend
 
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    # Solo arranca en producción (perfil "prod"). Local no lo levanta.
+    profiles:
+      - prod
     ports:
       - "80:80"
       - "443:443"
