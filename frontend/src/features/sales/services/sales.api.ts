@@ -120,5 +120,8 @@ export const fetchRoastedCoffeeInventory = async (): Promise<RoastedCoffeeProduc
     }
   }
 
-  return products.filter((p) => p.remaining_quantity > 0)
+  // No se filtra por stock aquí: al editar una venta, el lote que esta
+  // misma venta agotó (remaining = 0) debe seguir apareciendo en el select.
+  // El filtro para ventas nuevas se hace en SaleFormModal.
+  return products
 }

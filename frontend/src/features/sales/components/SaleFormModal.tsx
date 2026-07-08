@@ -78,6 +78,19 @@ export default function SaleFormModal({
   // ── Detail lines ────────────────────────────────────────────────────────────
   const [details, setDetails] = useState<DetailRow[]>([emptyDetail()])
 
+  // Cantidades que esta venta ya tiene descontadas por lote: al editar,
+  // esas unidades vuelven a estar disponibles (evita el falso "stock 0").
+  const originalQty: Record<number, number> = {}
+  for (const d of initialDetails) {
+    originalQty[d.detail_roasted_coffee_id] =
+      (originalQty[d.detail_roasted_coffee_id] ?? 0) + d.quantity
+  }
+
+  // En el select solo se ocultan lotes agotados que NO son de esta venta
+  const selectableProducts = products.filter(
+    (p) => p.remaining_quantity > 0 || originalQty[p.detail_id],
+  )
+
   // ── Prefill when editing ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!initialSale) return
@@ -320,7 +333,8 @@ export default function SaleFormModal({
                   onChange={(field, value) => updateDetail(det._key, field, value)}
                   onRemove={() => removeDetail(det._key)}
                   canRemove={details.length > 1}
-                  products={products}
+                  products={selectableProducts}
+                  originalQty={originalQty}
                 />
               ))}
             </div>
@@ -390,6 +404,8 @@ interface DetailLineProps {
   onRemove: () => void
   canRemove: boolean
   products: RoastedCoffeeProduct[]
+  /** Unidades ya descontadas por esta venta, por detail_roasted_coffee_id */
+  originalQty: Record<number, number>
 }
 
 function DetailLine({
@@ -399,6 +415,7 @@ function DetailLine({
   onRemove,
   canRemove,
   products,
+  originalQty,
 }: DetailLineProps) {
   const lineSub = detail.quantity * detail.unit_value
   const lineIva = lineSub * (detail.iva_percentage / 100)
@@ -407,6 +424,13 @@ function DetailLine({
   const selectedProduct = products.find(
     (p) => p.detail_id === detail.detail_roasted_coffee_id,
   )
+
+  // Disponible efectivo = stock actual + lo que esta venta ya tiene reservado
+  const availableFor = (p: RoastedCoffeeProduct) =>
+    p.remaining_quantity + (originalQty[p.detail_id] ?? 0)
+  const selectedAvailable = selectedProduct
+    ? availableFor(selectedProduct)
+    : undefined
 
   return (
     <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 space-y-3">
@@ -440,7 +464,7 @@ function DetailLine({
               <option value="" disabled>Selecciona un producto</option>
               {products.map((p) => (
                 <option key={p.detail_id} value={p.detail_id}>
-                  {p.name} — {p.remaining_quantity} disponibles
+                  {p.name} — {availableFor(p)} disponibles
                 </option>
               ))}
             </select>
@@ -451,7 +475,7 @@ function DetailLine({
           <input
             type="number"
             min={1}
-            max={selectedProduct?.remaining_quantity}
+            max={selectedAvailable}
             value={detail.quantity || ''}
             onChange={(e) => onChange('quantity', Number(e.target.value))}
             placeholder="0"
@@ -486,7 +510,7 @@ function DetailLine({
 
         {selectedProduct && (
           <FormField label="Disponibles">
-            <div className={readonlyCls}>{selectedProduct.remaining_quantity}</div>
+            <div className={readonlyCls}>{selectedAvailable}</div>
           </FormField>
         )}
       </div>

@@ -125,7 +125,19 @@ class SaleService:
         sale_date = self._parse_date(payload.sale_date)
         sale_status = SaleStatusEnum(payload.status)
 
-        detail_rows, sale_subtotal, sale_iva = self._build_details(payload.details)
+        # Las unidades de la venta original vuelven a estar disponibles al
+        # editar: sin esto, un lote agotado por esta misma venta haría fallar
+        # la validación de stock aunque no se cambie nada.
+        reserved: dict[int, int] = {}
+        for old_detail in sale.details:
+            reserved[old_detail.detail_roasted_coffee_id] = (
+                reserved.get(old_detail.detail_roasted_coffee_id, 0)
+                + old_detail.quantity
+            )
+
+        detail_rows, sale_subtotal, sale_iva = self._build_details(
+            payload.details, reserved=reserved
+        )
         sale_total = self._round(sale_subtotal + sale_iva)
 
         try:
@@ -209,27 +221,40 @@ class SaleService:
             return payload.user_id
         return current_user.id
 
-    def _build_details(self, items):
+    def _build_details(self, items, reserved: dict | None = None):
         """
         Validates stock, computes line financials, and returns:
         (list of (drc_instance, qty, DetailSale), total_subtotal, total_iva)
+
+        `reserved` maps detail_roasted_coffee_id -> qty que esta misma venta
+        ya tiene descontada del inventario (al editar, esas unidades vuelven
+        a estar disponibles). El consumo se acumula por lote para validar
+        correctamente varias líneas sobre el mismo lote.
         """
         detail_rows = []
         total_subtotal = Decimal("0")
         total_iva = Decimal("0")
+        reserved = reserved or {}
+        consumed: dict[int, int] = {}
 
         for item in items:
-            
+
             drc = self._get_drc_or_404(item.detail_roasted_coffee_id)
-            
-            if item.quantity > drc.remaining_quantity:
+
+            available = (
+                drc.remaining_quantity
+                + reserved.get(drc.id, 0)
+                - consumed.get(drc.id, 0)
+            )
+            if item.quantity > available:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=(
                         f"Stock insuficiente para el ítem {drc.product_id}. "
-                        f"Disponible: {drc.remaining_quantity}, solicitado: {item.quantity}"
+                        f"Disponible: {available}, solicitado: {item.quantity}"
                     ),
                 )
+            consumed[drc.id] = consumed.get(drc.id, 0) + item.quantity
 
             line_subtotal = self._round(Decimal(item.quantity) * item.unit_value)
             line_iva = self._round(line_subtotal * (item.iva_percentage / Decimal("100")))

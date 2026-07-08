@@ -14,6 +14,11 @@ from app.models.detail_roasted_coffe import DetailRoastedCoffee
 from app.models.detail_sale import DetailSale
 from app.models.fair import Fair
 from app.models.fair_inventory import FairInventory
+from app.models.inventory_movement import (
+    InventoryMovement,
+    MovementTypeEnum,
+    ProductMovementTypeEnum,
+)
 from app.models.parchment import Parchment
 from app.models.process import Process
 from app.models.process_expense import ProcessExpense
@@ -224,7 +229,18 @@ class ProcessService:
 
         process_date = self._parse_process_date(payload.process_date)
         parchment = self._get_parchment_or_404(payload.parchment_id)
-        self._validate_parchment_quantity(parchment, payload.parchment_kg)
+
+        # Los kg del proceso original ya están descontados del pergamino:
+        # si se mantiene el mismo pergamino, vuelven a estar disponibles al
+        # editar. Sin esto, un pergamino agotado por este mismo proceso
+        # bloqueaba la edición aunque no se cambiaran los kg.
+        old_parchment_id = process.parchment_id
+        old_kg = process.parchment_kg or Decimal("0")
+        same_parchment = old_parchment_id == payload.parchment_id
+        extra_available = old_kg if same_parchment else Decimal("0")
+        self._validate_parchment_quantity(
+            parchment, payload.parchment_kg, extra_available
+        )
 
         resultant_kg, subtotal = self._calculate_totals(payload)
         process_iva = self._round_money(subtotal * IVA_RATE)
@@ -268,6 +284,71 @@ class ProcessService:
             self.db.flush()
             process.details.extend(new_details)
             self.db.flush()
+
+            # Re-ajustar el inventario de pergamino según el cambio de kg.
+            # (Antes el update solo validaba y dejaba el inventario sin tocar.)
+            if same_parchment:
+                delta = payload.parchment_kg - old_kg
+                if delta:
+                    parchment.remaining_quantity -= delta
+                    self.db.add(InventoryMovement(
+                        movement_date=datetime.now(),
+                        movement_type=(
+                            MovementTypeEnum.parchment_exit
+                            if delta > 0
+                            else MovementTypeEnum.parchment_entrance
+                        ),
+                        product_type=ProductMovementTypeEnum.parchment,
+                        parchment_id=parchment.id,
+                        quantity=-delta,
+                        reason="Actualización de proceso",
+                        responsible="system",
+                        observations=(
+                            f"Proceso #{process.id} actualizado: "
+                            f"pergamino {old_kg} kg -> {payload.parchment_kg} kg"
+                        ),
+                        process_id=process.id,
+                    ))
+            else:
+                # Cambió de pergamino: devolver los kg al viejo y
+                # descontar del nuevo.
+                old_parchment = (
+                    self.db.query(Parchment)
+                    .filter(Parchment.id == old_parchment_id)
+                    .first()
+                )
+                if old_parchment:
+                    old_parchment.remaining_quantity += old_kg
+                    self.db.add(InventoryMovement(
+                        movement_date=datetime.now(),
+                        movement_type=MovementTypeEnum.parchment_entrance,
+                        product_type=ProductMovementTypeEnum.parchment,
+                        parchment_id=old_parchment.id,
+                        quantity=old_kg,
+                        reason="Actualización de proceso",
+                        responsible="system",
+                        observations=(
+                            f"Proceso #{process.id} cambió de pergamino: "
+                            f"se devuelven {old_kg} kg"
+                        ),
+                        process_id=process.id,
+                    ))
+                parchment.remaining_quantity -= payload.parchment_kg
+                self.db.add(InventoryMovement(
+                    movement_date=datetime.now(),
+                    movement_type=MovementTypeEnum.parchment_exit,
+                    product_type=ProductMovementTypeEnum.parchment,
+                    parchment_id=parchment.id,
+                    quantity=-payload.parchment_kg,
+                    reason="Actualización de proceso",
+                    responsible="system",
+                    observations=(
+                        f"Proceso #{process.id} cambió de pergamino: "
+                        f"se descuentan {payload.parchment_kg} kg"
+                    ),
+                    process_id=process.id,
+                ))
+
             ProcessCostService(self.db).recalculate_process_costs(process.id)
             self.db.commit()
         except SQLAlchemyError:
@@ -490,11 +571,23 @@ class ProcessService:
         return product
 
     @staticmethod
-    def _validate_parchment_quantity(parchment: Parchment, requested_kg: Decimal) -> None:
-        if requested_kg > parchment.remaining_quantity:
+    def _validate_parchment_quantity(
+        parchment: Parchment,
+        requested_kg: Decimal,
+        extra_available: Decimal = Decimal("0"),
+    ) -> None:
+        """
+        `extra_available`: kg que ya están descontados por el registro que se
+        está editando y que por tanto vuelven a estar disponibles.
+        """
+        available = parchment.remaining_quantity + extra_available
+        if requested_kg > available:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Not enough dry parchment inventory",
+                detail=(
+                    f"Not enough dry parchment inventory. "
+                    f"Available: {available} kg, requested: {requested_kg} kg"
+                ),
             )
 
     @staticmethod
