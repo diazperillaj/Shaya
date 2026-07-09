@@ -40,15 +40,19 @@ alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
 
-**Chatbot**
+**Chatbot** (siempre sobre Docker — sin modo local)
 ```bash
-docker compose up -d redis        # memoria caliente
-cd chatbot
-python -m venv env && env\Scripts\activate
-pip install -r requirements.txt
-# Crear chatbot/.env (ver chatbot/.env.example) — incluye la API key de Groq
-alembic upgrade head              # crea el schema chat
-uvicorn app.main:app --reload --port 8005
+# 1) Una sola vez por entorno: roles de DB (solo-lectura + schema chat)
+docker compose exec -T db psql -U <DB_USER> -d <DB_NAME> \
+  -v ro_pass='<CHATBOT_RO_PASSWORD>' -v app_pass='<CHATBOT_APP_PASSWORD>' \
+  -f - < chatbot/scripts/init_db_roles.sql
+
+# 2) Variables nuevas en el .env raíz: CHATBOT_RO_PASSWORD, CHATBOT_APP_PASSWORD,
+#    LLM_API_KEY (Groq). Luego:
+docker compose up -d --build chatbot redis
+
+# Verificar: http://localhost:8005/health  (o /chat/health vía nginx)
+# Cada cambio en chatbot/ se prueba reconstruyendo: docker compose up -d --build chatbot
 ```
 
 **Frontend**

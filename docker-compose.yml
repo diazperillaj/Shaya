@@ -6,6 +6,8 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -33,6 +35,43 @@ services:
       db:
         condition: service_healthy
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Memoria caliente reconstruible desde Postgres: sin volumen.
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+
+  chatbot:
+    build: ./chatbot
+    restart: unless-stopped
+    environment:
+      ENV: production
+      BUSINESS_DB_HOST: db
+      BUSINESS_DB_PORT: 5432
+      BUSINESS_DB_NAME: ${DB_NAME}
+      BUSINESS_DB_USER: chatbot_ro
+      BUSINESS_DB_PASSWORD: ${CHATBOT_RO_PASSWORD}
+      CHAT_DB_USER: chatbot_app
+      CHAT_DB_PASSWORD: ${CHATBOT_APP_PASSWORD}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}            # el mismo del backend: valida la cookie
+      FRONTEND_URL: ${FRONTEND_URL}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.groq.com/openai/v1}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_MODEL: ${LLM_MODEL:-llama-3.3-70b-versatile}
+      LLM_MODEL_LIGHT: ${LLM_MODEL_LIGHT:-llama-3.1-8b-instant}
+      TZ: America/Bogota
+    # Acceso directo en dev/debug (el tráfico real entra por nginx en /chat/)
+    ports:
+      - "127.0.0.1:8005:8005"
+    # Migraciones del schema chat al día antes de arrancar
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8005"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
   web:
     build: ./frontend
     restart: unless-stopped
@@ -49,6 +88,7 @@ services:
           - shaya-web
     depends_on:
       - backend
+      - chatbot
 
 # Red compartida con el reverse proxy (Caddy vive en otro compose).
 # Debe existir antes: docker network create proxy

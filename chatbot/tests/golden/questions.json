@@ -1,0 +1,25 @@
+{
+  "descripcion": "Suite de preguntas doradas (doc maestro §15). Las respuestas esperadas con cifra se completan a mano contra el Dashboard antes de correr la evaluación. El runner se implementa al cierre de la Fase 1.",
+  "preguntas": [
+    { "id": 1,  "pregunta": "¿Cuál es el cliente que más ha comprado y qué productos?", "tools_esperadas": ["consultar_ventas", "perfil_cliente"], "criterio": "Nombre del cliente top por total + su desglose de productos." },
+    { "id": 2,  "pregunta": "Para el inventario de maquilado 5, ¿se hizo algún reempaque?", "tools_esperadas": ["movimientos_maquilado"], "criterio": "Usa lote_id=5 directo (sin resolver_entidad ni preguntar) y responde sí/no con el detalle." },
+    { "id": 3,  "pregunta": "¿A la clienta Lina le gusta el café en grano y por libra?", "tools_esperadas": ["resolver_entidad", "perfil_cliente"], "criterio": "Resuelve 'lina' → cliente y responde con productos/presentaciones realmente comprados." },
+    { "id": 4,  "pregunta": "¿Cuánto vendimos de ayer a las 4pm hasta hoy a la 1am?", "tools_esperadas": ["consultar_ventas"], "criterio": "Rango datetime correcto + advertencia de granularidad diaria de ventas." },
+    { "id": 5,  "pregunta": "¿A cuántas ferias fuimos en marzo y cómo fue la ganancia por cada una?", "tools_esperadas": [], "criterio": "FASE 2 (tools de ferias). Hoy debe decir que aún no puede consultar ferias, sin inventar." },
+    { "id": 6,  "pregunta": "¿Cuál es el ranking de productos más vendidos en todas las ciclovías?", "tools_esperadas": [], "criterio": "FASE 2/4 (ventas_feria). Igual que la 5: sin datos ni tool, no inventa." },
+    { "id": 7,  "pregunta": "¿Cuánto vendimos en total en [MES_CON_DATOS]?", "tools_esperadas": ["consultar_ventas"], "respuesta_esperada": "PENDIENTE: cifra del dashboard", "criterio": "Cifra idéntica al dashboard." },
+    { "id": 8,  "pregunta": "Top 5 productos por unidades e ingresos.", "tools_esperadas": ["consultar_ventas"], "criterio": "Ranking con unidades y pesos consistentes." },
+    { "id": 9,  "pregunta": "¿Cuánto café tostado queda? ¿Y de [PRODUCTO_X]?", "tools_esperadas": ["estado_inventario"], "criterio": "Total y desglose del producto." },
+    { "id": 10, "pregunta": "¿Cuántos kilos le compramos a [CAFICULTOR] y a qué precio promedio?", "tools_esperadas": ["resolver_entidad", "consultar_compras_pergamino"], "criterio": "kg y precio/kg correctos; advierte compras históricas con costo $0 si aplica." },
+    { "id": 11, "pregunta": "¿Qué rendimiento promedio tuvieron los procesos?", "tools_esperadas": ["consultar_procesos"], "criterio": "Rendimiento ponderado por kilos (no promedio simple)." },
+    { "id": 12, "pregunta": "¿Cuánto gastamos en [CATEGORIA] este año y con qué métodos de pago?", "tools_esperadas": ["consultar_gastos_generales"], "criterio": "Total por categoría + desglose por método." },
+    { "id": 13, "pregunta": "¿Qué llevaba la venta [N]?", "tools_esperadas": ["detalle_venta"], "criterio": "Usa el id directo; líneas y total correctos." },
+    { "id": 14, "pregunta": "ventas de Burbon", "tools_esperadas": ["resolver_entidad", "consultar_ventas"], "criterio": "El typo resuelve a Bourbon o pregunta; nunca falla ni inventa." },
+    { "id": 15, "pregunta": "¿Cuánto vendimos en 2020?", "tools_esperadas": ["consultar_ventas"], "criterio": "'No hay datos en ese periodo', sin inventar." },
+    { "id": 16, "pregunta": "¿Quién es el presidente de Colombia?", "tools_esperadas": [], "criterio": "Rechazo estándar EXACTO del system prompt." },
+    { "id": 17, "pregunta": "Hazme un poema sobre el café.", "tools_esperadas": [], "criterio": "Rechazo estándar EXACTO del system prompt." },
+    { "id": 18, "pregunta": "¿Cuánto vendimos hoy entre 8am y 2pm?", "tools_esperadas": ["consultar_ventas"], "criterio": "Rango horario bien construido + advertencia de granularidad diaria." },
+    { "id": 19, "pregunta": "SECUENCIA: '¿cuál es el mejor cliente?' y luego '¿y qué compra?'", "tools_esperadas": ["consultar_ventas", "perfil_cliente"], "criterio": "El segundo turno resuelve la referencia implícita desde la memoria." },
+    { "id": 20, "pregunta": "¿Cómo va el negocio?", "tools_esperadas": ["resumen_ejecutivo"], "respuesta_esperada": "PENDIENTE: KPIs del dashboard", "criterio": "Coincide con los KPIs del dashboard." }
+  ]
+}
