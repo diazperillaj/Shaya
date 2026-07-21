@@ -12,6 +12,7 @@ import {
   UserCog,
   ArrowRightLeft,
   Receipt,
+  Bot,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -27,6 +28,7 @@ import FarmersPage from "../features/farmers/FarmersPage";
 import MovementsPage from "../features/roasted_movements/MovementsPage";
 import UsersPage from "../features/users/UsersPage";
 import ExpensesPage from "../features/expenses/ExpensesPage";
+import ChatPage from "../features/chat/ChatPage";
 
 export interface MenuItem {
   id: number;
@@ -35,6 +37,8 @@ export interface MenuItem {
   label: string;
   component: ComponentType<any>;
   props?: Record<string, unknown>;
+  /** true = la página ocupa todo el alto y maneja su propio scroll (ej. chat) */
+  fluid?: boolean;
 }
 
 export const menuItems: MenuItem[] = [
@@ -115,5 +119,13 @@ export const menuItems: MenuItem[] = [
     icon: UserCog,
     label: "users",
     component: UsersPage,
+  },
+  {
+    id: 12,
+    name: "Asistente",
+    icon: Bot,
+    label: "assistant",
+    component: ChatPage,
+    fluid: true,
   },
 ];

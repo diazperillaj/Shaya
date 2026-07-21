@@ -11,6 +11,13 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      // Chatbot (microservicio en Docker). nginx hace lo mismo en prod:
+      // /chat/api/v1/... → chatbot:8005/api/v1/...
+      '/chat': {
+        target: 'http://localhost:8005',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/chat/, ''),
+      },
     },
   },
 })
