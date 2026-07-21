@@ -291,7 +291,7 @@ Parámetros fijos del agente: `temperature=0.1` (precisión sobre creatividad), 
 
 ```
 armar contexto (system + resumen + pizarra + ventana + turno con fecha/hora actual)
-repetir hasta MAX_ITERATIONS=6:
+repetir hasta MAX_ITERATIONS=8:
     stream LLM
     ├─ text_delta → SSE al frontend
     └─ tool_calls → por cada una:
@@ -320,12 +320,12 @@ CIFRAS: toda cifra debe salir textual de un resultado de herramienta de esta con
 Nunca inventes, extrapoles ni redondees más allá del formato indicado.
 
 IDs: si el usuario menciona un número junto a una entidad ("inventario de maquilado 5",
-"la venta 120", "proceso 3"), es el ID de esa entidad: úsalo directo, no preguntes.
+"la venta 120", "proceso 3"), es el ID de esa entidad: úsalo directo, no preguntes a no se de que encuentras algo que no te cuadra, como por ejemplo que hayan dos IDs (Proceso y Maquilado) Ahi pregunta si es necesario.
 Nombres ("Lina", "Bourbon") → resolver_entidad; con varios candidatos plausibles, pregunta.
 
 TIEMPO: zona horaria America/Bogota. Recibes la fecha/hora actual en cada turno. Resuelve
 expresiones relativas a rangos exactos con hora ("ayer 4pm a hoy 1am" →
-2026-07-07T16:00 a 2026-07-08T01:00) y decláralos en la respuesta si hubo interpretación.
+2026-07-07T16:00:00 a 2026-07-08T01:00:00) y decláralos en la respuesta si hubo interpretación.
 
 ESTILO: español, breve y preciso (3–8 líneas o una tabla corta). El dato primero. COP con
 formato $1.234.567; porcentajes con 1 decimal. Sin relleno ni disculpas largas.
@@ -337,11 +337,11 @@ Utilidad = ingreso − unit_cost. Lotes históricos importados pueden tener unit
 repórtalo como "costo no disponible para N unidades".
 ```
 
-La fecha/hora actual **no va en el system** (rompería el caché de prefijo): se antepone al mensaje del usuario en cada turno: `[Ahora: miércoles 2026-07-08 14:32, America/Bogota]`.
+La fecha/hora actual **no va en el system** (rompería el caché de prefijo): se antepone al mensaje del usuario en cada turno: `[Ahora: miércoles 2026-07-08 14:32:01, America/Bogota]`.
 
 ### 8.3 Rangos de tiempo con hora
 
-- Todas las tools de consulta aceptan `fecha_inicio` / `fecha_fin` en `YYYY-MM-DD` **o** `YYYY-MM-DDTHH:MM` (intervalo semiabierto `[inicio, fin)`; si solo hay fecha, se expande a día completo).
+- Todas las tools de consulta aceptan `fecha_inicio` / `fecha_fin` en `YYYY-MM-DD` **o** `YYYY-MM-DDTHH:MM:SS` (intervalo semiabierto `[inicio, fin)`; si solo hay fecha, se expande a día completo).
 - `analytics/base.py::parse_range()` centraliza: parseo, TZ Bogotá, validación (inicio < fin, tope 24 meses por defecto), y devuelve el rango efectivo para que la respuesta lo declare.
 
 ---
@@ -428,7 +428,7 @@ Lo mismo aplica a capacidades transversales (proyecciones, alertas): tools nueva
 
 ### Estados
 
-- **Vacío**: tarjetas con preguntas sugeridas reales ("¿Cuál es el cliente que más ha comprado?", "¿Cuánto café tostado queda?", "¿Cómo va el negocio este mes?") — clic = enviar.
+- **Vacío**: tarjetas con preguntas sugeridas reales ("¿Cuál es el cliente que más ha comprado?", "¿Cuánto café tostado queda?", "¿Cómo va el negocio este mes?" Deben ser relacionadas con el modulo en el que se encuentre el usuario, por asi decirlo si esta en clientes que le recomiendes perguntas sobre clientes, etc) — clic = enviar.
 - **Error**: mensaje inline con botón reintentar (reenvía el último mensaje).
 - **Sin conexión al stream**: aviso y recuperación del historial por `GET /conversations/{id}`.
 
@@ -503,7 +503,7 @@ Y en el nginx del contenedor `web` ([frontend/nginx.conf](../frontend/nginx.conf
 ### 12.2 Entorno de desarrollo (este equipo)
 
 - `.env` raíz (dev) suma: `CHATBOT_RO_PASSWORD`, `CHATBOT_APP_PASSWORD`, `LLM_BASE_URL=https://api.groq.com/openai/v1`, `LLM_API_KEY=gsk_...`, `LLM_MODEL=llama-3.3-70b-versatile`, `LLM_MODEL_LIGHT=llama-3.1-8b-instant`.
-- Local sin Docker: `uvicorn app.main:app --reload --port 8005` (+ Redis por Docker: `docker compose up -d redis`), Vite con proxy `/chat`. `run.bat` gana una tercera ventana.
+- Pruebas en este equipo: todo con Docker, igual que producción — `docker compose up -d --build chatbot redis` (con `db` y `web` ya levantados por el compose). No hay modo local con `uvicorn --reload`/proxy de Vite para el chatbot; cada cambio en `chatbot/` se prueba reconstruyendo el contenedor.
 
 ### 12.3 Checklist de despliegue al servidor (cero pérdida de datos)
 
@@ -526,7 +526,7 @@ Rollback simple: quitar el servicio `chatbot` del compose — el resto del siste
 | Solo lectura | Usuario `chatbot_ro` a nivel de base de datos, no por convención de código |
 | Tests | pytest: unitarios de `analytics/` (cifras contra el Dashboard con datos reales), del loop (tools simuladas), y **suite dorada** ejecutable (`tests/golden/`) como regresión |
 | Observabilidad | Log estructurado por turno: conv_id, tools usadas, tokens, latencia; `GET /health` con chequeo de dependencias |
-| Errores | Toda excepción de tool → `is_error` accionable al modelo; nunca 500 por una tool fallida |
+| Errores | Toda excepción de tool → `is_error` accionable al modelo; nunca 500 por una tool fallida, debe generar un reporte del error en consola, especificando en que parte fue y el motivo + log del error |
 | Secretos | Solo por entorno; `.env.example` documentado; API key jamás llega al navegador |
 | Commits | Español, simples, sin atribución de IA (convención del repo) |
 | Evaluación continua | Revisión semanal de `chat.messages`: preguntas fallidas, tools mal usadas, costos anómalos |
