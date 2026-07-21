@@ -71,6 +71,10 @@ class ToolRegistry:
         if spec is None:
             return {"error": f"La herramienta '{name}' no existe."}, True
 
+        # Los null de parámetros opcionales se descartan: equivalen a "omitido"
+        # y así aplican los defaults de Python de cada función analítica.
+        args = {k: v for k, v in args.items() if v is not None}
+
         errores = [
             f"{'/'.join(str(p) for p in e.path) or 'raíz'}: {e.message}"
             for e in self._validators[name].iter_errors(args)

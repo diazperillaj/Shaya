@@ -7,7 +7,7 @@ import json
 import logging
 from typing import AsyncIterator
 
-from openai import AsyncOpenAI
+from openai import APIError, AsyncOpenAI
 
 from app.core.config import settings
 from app.services.llm.base import (
@@ -35,6 +35,35 @@ class OpenAICompatibleClient:
         messages: list[dict],
         tools: list[dict] | None = None,
         tool_choice: str = "auto",
+    ) -> AsyncIterator[LLMEvent]:
+        """
+        Con Groq/llama el modelo a veces genera un tool call malformado y el
+        proveedor aborta el stream ("Failed to call a function"). Es transitorio:
+        se reintenta hasta 2 veces siempre que aún no se haya emitido texto al
+        usuario (si ya se emitió, se propaga para no duplicar la respuesta).
+        """
+        attempts = 3
+        for attempt in range(1, attempts + 1):
+            emitted_text = False
+            try:
+                async for event in self._stream_once(messages, tools, tool_choice):
+                    if isinstance(event, TextDelta):
+                        emitted_text = True
+                    yield event
+                return
+            except APIError as exc:
+                if emitted_text or attempt == attempts:
+                    raise
+                logger.warning(
+                    "LLM falló la generación (intento %s/%s): %s — reintentando",
+                    attempt, attempts, getattr(exc, "message", exc),
+                )
+
+    async def _stream_once(
+        self,
+        messages: list[dict],
+        tools: list[dict] | None,
+        tool_choice: str,
     ) -> AsyncIterator[LLMEvent]:
         kwargs: dict = {
             "model": settings.LLM_MODEL,

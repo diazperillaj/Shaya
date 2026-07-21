@@ -1,5 +1,7 @@
 """Fragmentos de schema compartidos por las definiciones de tools."""
 
+from typing import Any
+
 FECHA = {
     "type": "string",
     "description": (
@@ -18,11 +20,30 @@ TOP = {
 }
 
 
+def _nullable(schema: dict[str, Any]) -> dict[str, Any]:
+    """Permite null en un property: los modelos tipo llama emiten null en los
+    parámetros opcionales que no usan, y Groq valida los argumentos contra el
+    schema — sin esto, la generación completa falla ('Failed to call a function')."""
+    out = dict(schema)
+    if "enum" in out and None not in out["enum"]:
+        out["enum"] = [*out["enum"], None]
+    tipo = out.get("type")
+    if isinstance(tipo, str):
+        out["type"] = [tipo, "null"]
+    return out
+
+
 def params(properties: dict, required: list[str] | None = None) -> dict:
-    """Envuelve las propiedades en un schema de objeto cerrado."""
+    """Schema de objeto cerrado. Todo property que no sea required se vuelve
+    nullable automáticamente (el registry además descarta los null antes de
+    ejecutar, para que apliquen los defaults de Python)."""
+    required = required or []
     return {
         "type": "object",
-        "properties": properties,
-        "required": required or [],
+        "properties": {
+            name: (schema if name in required else _nullable(schema))
+            for name, schema in properties.items()
+        },
+        "required": required,
         "additionalProperties": False,
     }

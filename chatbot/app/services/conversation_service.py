@@ -1,7 +1,7 @@
 """CRUD del historial (fuente de verdad: PostgreSQL schema chat)."""
 
 from fastapi import HTTPException
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.security import CurrentUser
@@ -124,8 +124,14 @@ class ConversationService:
     def _add(self, conv: Conversation, **fields) -> Message:
         msg = Message(conversation_id=conv.id, **fields)
         self.db.add(msg)
-        conv.updated_at = msg.created_at  # touch para ordenar la lista
-        self.db.commit()
+        # touch para ordenar la lista (NOW() del servidor: msg.created_at
+        # aún no existe antes del flush por ser server_default)
+        conv.updated_at = func.now()
+        try:
+            self.db.commit()
+        except Exception:
+            self.db.rollback()  # la sesión queda usable para reportar el error
+            raise
         self.db.refresh(msg)
         return msg
 
