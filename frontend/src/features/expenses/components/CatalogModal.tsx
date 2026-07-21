@@ -4,21 +4,25 @@ import { X, Plus, Pencil, Trash2, Check, Tags } from 'lucide-react'
 interface CatalogItem {
   id: number
   name: string
+  value?: number
 }
 
 interface CatalogModalProps {
   title: string
   items: CatalogItem[]
   onClose: () => void
-  onCreate: (name: string) => Promise<void>
-  onUpdate: (id: number, name: string) => Promise<void>
+  onCreate: (name: string, value?: number) => Promise<void>
+  onUpdate: (id: number, name: string, value?: number) => Promise<void>
   onDelete?: (id: number) => Promise<void>
   isAdmin?: boolean
+  /** Si se define, el catálogo maneja un valor numérico adicional (p. ej. precio). */
+  valueLabel?: string
+  formatValue?: (v: number) => string
 }
 
 /**
  * Modal genérico para administrar catálogos simples (nombre único):
- * categorías de gastos y métodos de pago.
+ * categorías de gastos, métodos de pago y productos de feria (con precio).
  */
 export default function CatalogModal({
   title,
@@ -28,12 +32,19 @@ export default function CatalogModal({
   onUpdate,
   onDelete,
   isAdmin = false,
+  valueLabel,
+  formatValue,
 }: CatalogModalProps) {
+  const hasValue = valueLabel !== undefined
   const [newName, setNewName] = useState('')
+  const [newValue, setNewValue] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingName, setEditingName] = useState('')
+  const [editingValue, setEditingValue] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+
+  const fmtValue = (v: number) => (formatValue ? formatValue(v) : String(v))
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true)
@@ -47,22 +58,35 @@ export default function CatalogModal({
     }
   }
 
+  const parseValue = (raw: string): number | undefined => {
+    if (!hasValue) return undefined
+    const v = Number(raw)
+    if (!raw.trim() || isNaN(v) || v <= 0) return undefined
+    return v
+  }
+
   const handleCreate = () => {
     const name = newName.trim()
     if (!name) return setError('Escribe un nombre')
+    const value = parseValue(newValue)
+    if (hasValue && value === undefined) return setError(`Ingresa un ${valueLabel!.toLowerCase()} válido`)
     run(async () => {
-      await onCreate(name)
+      await onCreate(name, value)
       setNewName('')
+      setNewValue('')
     })
   }
 
   const handleUpdate = () => {
     const name = editingName.trim()
     if (!name || editingId === null) return
+    const value = parseValue(editingValue)
+    if (hasValue && value === undefined) return setError(`Ingresa un ${valueLabel!.toLowerCase()} válido`)
     run(async () => {
-      await onUpdate(editingId, name)
+      await onUpdate(editingId, name, value)
       setEditingId(null)
       setEditingName('')
+      setEditingValue('')
     })
   }
 
@@ -70,6 +94,12 @@ export default function CatalogModal({
     if (!onDelete) return
     if (!window.confirm(`¿Eliminar "${item.name}"?`)) return
     run(() => onDelete(item.id))
+  }
+
+  const startEditing = (item: CatalogItem) => {
+    setEditingId(item.id)
+    setEditingName(item.name)
+    setEditingValue(item.value !== undefined ? String(item.value) : '')
   }
 
   return (
@@ -104,8 +134,19 @@ export default function CatalogModal({
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
               placeholder="Nuevo nombre…"
-              className="flex-1 text-sm border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              className="flex-1 min-w-0 text-sm border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-700"
             />
+            {hasValue && (
+              <input
+                type="number"
+                min={1}
+                value={newValue}
+                onChange={(e) => setNewValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                placeholder={valueLabel}
+                className="w-28 text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              />
+            )}
             <button
               onClick={handleCreate}
               disabled={busy}
@@ -129,8 +170,19 @@ export default function CatalogModal({
                       onChange={(e) => setEditingName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
                       autoFocus
-                      className="flex-1 text-sm border border-emerald-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                      className="flex-1 min-w-0 text-sm border border-emerald-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-700"
                     />
+                    {hasValue && (
+                      <input
+                        type="number"
+                        min={1}
+                        value={editingValue}
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
+                        placeholder={valueLabel}
+                        className="w-24 text-sm border border-emerald-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                      />
+                    )}
                     <button
                       onClick={handleUpdate}
                       disabled={busy}
@@ -140,7 +192,7 @@ export default function CatalogModal({
                       <Check className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => { setEditingId(null); setEditingName('') }}
+                      onClick={() => { setEditingId(null); setEditingName(''); setEditingValue('') }}
                       className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
                       title="Cancelar"
                     >
@@ -150,10 +202,13 @@ export default function CatalogModal({
                 ) : (
                   <>
                     <span className="flex-1 text-sm text-gray-700">{item.name}</span>
+                    {hasValue && item.value !== undefined && (
+                      <span className="text-sm font-semibold text-emerald-800">{fmtValue(item.value)}</span>
+                    )}
                     <button
-                      onClick={() => { setEditingId(item.id); setEditingName(item.name) }}
+                      onClick={() => startEditing(item)}
                       className="p-1.5 text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
-                      title="Renombrar"
+                      title="Editar"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>

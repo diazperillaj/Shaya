@@ -22,6 +22,7 @@ from app.models.detail_sale import DetailSale
 from app.models.fair import Fair, FairStatusEnum
 from app.models.fair_expense import ExpenseCategoryEnum, FairExpense
 from app.models.fair_inventory import FairInventory
+from app.models.fair_product import FairProduct
 from app.models.fair_sale import FairSale
 from app.models.inventory_movement import InventoryMovement, MovementTypeEnum, ProductMovementTypeEnum
 from app.models.payment_method import PaymentMethod
@@ -51,6 +52,7 @@ class FairService:
                     .joinedload(FairInventory.detail_roasted_coffee)
                     .joinedload(DetailRoastedCoffee.product),
                 joinedload(Fair.fair_sales).joinedload(FairSale.payment_method),
+                joinedload(Fair.fair_sales).joinedload(FairSale.fair_product),
                 joinedload(Fair.expenses).joinedload(FairExpense.user).joinedload(User.person),
             )
         )
@@ -74,6 +76,7 @@ class FairService:
                     .joinedload(FairInventory.detail_roasted_coffee)
                     .joinedload(DetailRoastedCoffee.product),
                 joinedload(Fair.fair_sales).joinedload(FairSale.payment_method),
+                joinedload(Fair.fair_sales).joinedload(FairSale.fair_product),
                 joinedload(Fair.expenses).joinedload(FairExpense.user).joinedload(User.person),
             )
             .filter(Fair.id == fair_id)
@@ -316,17 +319,23 @@ class FairService:
     def create_fair_sale(self, fair_id: int, payload: FairSaleCreate, current_user: User) -> Fair:
         fair = self._get_fair_or_404(fair_id)
         self._require_open(fair)
-        inv = self._get_fair_inventory_or_404(payload.fair_inventory_id, fair_id)
         self._get_payment_method_or_404(payload.payment_method_id)
 
-        if payload.quantity > inv.remaining_quantity:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Stock insuficiente en feria. Disponible: {inv.remaining_quantity}, "
-                    f"solicitado: {payload.quantity}"
-                ),
-            )
+        # Venta de inventario (café): valida y descuenta stock.
+        # Venta de producto de feria: sin control de stock.
+        inv = None
+        if payload.fair_inventory_id is not None:
+            inv = self._get_fair_inventory_or_404(payload.fair_inventory_id, fair_id)
+            if payload.quantity > inv.remaining_quantity:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Stock insuficiente en feria. Disponible: {inv.remaining_quantity}, "
+                        f"solicitado: {payload.quantity}"
+                    ),
+                )
+        else:
+            self._get_fair_product_or_404(payload.fair_product_id)
 
         total = self._round(Decimal(payload.quantity) * payload.unit_value)
         sale_dt = payload.sale_datetime or datetime.now(timezone.utc)
@@ -335,6 +344,7 @@ class FairService:
             sale = FairSale(
                 fair_id=fair_id,
                 fair_inventory_id=payload.fair_inventory_id,
+                fair_product_id=payload.fair_product_id,
                 payment_method_id=payload.payment_method_id,
                 sale_datetime=sale_dt,
                 quantity=payload.quantity,
@@ -343,7 +353,8 @@ class FairService:
                 observations=payload.observations,
             )
             self.db.add(sale)
-            inv.remaining_quantity -= payload.quantity
+            if inv is not None:
+                inv.remaining_quantity -= payload.quantity
             self.db.commit()
         except SQLAlchemyError:
             self.db.rollback()
@@ -358,26 +369,43 @@ class FairService:
     ) -> Fair:
         self._get_fair_or_404(fair_id)
         sale = self._get_fair_sale_or_404(sale_id, fair_id)
-        inv = self._get_fair_inventory_or_404(sale.fair_inventory_id, fair_id)
         self._get_payment_method_or_404(payload.payment_method_id)
 
-        # Restore old quantity then validate new
-        available_after_restore = inv.remaining_quantity + sale.quantity
-        if payload.quantity > available_after_restore:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Stock insuficiente. Disponible tras revertir: {available_after_restore}, "
-                    f"solicitado: {payload.quantity}"
-                ),
-            )
+        # Revertir el stock de la venta anterior (si era de inventario) y
+        # validar/aplicar sobre el destino nuevo (puede cambiar de ítem o
+        # de tipo inventario ↔ producto).
+        old_inv = (
+            self._get_fair_inventory_or_404(sale.fair_inventory_id, fair_id)
+            if sale.fair_inventory_id is not None
+            else None
+        )
+        new_inv = None
+        if payload.fair_inventory_id is not None:
+            new_inv = self._get_fair_inventory_or_404(payload.fair_inventory_id, fair_id)
+            available = new_inv.remaining_quantity
+            if old_inv is not None and old_inv.id == new_inv.id:
+                available += sale.quantity
+            if payload.quantity > available:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Stock insuficiente. Disponible tras revertir: {available}, "
+                        f"solicitado: {payload.quantity}"
+                    ),
+                )
+        else:
+            self._get_fair_product_or_404(payload.fair_product_id)
 
         total = self._round(Decimal(payload.quantity) * payload.unit_value)
         sale_dt = payload.sale_datetime or sale.sale_datetime
 
         try:
-            inv.remaining_quantity = available_after_restore - payload.quantity
+            if old_inv is not None:
+                old_inv.remaining_quantity += sale.quantity
+            if new_inv is not None:
+                new_inv.remaining_quantity -= payload.quantity
             sale.fair_inventory_id = payload.fair_inventory_id
+            sale.fair_product_id = payload.fair_product_id
             sale.payment_method_id = payload.payment_method_id
             sale.sale_datetime = sale_dt
             sale.quantity = payload.quantity
@@ -396,10 +424,11 @@ class FairService:
     def delete_fair_sale(self, fair_id: int, sale_id: int, current_user: User) -> Fair:
         self._get_fair_or_404(fair_id)
         sale = self._get_fair_sale_or_404(sale_id, fair_id)
-        inv = self._get_fair_inventory_or_404(sale.fair_inventory_id, fair_id)
 
         try:
-            inv.remaining_quantity += sale.quantity
+            if sale.fair_inventory_id is not None:
+                inv = self._get_fair_inventory_or_404(sale.fair_inventory_id, fair_id)
+                inv.remaining_quantity += sale.quantity
             self.db.delete(sale)
             self.db.commit()
         except SQLAlchemyError:
@@ -526,12 +555,16 @@ class FairService:
         return self.get_fair_by_id(fair_id)
 
     def _build_consolidated_sale(self, fair: Fair, user_id: int, close_dt: datetime) -> Optional[Sale]:
-        if not fair.fair_sales:
+        # Solo las ventas de inventario (café) entran a la venta consolidada:
+        # detail_sales referencia lotes de café tostado. Los ingresos por
+        # productos de feria quedan en la feria y su reporte.
+        coffee_sales = [fs for fs in fair.fair_sales if fs.fair_inventory_id is not None]
+        if not coffee_sales:
             return None
 
         # Group FairSales by detail_roasted_coffee_id
         aggregated: dict[int, dict] = {}
-        for fs in fair.fair_sales:
+        for fs in coffee_sales:
             drc_id = fs.fair_inventory.detail_roasted_coffee_id
             if drc_id not in aggregated:
                 aggregated[drc_id] = {
@@ -634,11 +667,7 @@ class FairService:
         # ── Sales by product ──────────────────────────────────────────────────
         product_sales: dict[str, dict] = {}
         for fs in fair.fair_sales:
-            inv = fs.fair_inventory
-            if inv and inv.detail_roasted_coffee and inv.detail_roasted_coffee.product:
-                name = inv.detail_roasted_coffee.product.name
-            else:
-                name = f"Producto #{fs.fair_inventory_id}"
+            name = self._sale_product_name(fs)
             if name not in product_sales:
                 product_sales[name] = {"qty": 0, "revenue": Decimal("0")}
             product_sales[name]["qty"] += fs.quantity
@@ -684,7 +713,8 @@ class FairService:
         for inv in fair.inventory:
             sold = inv.initial_quantity - inv.remaining_quantity
             inv_revenue = sum(
-                fs.total for fs in fair.fair_sales if fs.fair_inventory_id == inv.id
+                (fs.total for fs in fair.fair_sales if fs.fair_inventory_id == inv.id),
+                Decimal("0"),
             )
             utilization = (
                 self._round(Decimal(sold) / Decimal(inv.initial_quantity) * 100)
@@ -785,6 +815,23 @@ class FairService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feria no encontrada")
         return fair
 
+    def _sale_product_name(self, fs: FairSale) -> str:
+        if fs.fair_product_id is not None:
+            return fs.fair_product.name if fs.fair_product else f"Producto feria #{fs.fair_product_id}"
+        inv = fs.fair_inventory
+        if inv and inv.detail_roasted_coffee and inv.detail_roasted_coffee.product:
+            return inv.detail_roasted_coffee.product.name
+        return f"Producto #{fs.fair_inventory_id}"
+
+    def _get_fair_product_or_404(self, product_id: int) -> FairProduct:
+        product = self.db.query(FairProduct).filter(FairProduct.id == product_id).first()
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Producto de feria id={product_id} no encontrado",
+            )
+        return product
+
     def _get_fair_inventory_or_404(self, inv_id: int, fair_id: int) -> FairInventory:
         inv = (
             self.db.query(FairInventory)
@@ -855,4 +902,6 @@ class FairService:
 
     @staticmethod
     def _round(value: Decimal) -> Decimal:
+        if not isinstance(value, Decimal):
+            value = Decimal(str(value))
         return value.quantize(Decimal("0.01"))

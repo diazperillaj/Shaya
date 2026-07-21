@@ -8,7 +8,7 @@ import {
   createFairExpense, updateFairExpense, deleteFairExpense,
   closeFair,
 } from './services/fairs.api'
-import type { Fair, FairInventory, FairSale, FairExpense } from './models/types'
+import type { Fair, FairInventory, FairProduct, FairSale, FairExpense } from './models/types'
 import type { RoastedCoffeeProduct } from '../sales/models/types'
 import type { PaymentMethod } from '../expenses/models/types'
 import { fetchPaymentMethods } from '../expenses/services/expenses.api'
@@ -16,6 +16,7 @@ import { fetchPaymentMethods } from '../expenses/services/expenses.api'
 interface Props {
   fair: Fair
   products: RoastedCoffeeProduct[]
+  fairProducts: FairProduct[]
   isAdmin: boolean
   onBack: () => void
   onFairUpdated: (fair: Fair) => void
@@ -36,7 +37,7 @@ const EXPENSE_OPTIONS = [
   { value: 'other', label: 'Otros' },
 ]
 
-export default function FairDetailPage({ fair, products, isAdmin, onBack, onFairUpdated }: Props) {
+export default function FairDetailPage({ fair, products, fairProducts, isAdmin, onBack, onFairUpdated }: Props) {
   const [tab, setTab] = useState<Tab>('sales')
   const [addingInv, setAddingInv] = useState(false)
   const [editingInv, setEditingInv] = useState<FairInventory | null>(null)
@@ -424,6 +425,7 @@ export default function FairDetailPage({ fair, products, isAdmin, onBack, onFair
       {(addingSale || editingSale) && (
         <FairSaleModal
           inventory={fair.inventory.filter(i => i.remainingQuantity > 0 || i.id === editingSale?.fairInventoryId)}
+          fairProducts={fairProducts}
           paymentMethods={paymentMethods}
           initial={editingSale ?? undefined}
           isEdit={!!editingSale}

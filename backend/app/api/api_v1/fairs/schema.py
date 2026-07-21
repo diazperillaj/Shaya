@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.fair import FairStatusEnum
 from app.models.fair_expense import ExpenseCategoryEnum
@@ -34,6 +34,13 @@ class ProductBasicResponse(BaseModel):
     id: int
     name: str
     quantity: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FairProductBasicResponse(BaseModel):
+    id: int
+    name: str
+    default_price: Decimal
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -116,12 +123,21 @@ class FairInventoryResponse(BaseModel):
 # ─── FairSale schemas ─────────────────────────────────────────────────────────
 
 class FairSaleCreate(BaseModel):
-    fair_inventory_id: int = Field(..., gt=0)
+    fair_inventory_id: Optional[int] = Field(default=None, gt=0, description="Ítem de inventario (café)")
+    fair_product_id: Optional[int] = Field(default=None, gt=0, description="Producto de feria (café preparado, galletas, ...)")
     payment_method_id: int = Field(..., gt=0, description="Método de pago (obligatorio)")
-    quantity: int = Field(..., gt=0, description="Número de bolsas a vender")
-    unit_value: Decimal = Field(..., gt=0, description="Precio de venta por bolsa")
+    quantity: int = Field(..., gt=0, description="Número de unidades a vender")
+    unit_value: Decimal = Field(..., gt=0, description="Precio de venta por unidad")
     sale_datetime: Optional[datetime] = Field(default=None)
     observations: Optional[str] = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def validate_item_source(self):
+        if (self.fair_inventory_id is None) == (self.fair_product_id is None):
+            raise ValueError(
+                "La venta debe referenciar exactamente uno: fair_inventory_id o fair_product_id"
+            )
+        return self
 
 
 class FairSaleUpdate(FairSaleCreate):
@@ -131,8 +147,10 @@ class FairSaleUpdate(FairSaleCreate):
 class FairSaleResponse(BaseModel):
     id: int
     fair_id: int
-    fair_inventory_id: int
+    fair_inventory_id: Optional[int] = None
     fair_inventory: Optional[FairInventoryResponse] = None
+    fair_product_id: Optional[int] = None
+    fair_product: Optional[FairProductBasicResponse] = None
     payment_method_id: int
     payment_method: Optional[PaymentMethodBasicResponse] = None
     sale_datetime: datetime

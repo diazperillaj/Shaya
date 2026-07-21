@@ -5,6 +5,8 @@ import type {
   FairExpenseApi,
   FairInventory,
   FairInventoryApi,
+  FairProduct,
+  FairProductApi,
   FairReport,
   FairReportApi,
   FairSale,
@@ -33,14 +35,23 @@ export function mapFairInventoryFromApi(inv: FairInventoryApi): FairInventory {
   }
 }
 
+export function mapFairProductFromApi(p: FairProductApi): FairProduct {
+  return {
+    id: p.id,
+    name: p.name,
+    defaultPrice: parseFloat(p.default_price),
+  }
+}
+
 export function mapFairSaleFromApi(sale: FairSaleApi): FairSale {
-  const productName =
-    sale.fair_inventory?.detail_roasted_coffee?.product?.name ??
-    `Inv #${sale.fair_inventory_id}`
+  const productName = sale.fair_product_id != null
+    ? sale.fair_product?.name ?? `Producto #${sale.fair_product_id}`
+    : sale.fair_inventory?.detail_roasted_coffee?.product?.name ?? `Inv #${sale.fair_inventory_id}`
   return {
     id: sale.id,
     fairId: sale.fair_id,
-    fairInventoryId: sale.fair_inventory_id,
+    fairInventoryId: sale.fair_inventory_id ?? undefined,
+    fairProductId: sale.fair_product_id ?? undefined,
     productName,
     paymentMethodId: sale.payment_method_id,
     paymentMethodName: sale.payment_method?.name ?? '—',

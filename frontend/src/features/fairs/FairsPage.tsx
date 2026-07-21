@@ -1,17 +1,22 @@
 import { useEffect, useState, useMemo } from 'react'
-import { CirclePlus, Search, Store } from 'lucide-react'
+import { CirclePlus, CupSoda, Search, Store } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import DataTable from '../../components/ui/DataTable'
 import Modal from '../../components/ui/Modal'
+import CatalogModal from '../expenses/components/CatalogModal'
 import FairDetailPage from './FairDetailPage'
 import FairReportPage from './FairReportPage'
 import { makeFairColumns } from './models/columns'
 import {
   fetchFairs, createFair, updateFair, deleteFair,
   fetchFairById, fetchRoastedCoffeeForFair,
+  fetchFairProducts, createFairProduct, updateFairProduct, deleteFairProduct,
 } from './services/fairs.api'
-import type { Fair } from './models/types'
+import type { Fair, FairProduct } from './models/types'
 import type { RoastedCoffeeProduct } from '../sales/models/types'
+
+const fmtCOP = (n: number) =>
+  n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 
 type View = 'list' | 'detail' | 'report'
 
@@ -41,9 +46,11 @@ export default function FairsPage() {
   // Modals
   const [addingFair, setAddingFair] = useState(false)
   const [editingFair, setEditingFair] = useState<Fair | null>(null)
+  const [managingProducts, setManagingProducts] = useState(false)
 
   // Support data
   const [products, setProducts] = useState<RoastedCoffeeProduct[]>([])
+  const [fairProducts, setFairProducts] = useState<FairProduct[]>([])
 
   // ── Load data ────────────────────────────────────────────────────────────────
 
@@ -58,7 +65,13 @@ export default function FairsPage() {
 
   useEffect(() => {
     fetchRoastedCoffeeForFair().then(setProducts).catch(() => setProducts([]))
+    loadFairProducts()
   }, [])
+
+  const loadFairProducts = async () => {
+    try { setFairProducts(await fetchFairProducts()) }
+    catch { setFairProducts([]) }
+  }
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -150,6 +163,7 @@ export default function FairsPage() {
       <FairDetailPage
         fair={selectedFair}
         products={products}
+        fairProducts={fairProducts}
         isAdmin={isAdmin}
         onBack={handleBack}
         onFairUpdated={handleFairUpdated}
@@ -181,14 +195,22 @@ export default function FairsPage() {
           </div>
         </div>
 
-        {isAdmin && (
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setAddingFair(true)}
-            className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition-all"
+            onClick={() => setManagingProducts(true)}
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-sm font-medium shadow-sm transition-all"
           >
-            <CirclePlus className="w-4 h-4" /> Nueva feria
+            <CupSoda className="w-4 h-4" /> Productos de feria
           </button>
-        )}
+          {isAdmin && (
+            <button
+              onClick={() => setAddingFair(true)}
+              className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition-all"
+            >
+              <CirclePlus className="w-4 h-4" /> Nueva feria
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search bar */}
@@ -222,6 +244,21 @@ export default function FairsPage() {
           onSave={handleCreate as any}
           mode="add"
           title="feria"
+        />
+      )}
+
+      {/* Fair products catalog */}
+      {managingProducts && (
+        <CatalogModal
+          title="Productos de feria"
+          items={fairProducts.map(p => ({ id: p.id, name: p.name, value: p.defaultPrice }))}
+          isAdmin={isAdmin}
+          valueLabel="Precio"
+          formatValue={fmtCOP}
+          onClose={() => setManagingProducts(false)}
+          onCreate={async (name, value) => { await createFairProduct({ name, default_price: value! }); await loadFairProducts() }}
+          onUpdate={async (id, name, value) => { await updateFairProduct(id, { name, default_price: value! }); await loadFairProducts() }}
+          onDelete={async (id) => { await deleteFairProduct(id); await loadFairProducts() }}
         />
       )}
 

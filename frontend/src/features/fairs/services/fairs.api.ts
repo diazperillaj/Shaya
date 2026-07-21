@@ -8,8 +8,11 @@ import type {
   UpdateFairInventoryPayload,
   CreateFairSalePayload,
   CreateFairExpensePayload,
+  FairProduct,
+  FairProductApi,
+  FairProductPayload,
 } from '../models/types'
-import { mapFairFromApi, mapFairReportFromApi } from '../mapper/fair.mapper'
+import { mapFairFromApi, mapFairProductFromApi, mapFairReportFromApi } from '../mapper/fair.mapper'
 import type { RoastedCoffeeProduct } from '../../sales/models/types'
 import type { RoastedCoffeeApiResponse as MaquiladoApiResponse } from '../../roasted_coffee/models/types'
 
@@ -118,6 +121,31 @@ export const updateFairExpense = async (fairId: number, expId: number, payload: 
 export const deleteFairExpense = async (fairId: number, expId: number): Promise<Fair> => {
   const res = await fetch(`${BASE}/${fairId}/expenses/${expId}`, opts('DELETE'))
   return mapFairFromApi(await handle<FairApi>(res))
+}
+
+// ─── Fair products catalog ────────────────────────────────────────────────────
+
+const PRODUCTS_URL = '/api/v1/fair-products'
+
+export const fetchFairProducts = async (): Promise<FairProduct[]> => {
+  const res = await fetch(`${PRODUCTS_URL}/get`, opts())
+  const data = await handle<FairProductApi[]>(res)
+  return data.map(mapFairProductFromApi)
+}
+
+export const createFairProduct = async (payload: FairProductPayload): Promise<FairProduct> => {
+  const res = await fetch(`${PRODUCTS_URL}/create`, opts('POST', payload))
+  return mapFairProductFromApi(await handle<FairProductApi>(res))
+}
+
+export const updateFairProduct = async (id: number, payload: FairProductPayload): Promise<FairProduct> => {
+  const res = await fetch(`${PRODUCTS_URL}/update/${id}`, opts('PUT', payload))
+  return mapFairProductFromApi(await handle<FairProductApi>(res))
+}
+
+export const deleteFairProduct = async (id: number): Promise<void> => {
+  const res = await fetch(`${PRODUCTS_URL}/delete/${id}`, opts('DELETE'))
+  if (!res.ok) { const d = await res.json(); throw new Error(d.detail ?? 'Error eliminando') }
 }
 
 // ─── Support data ─────────────────────────────────────────────────────────────

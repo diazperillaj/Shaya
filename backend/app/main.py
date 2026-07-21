@@ -4,18 +4,6 @@ from app.api.api_v1.api_v1 import api_router
 #Seguridad CORS
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.models.inventory import Inventory
-from app.models.parchment import Parchment
-from app.models.product import Product
-from app.models.user import User
-from app.models.sale import Sale
-from app.models.detail_sale import DetailSale
-from app.models.process_expense import ProcessExpense
-from app.models.product_expense import ProductExpense
-
-
-
-
 from app.core.exceptions.handlers import register_exception_handlers
 
 app = FastAPI(title="Shaya Project")

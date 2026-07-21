@@ -28,6 +28,7 @@ from app.models.fair import Fair
 from app.models.fair_inventory import FairInventory
 from app.models.fair_sale import FairSale
 from app.models.fair_expense import FairExpense
+from app.models.fair_product import FairProduct
 from app.models.roasted_movement import RoastedMovement, RoastedMovementDetail
 from app.models.process_expense import ProcessExpense
 from app.models.product_expense import ProductExpense

@@ -22,11 +22,19 @@ export interface FairInventoryApi {
   unit_value: string
 }
 
+export interface FairProductApi {
+  id: number
+  name: string
+  default_price: string
+}
+
 export interface FairSaleApi {
   id: number
   fair_id: number
-  fair_inventory_id: number
-  fair_inventory?: FairInventoryApi
+  fair_inventory_id?: number | null
+  fair_inventory?: FairInventoryApi | null
+  fair_product_id?: number | null
+  fair_product?: FairProductApi | null
   payment_method_id: number
   payment_method?: { id: number; name: string } | null
   sale_datetime: string
@@ -76,10 +84,17 @@ export interface FairInventory {
   unitValue: number
 }
 
+export interface FairProduct {
+  id: number
+  name: string
+  defaultPrice: number
+}
+
 export interface FairSale {
   id: number
   fairId: number
-  fairInventoryId: number
+  fairInventoryId?: number
+  fairProductId?: number
   productName: string
   paymentMethodId: number
   paymentMethodName: string
@@ -194,11 +209,17 @@ export interface UpdateFairInventoryPayload {
 }
 
 export interface CreateFairSalePayload {
-  fair_inventory_id: number
+  fair_inventory_id?: number
+  fair_product_id?: number
   payment_method_id: number
   quantity: number
   unit_value: number
   observations?: string
+}
+
+export interface FairProductPayload {
+  name: string
+  default_price: number
 }
 
 export interface CreateFairExpensePayload {
