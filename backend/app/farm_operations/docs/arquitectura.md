@@ -457,4 +457,4 @@ tipos, umbrales por defecto) se resuelven en los documentos de la hoja de ruta.
 3. ✅ [especificacion-api.md](especificacion-api.md) — aprobado.
 4. ✅ [generador-sintetico-ml.md](generador-sintetico-ml.md) — aprobado.
 5. ✅ [dashboards-alertas.md](dashboards-alertas.md) — aprobado.
-6. 🟡 [plan-migraciones.md](plan-migraciones.md) — borrador en revisión.
+6. ✅ [plan-migraciones.md](plan-migraciones.md) — aprobado.
