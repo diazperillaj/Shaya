@@ -455,6 +455,6 @@ tipos, umbrales por defecto) se resuelven en los documentos de la hoja de ruta.
 1. ✅ Este documento (visión, decisiones, alcance).
 2. ✅ [modelo-datos.md](modelo-datos.md) — aprobado.
 3. ✅ [especificacion-api.md](especificacion-api.md) — aprobado.
-4. 🟡 [generador-sintetico-ml.md](generador-sintetico-ml.md) — borrador en revisión.
+4. ✅ [generador-sintetico-ml.md](generador-sintetico-ml.md) — aprobado.
 5. ⬜ Diseño de dashboards y alertas (widgets, queries, umbrales por defecto de literatura).
 6. ⬜ Plan de migraciones (cambios a `parchments`, rol `farmer`, dato semilla farmer Shaya, orden de creación).

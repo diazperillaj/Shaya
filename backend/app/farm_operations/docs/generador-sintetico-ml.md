@@ -2,8 +2,8 @@
 
 > Documento 4 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Basado en el modelo de datos y la API aprobados.
-> Estado: **borrador para revisión** — revisión metodológica externa incorporada.
-> Última actualización: 2026-08-10
+> Estado: **✅ aprobado** (2026-09-16) — revisión metodológica externa incorporada.
+> Última actualización: 2026-09-16
 
 ---
 
@@ -93,6 +93,11 @@ cosechas → beneficio → secado, con mezclas vía pivotes):
 4. **Sanidad**: broca y roya evolucionan según clima (broca sube con calor y
    cosechas dejadas; roya con lluvia prolongada **y según la susceptibilidad
    de la variedad** — interacción variedad × roya) y bajan con aplicaciones.
+   La infestación de broca en campo (`pest_monitorings.broca_pct`) es un
+   **indicador previo**: alimenta el `bored_pct` de la cereza en la cosecha
+   (atenuado por las aplicaciones hechas entre el muestreo y la recolección),
+   y es ese `bored_pct` el que entra a los mecanismos de calidad — no la
+   infestación de campo directamente.
 5. **Floración** → cosecha ≈ 32 semanas después (± 2), 1–3 pasadas.
 6. **Cosecha**: % maduros depende del nivel de manejo y de la presión de la
    pasada; recolectores sintéticos con kg diarios; calidad `cherry` registrada.
@@ -132,7 +137,7 @@ Principios de diseño (incorporan la revisión metodológica externa):
 | Target | Mecanismo generativo | Componentes |
 |---|---|---|
 | `score` (SCA 0–100) | `68 + 22 · g(q_s) + ε_s`, con `g` suavemente no lineal | `q_s` (calidad sensorial latente): base varietal + curva de altitud + curva de edad + sombra×temperatura + lluvia en llenado (zona óptima) + nutrición (zona óptima) + % verdes + fermentación (ventana móvil) + demora al despulpado + secado. |
-| `defects_pct` | Mecanismo propio: `d_base(q_s·w) + d_broca(broca_pct) + d_verdes(green_pct) + d_secado + ε_d` | La broca aporta **directamente** (grano brocado es defecto físico, curva convexa §abajo); los verdes aportan inmaduros; el sobresecado aporta quebrados. Solo una fracción menor viene de `q_s`. |
+| `defects_pct` | Mecanismo propio: `d_base(q_s·w) + d_broca(bored_pct) + d_verdes(green_pct) + d_secado + ε_d` | La broca aporta **directamente** (grano brocado es defecto físico: relación casi lineal, §abajo); los verdes aportan inmaduros; el sobresecado aporta quebrados. Solo una fracción menor viene de `q_s`. |
 | `yield_factor` | Mecanismo físico independiente de `q_s`: `92 + y_broca + y_roya·susc(variedad) + y_vaneo(déficit hídrico) − y_densidad(altitud) + ε_y` | **Definición (término estándar de la industria): kg de pergamino seco necesarios para obtener 70 kg de excelso. Menor = mejor.** Rango típico 88–105. El nombre y la semántica se conservan porque son los del gremio (no se renombra a "loss"). |
 | `humidity_pct` | **Solo proceso de secado** — independiente de `q_s`: función de días, método, lluvia del periodo y punto de recogida + `ε_h` | Sirve de *sanity check* de esa ruta del pipeline (§7.4). |
 
@@ -146,7 +151,7 @@ Principios de diseño (incorporan la revisión metodológica externa):
 | Sombra | Interacción: benéfica en zonas bajas/calientes, ~neutra en altura fría | Regulación térmica del sombrío. |
 | Lluvia en llenado | Zona óptima (déficit → grano vano; exceso → fermentos y roya) | Ni "más es mejor" ni "menos es mejor". |
 | Nutrición | Zona óptima respecto a lo recomendado: insuficiente → −, adecuada → +, exceso → beneficio marginal decreciente (no neutro) | Respuesta a fertilización con saturación. |
-| Broca % | Curva convexa saturante (pasar de 1→2 % pesa más que de 20→21 %) | Daño directo por *Hypothenemus hampei*. |
+| Broca (cadena: infestación en campo → % brocado en cosecha → targets) | **Forma distinta por target.** Sobre `score`: **sigmoide** con tres zonas — plana a baja infestación (la selección de flotes en beneficio y la trilla absorben el grano dañado), aceleración al superarse esa capacidad de filtrado, y meseta en el extremo por efecto piso (el café ya salió de grado). Sobre `defects_pct`: casi lineal con leve aceleración, porque el daño es físico y directo (fruto perforado → grano dañado). | Daño por *Hypothenemus hampei*. ⚠️ La **inflexión de calidad** (parámetro de simulación, ≈ 4 %) es una cantidad **distinta** del **umbral económico de acción** del MIB (2 %, el default de `broca_alert_pct`): el primero marca dónde se dispara el daño a la taza, el segundo dónde el control se paga solo. No deben alinearse por comodidad. |
 | Roya % | Efecto sobre `yield_factor` **multiplicado por susceptibilidad varietal** | Debilitamiento del árbol; resistencia genética documentada. |
 | % verdes | Curva creciente convexa sobre defectos y score | Inmaduros → astringencia y defecto físico. La magnitud relativa asignada es **decisión de simulación** documentada como tal. |
 | Demora cosecha→despulpado | Penalización progresiva y continua desde ~6 h, acelerando después de ~12 h (no un salto en 12 h) | Inicio de fermentación indeseada. |
@@ -181,6 +186,17 @@ categórica con pesos): altitudes concentradas en 1.400–1.800, fermentaciones
 alrededor de la ventana con colas, broca mayormente baja con brotes, etc.
 Los rangos físicos admisibles de cada variable se declaran **antes** de
 generar y la capa de validación (§3.6) los verifica después.
+
+**Requisito de masa en las zonas informativas.** La forma de una función de
+respuesta y la distribución de su variable son **una sola decisión**: una
+sigmoide con inflexión en ~4 % de broca es inaprendible si el 95 % de los
+secados cae en la zona plana — el modelo no vería nunca la aceleración y las
+curvas de dependencia parcial saldrían ruidosas justo donde importa. Por eso
+las distribuciones de las variables con umbral (broca, fermentación fuera de
+ventana, humedad final, demora al despulpado) se calibran para dejar una
+**cola suficiente por encima del punto de inflexión** — realista, porque las
+fincas descuidadas y los años de brote existen, pero deliberadamente no
+marginal. La validación (§3.7) verifica el % de muestras en cada zona.
 
 ### 3.5 Ruido
 
@@ -228,6 +244,11 @@ con reporte si algo falla:
 - Correlaciones esperadas presentes pero no perfectas (ej. altitud–temperatura
   negativa fuerte pero < |1|).
 - Conteo de valores recortados por límites físicos < 0,1 %.
+- **Masa por zona en variables con umbral** (§3.4): % de secados por debajo,
+  dentro y por encima del punto de inflexión de broca, fermentación, humedad
+  y demora al despulpado. Si alguna zona informativa queda por debajo del
+  mínimo configurado, el generador advierte: el dataset no permitirá aprender
+  esa parte de la curva.
 
 Además escribe un **artefacto de auditoría** (parquet en
 `scripts/farm_ml/output/`, fuera de la DB): por cada secado, las variables
@@ -315,12 +336,18 @@ plausibles?** (2, 3) — ambas se miden.
 2. **Recuperación de reglas**: las importancias de permutación deben rankear
    los factores de forma consistente con los pesos del generador (verdes,
    fermentación y broca en el top para `score`).
-3. **Chequeos direccionales de coherencia**: sobre las curvas de dependencia
+3. **Chequeos direccionales y de forma**: sobre las curvas de dependencia
    parcial se verifica el **signo** de cada relación conocida —
    ↑broca → ↓score y ↑defectos; ↑verdes → ↓score; ↑roya → ↑yield_factor
    (peor) con pendiente mayor en variedades susceptibles; fermentación fuera
-   de ventana → ↓score. Un modelo con buen MAE pero signos incoherentes
-   **falla** la validación.
+   de ventana → ↓score. Y donde el generador definió un **umbral**, se
+   verifica que la curva aprendida tenga su mayor pendiente en la zona de
+   inflexión (broca ≈ 4 %), no una pendiente uniforme: es la prueba de que el
+   modelo capturó la no linealidad y no solo la dirección. Los árboles del GBM
+   son idóneos para esto (particionan por umbrales), así que un fallo aquí
+   apunta a falta de masa en la zona (§3.4) o a bug de extracción, no a
+   incapacidad del algoritmo. Un modelo con buen MAE pero signos o formas
+   incoherentes **falla** la validación.
 4. **Sanity check `humidity_pct`**: R² alto (su mecanismo es casi
    determinista). Valida específicamente la ruta secado → features → target;
    **no** certifica el pipeline completo — para eso están los puntos 1–3 y 5.
@@ -359,12 +386,16 @@ backend/tests/farm_ml/
 evidencia de la decisión de modelado:
 
 ```python
-RULES["broca_defects"] = Rule(
-    direction="broca_pct ↑ → defects_pct ↑ (grano brocado)",   # respaldado
-    source="Cenicafé, daño por Hypothenemus hampei",            # por la fuente
-    form="convexa_saturante(k, x_half)",                        # forma elegida
-    params={"k": 0.9, "x_half": 8.0},   # DECISIÓN DE SIMULACIÓN — la fuente
-)                                        # respalda la dirección, no el valor
+RULES["broca_score"] = Rule(
+    direction="bored_pct ↑ → score ↓, con efecto de umbral",     # respaldado
+    source=("Cenicafé, daño por Hypothenemus hampei; la selección de "
+            "flotes y la trilla remueven parte del grano brocado"),  # por la fuente
+    form="sigmoide(x0, k, piso)",                                # forma elegida
+    params={"x0": 4.0, "k": 0.8, "piso": -12.0},  # DECISIÓN DE SIMULACIÓN:
+    note=("x0 NO es el umbral económico de acción del MIB (2 %, usado en "
+          "broca_alert_pct). La fuente respalda que existe un efecto de "
+          "umbral y su dirección, no la ubicación ni la pendiente."),
+)
 ```
 
 La fuente respalda la **dirección**; la **magnitud** es siempre una decisión
@@ -388,6 +419,8 @@ Dependencias nuevas en `backend/requirements.txt`: `scikit-learn`, `pandas`,
 | G8 | **Mecanismos propios por target** (score sensorial, defectos con broca directa, yield físico, humedad solo secado) | Un único `q` latente con 4 transformaciones: targets artificialmente correlacionados, problema irrealmente fácil. |
 | G9 | `yield_factor` **conserva nombre y semántica del gremio** (kg pergamino / 70 kg excelso; menor = mejor), definido formalmente en §3.3 | Renombrarlo a "loss_factor": se alejaría del término estándar que usan caficultores y compradores en Colombia. |
 | G10 | Latentes del generador (`q_s`, manejo, ruidos) **persistidas en artefacto de auditoría** fuera de la DB; jamás como features | Descartarlas (imposible auditar targets) o guardarlas en la DB (riesgo de fuga hacia features). |
+| G11 | **Broca como sigmoide sobre `score`** (plana → aceleración → piso) y **casi lineal sobre `defects_pct`**, encadenada `infestación en campo → bored_pct → targets` | Curva monótona saturante única para ambos targets: ignora que la selección de flotes y la trilla absorben el daño a baja infestación, y contradice el principio de mecanismos propios por target (G8). La inflexión de calidad se mantiene **separada** del umbral económico de acción (2 %) para no fabricar una coincidencia que la literatura no respalda. |
+| G12 | **La forma de cada función y la distribución de su variable se deciden juntas**: las variables con umbral llevan cola calibrada por encima del punto de inflexión, verificada en la validación | Definir curvas con umbral sobre variables cuya masa vive toda en la zona plana: el umbral existiría en el generador pero sería inaprendible, y la validación de forma (§7.3) fallaría sin causa real. |
 
 ## 10. Fuera de alcance (v1)
 
