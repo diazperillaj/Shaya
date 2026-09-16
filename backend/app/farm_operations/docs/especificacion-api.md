@@ -213,6 +213,7 @@ body.
 | GET | `/dashboard/alerts` | farm | Alertas y recordatorios activos calculados al momento (no se persisten): tipo, lote/finca, severidad, mensaje, valor vs umbral. |
 | GET | `/dashboard/production` | farm | Series por periodo para gráficas (kg por mes, por finca/lote/variedad). |
 | GET | `/dashboard/quality` | farm | Distribución de puntajes/defectos por finca/lote/variedad. |
+| GET | `/dashboard/periods` | farm | Temporadas de cosecha del scope (`farm_id` / `plot_id` opcionales), de la más reciente a la más antigua, con `from`/`to`/`harvests`/`cherry_kg`. Alimenta los botones rápidos "última(s) N cosecha(s)" del selector de periodo (ver dashboards-alertas §2.1). |
 
 > El detalle de widgets y queries se especifica en el doc 5 (dashboards y
 > alertas). Aquí solo se fijan contratos y permisos.
