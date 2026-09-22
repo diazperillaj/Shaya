@@ -251,10 +251,13 @@ def compute_alerts(db, *, farm_ids: list[int]) -> list[Alert]:
 - Nueva feature `src/features/farm_dashboard/` siguiendo el patrón existente
   (`Page.tsx`, `models/types.ts`, `services/*.api.ts`, `mapper/*.ts`).
 - Reutilizar los componentes de gráfica del `DashboardPage` actual: reciben
-  `BarChartData`, así que los endpoints de §2 encajan sin adaptación.
+  `BarChartData`, así que los endpoints de §2 encajan sin adaptación. Hoy son
+  funciones privadas de `DashboardPage.tsx`; primero se extraen a
+  `components/charts/` sin cambio visual (plan de implementación, 2.8).
 - Panel de alertas: lista agrupada por severidad, cada ítem enlaza a la
-  entidad (`/farm/plots/{id}`, `/farm/dryings/{id}`…). Sin botón "descartar"
-  en v1 (A4: nada que persistir).
+  entidad con las rutas del módulo (`/cultivo/lotes/{id}`,
+  `/cultivo/secados/{id}`…; plan de implementación, 2.6). Sin botón
+  "descartar" en v1 (A4: nada que persistir).
 - Rol `farmer`: el dashboard de cultivo es su pantalla de inicio. Rol
   `admin`: entrada de menú "Cultivo" junto a las existentes.
 - Vista móvil: las tarjetas KPI y el panel de alertas primero; las gráficas

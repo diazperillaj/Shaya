@@ -46,10 +46,23 @@ aplica `get_accessible_farm`. Los catálogos (`supplies`) son globales: lectura
 para cualquier autenticado del módulo, escritura también (creación al vuelo,
 D7), borrado solo `admin`.
 
+### Módulos existentes y rol `farmer`
+
+El rol `farmer` corresponde a usuarios externos: no accede a ningún módulo de
+Shaya (plan de implementación, 2.1 y 2.2).
+
+| Regla | Implementación |
+|---|---|
+| Módulos existentes solo para personal | `require_staff` (lista explícita: `admin`, `user`; todo lo demás se rechaza) aplicada en cada `include_router` de `api_v1.py`, salvo `auth`. Un farmer recibe 403. |
+| Asistente | El chatbot rechaza el rol `farmer` (403). |
+| Auditoría | Un test recorre todas las rutas registradas y exige 403 para una sesión farmer fuera de `/farm` y `/auth`. |
+| `UserRole` | Incluye `farmer` para lectura (listados de usuarios); `/users/create` sigue aceptando solo roles de personal. Las cuentas farmer se crean únicamente con `/farmer-accounts/*` (§3.12), que enlazan la `Person` existente. |
+
 ### Matriz resumen
 
 | Recurso | farmer | admin |
 |---|---|---|
+| Módulos de Shaya (ventas, inventario, gastos…) | — (403) | según permisos actuales |
 | Sus fincas y todo lo colgado de ellas | CRUD | CRUD |
 | Fincas de otros | — (404) | CRUD |
 | `supplies` (catálogo global) | crear, leer, editar | + eliminar/desactivar |
@@ -116,6 +129,7 @@ Mismo patrón CRUD para las siete: `fertilizations`, `phytosanitary-apps`,
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
 | POST | `/<labor>/create` | farm | El body lleva `crop_cycle_id` (`plot_id` en `soil-analyses`). Valida enum `other` → exige `other_detail`. |
+| POST | `/<labor>/bulk-create` | farm | Solo `fertilizations`, `phytosanitary-apps`, `irrigations`, `cultural-practices` y `flowering-records` (no las mediciones propias de cada lote). Body: campos comunes de la labor + `items: [{crop_cycle_id, quantity?, cost?}]`. El frontend precarga el reparto proporcional al área de cada lote (partes iguales si falta el área) y el usuario lo edita antes de guardar. Todos los ciclos deben estar activos y ser de la misma finca. Crea un registro por ciclo en una sola transacción (todo o nada). |
 | GET | `/<labor>/get` | farm | Filtros: `crop_cycle_id` / `plot_id`, rango de fechas. |
 | PUT | `/<labor>/update/{id}` | farm | |
 | DELETE | `/<labor>/delete/{id}` | farm | Libre (las labores no tienen descendencia). |

@@ -11,8 +11,8 @@
 
 | Aspecto | Estado actual |
 |---|---|
-| Cadena de Alembic | Una sola, lineal. Head: `d4a7c9e12f56` (*add fair products catalog…*). |
-| Registro de modelos | `alembic/env.py` importa cada modelo **explícitamente** (no hay `models/__init__.py` que los agrupe). Un modelo no importado es invisible para `autogenerate`. |
+| Cadena de Alembic | Una sola, lineal. Head: `d4a7c9e12f56`. Las 26 migraciones históricas no construían la base desde cero (la raíz modificaba tablas que ninguna migración creaba); se **consolidan en una migración base** con el mismo ID `d4a7c9e12f56` y `down_revision = None`, que crea el esquema completo tal como está en producción. Las originales se archivan en `alembic/versions_archive/` (plan de implementación, 2.3). |
+| Registro de modelos | Registro central `app/models_registry.py`, usado por la app, `alembic/env.py`, los scripts y las pruebas (plan de implementación, 2.5). Un modelo no registrado es invisible para `autogenerate` y rompe el flush de las tablas con FK hacia él. |
 | Estilo de migración | Escritas a mano, docstring en español explicando el *porqué*, `revision`/`down_revision` hex, `upgrade()` y `downgrade()` completos. |
 | Enums | `sa.Enum(..., name='fairstatusenum')` — nombre explícito, minúsculas, igual al nombre de la clase Python. |
 | Ejecución | `docker-compose.yml` corre `alembic upgrade head` antes de levantar la API; en local se corre a mano. |
@@ -24,14 +24,15 @@ paralela, ningún `branch_labels`.
 
 1. **Modelos** en `app/farm_operations/models/` (un archivo por tabla o por
    grupo afín), todos sobre `app.core.db.base.Base`.
-2. **Registro**: importar cada modelo nuevo en `alembic/env.py` — y en el
-   mismo lugar donde la app carga los modelos existentes al arrancar, para
-   que las relaciones `relationship("Farm")` resuelvan. Conviene un
-   `app/farm_operations/models/__init__.py` que importe todos, y que
-   `env.py` importe ese paquete con una sola línea.
-3. **Relaciones inversas en modelos existentes** (sin cambio de schema):
-   `Farmer.farms`, `Parchment.drying`. Se agregan en el mismo PR que la
-   migración que crea la FK correspondiente.
+2. **Registro**: `app/farm_operations/models/__init__.py` importa todos los
+   modelos de cultivo, y el registro central `app/models_registry.py` importa
+   ese paquete junto con los modelos del núcleo. La app, `env.py`, los scripts
+   y las pruebas importan el registro, no listas propias.
+3. **Relaciones solo desde el lado de cultivo**: `Farm.farmer` y
+   `Drying.parchment` se declaran en los modelos de cultivo, sin
+   `back_populates` en `Farmer` ni en `Parchment`. El núcleo solo gana la
+   columna `parchments.drying_id` (M5): el inventario no conoce el módulo de
+   cultivo.
 4. **Enums Python** en `app/farm_operations/models/enums.py`, con el `name=`
    de Postgres fijado en cada `mapped_column(Enum(..., name=...))` para que
    modelo y migración coincidan.
@@ -136,6 +137,11 @@ inventario con el farmer Shaya):
   tenga por otra vía).
 - Downgrade: elimina el farmer y la persona **solo si** ninguna `farm` ni
   `parchment` los referencia; si sí, aborta con mensaje claro.
+
+**Orden:** M6 no depende de las tablas nuevas (inserta en `persons` y
+`farmers`, que ya existen) y es requisito para registrar la finca propia desde
+el principio, así que se ejecuta en el bloque 1B y en la cadena queda
+inmediatamente después de M1 (plan de implementación, bloque 1B).
 
 El rol `farmer` en `users.role` **no requiere migración** (columna `String`,
 E3). Un catálogo inicial de `supplies` comunes (Urea, DAP, 25-4-24, cal
