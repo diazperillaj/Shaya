@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app import models_registry  # noqa: F401  (registra todos los modelos ORM)
 from app.api.api_v1.api_v1 import api_router
 
 #Seguridad CORS

@@ -15,29 +15,7 @@ from passlib.context import CryptContext
 from sqlalchemy import text
 
 # Registrar todos los modelos antes de usar ORM
-from app.core.db.base import Base  # noqa: F401
-import app.models.person           # noqa: F401
-import app.models.user             # noqa: F401
-import app.models.farmer           # noqa: F401
-import app.models.customer         # noqa: F401
-import app.models.product          # noqa: F401
-import app.models.inventory        # noqa: F401
-import app.models.parchment        # noqa: F401
-import app.models.process          # noqa: F401
-import app.models.detail_process   # noqa: F401
-import app.models.roasted_coffe    # noqa: F401
-import app.models.detail_roasted_coffe  # noqa: F401
-import app.models.sale             # noqa: F401
-import app.models.detail_sale      # noqa: F401
-import app.models.inventory_movement   # noqa: F401
-import app.models.roasted_movement     # noqa: F401
-import app.models.fair             # noqa: F401
-import app.models.fair_inventory   # noqa: F401
-import app.models.fair_sale        # noqa: F401
-import app.models.fair_expense     # noqa: F401
-import app.models.payment_method   # noqa: F401
-import app.models.expense_category # noqa: F401
-import app.models.general_expense  # noqa: F401
+from app import models_registry  # noqa: F401
 
 from app.core.db.session import SessionLocal
 from app.models.person import Person

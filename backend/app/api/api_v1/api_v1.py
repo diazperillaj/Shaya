@@ -17,6 +17,7 @@ from app.api.api_v1.general_expenses import router as general_expenses_router
 from app.api.api_v1.expense_categories import router as expense_categories_router
 from app.api.api_v1.payment_methods import router as payment_methods_router
 from app.api.api_v1.fair_products import router as fair_products_router
+from app.farm_operations.api.v1.router import farm_router
 
 """
 Router principal de la API versión 1.
@@ -49,3 +50,6 @@ api_router.include_router(general_expenses_router.router, prefix="/general-expen
 api_router.include_router(expense_categories_router.router, prefix="/expense-categories", tags=["expense-categories"])
 api_router.include_router(payment_methods_router.router, prefix="/payment-methods", tags=["payment-methods"])
 api_router.include_router(fair_products_router.router, prefix="/fair-products", tags=["fair-products"])
+
+# Módulo de cultivo: sus sub-routers definen prefijo y etiqueta propios
+api_router.include_router(farm_router, prefix="/farm")
