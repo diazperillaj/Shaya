@@ -9,32 +9,8 @@ load_dotenv()
 
 from app.core.db.base import Base
 
-# Importa modelos para que Alembic los detecte
-from app.models.customer import Customer
-from app.models.farmer import Farmer
-from app.models.inventory_movement import InventoryMovement
-from app.models.inventory import Inventory
-from app.models.parchment import Parchment
-from app.models.person import Person
-from app.models.process import Process
-from app.models.detail_process import DetailProcess
-from app.models.product import Product
-from app.models.user import User
-from app.models.roasted_coffe import RoastedCoffee
-from app.models.detail_roasted_coffe import DetailRoastedCoffee
-from app.models.sale import Sale
-from app.models.detail_sale import DetailSale
-from app.models.fair import Fair
-from app.models.fair_inventory import FairInventory
-from app.models.fair_sale import FairSale
-from app.models.fair_expense import FairExpense
-from app.models.fair_product import FairProduct
-from app.models.roasted_movement import RoastedMovement, RoastedMovementDetail
-from app.models.process_expense import ProcessExpense
-from app.models.product_expense import ProductExpense
-from app.models.payment_method import PaymentMethod
-from app.models.expense_category import ExpenseCategory
-from app.models.general_expense import GeneralExpense
+# Registra todos los modelos para que Alembic los detecte
+from app import models_registry  # noqa: F401
 
 config = context.config
 
