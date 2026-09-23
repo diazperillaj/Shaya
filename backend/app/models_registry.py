@@ -40,3 +40,6 @@ from app.models import (  # noqa: F401
     sale,
     user,
 )
+
+# Módulo de cultivo: su paquete de modelos importa cada modelo del módulo
+from app.farm_operations import models as farm_models  # noqa: F401
