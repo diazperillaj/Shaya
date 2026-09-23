@@ -1,0 +1,42 @@
+# Entorno de pruebas aislado: Postgres efímero (datos en memoria) y pytest con
+# el mismo Python que producción. Tiene nombre de proyecto propio para no
+# mezclarse nunca con los contenedores de la app.
+#
+#   docker compose -f docker-compose.test.yml run --rm tests
+#   docker compose -f docker-compose.test.yml down
+name: shaya-test
+
+services:
+  db-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shaya_test
+      POSTGRES_USER: shaya_test
+      POSTGRES_PASSWORD: shaya_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shaya_test -d shaya_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  tests:
+    build: ./backend
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    environment:
+      ENV: test
+      DB_HOST: db-test
+      DB_PORT: 5432
+      DB_NAME: shaya_test
+      DB_USER: shaya_test
+      DB_PASSWORD: shaya_test
+      SECRET_KEY: test-secret-key
+      FRONTEND_URL: http://localhost:5173
+      PYTHONDONTWRITEBYTECODE: 1
+    depends_on:
+      db-test:
+        condition: service_healthy
+    command: ["pytest"]
