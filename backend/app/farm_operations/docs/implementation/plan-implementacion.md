@@ -53,9 +53,10 @@ sin acceso al módulo de cultivo), no esta. Resolución — **condición previa 
 crear cualquier cuenta farmer**:
 
 - dependencia `require_staff` (lista explícita de roles de personal: todo lo
-  demás se rechaza) aplicada a nivel de `include_router` en `api_v1.py` a
-  todos los routers existentes salvo `auth` — un solo lugar, auditable. Si
-  algún endpoint de cuenta propia (p. ej. cambiar la contraseña) debe quedar
+  demás se rechaza) declarada una sola vez en `staff_router`, el router de
+  `api_v1.py` que agrupa todos los módulos del negocio; `auth` y el módulo
+  de cultivo quedan fuera de él — un solo lugar, auditable. Si algún
+  endpoint de cuenta propia (p. ej. cambiar la contraseña) debe quedar
   abierto al farmer, se declara como excepción explícita;
 - el chatbot responde 403 al rol `farmer`;
 - el menú del frontend se filtra por rol: el farmer solo ve "Cultivo";
@@ -73,6 +74,13 @@ la página de Usuarios dejaría de cargar. Además, crear un farmer por
 Resolución: `UserRole` incluye `farmer` para lectura; `/users/create` sigue
 aceptando solo roles de personal; las cuentas farmer se crean únicamente por
 `/farm/farmer-accounts/*`, que enlaza la `Person` existente (E3).
+
+Al implementarlo apareció un riesgo más: el formulario de la pantalla de
+Usuarios envía siempre un rol, y su selector solo tiene Usuario y
+Administrador, así que editar ahí una cuenta farmer podía convertirla en
+personal. Por eso el módulo de Usuarios administra solo cuentas del
+personal: `/users/get` no lista cuentas farmer, sus rutas por id responden
+404 para ellas y `/users/update` tampoco acepta el rol `farmer`.
 
 La columna `users.role` es nullable y sin restricción, así que antes de
 definir la lista de roles de personal se consultaron los valores reales:
@@ -454,6 +462,8 @@ Decisiones de la infraestructura:
   nunca tocan la base de desarrollo ni la de producción.
 - Esquema construido con `alembic upgrade head` — posible tras 2.3 — de modo
   que cada corrida valida también la cadena de migraciones.
+- Las pruebas del asistente corren en el servicio `chatbot-tests` del mismo
+  compose; son unitarias y no necesitan base de datos.
 - Aislamiento por prueba con transacción y rollback; fábricas simples para
   farmer, finca, lote y ciclo.
 - Clientes autenticados por rol (`admin`, `user`, `farmer`) como fixtures.

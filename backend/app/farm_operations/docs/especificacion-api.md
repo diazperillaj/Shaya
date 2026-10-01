@@ -53,10 +53,12 @@ Shaya (plan de implementación, 2.1 y 2.2).
 
 | Regla | Implementación |
 |---|---|
-| Módulos existentes solo para personal | `require_staff` (lista explícita: `admin`, `user`; todo lo demás se rechaza) aplicada en cada `include_router` de `api_v1.py`, salvo `auth`. Un farmer recibe 403. |
+| Módulos existentes solo para personal | `require_staff` (lista explícita: `admin`, `user`; todo lo demás se rechaza) declarada una sola vez en `staff_router`, el router de `api_v1.py` que agrupa los módulos del negocio. `auth` y el módulo de cultivo quedan fuera de él. Un farmer recibe 403. |
+| Módulo de cultivo | `require_farm_role` declarada en el router del propio módulo (`farm_router`): todas sus rutas exigen `admin` o `farmer`. |
 | Asistente | El chatbot rechaza el rol `farmer` (403). |
-| Auditoría | Un test recorre todas las rutas registradas y exige 403 para una sesión farmer fuera de `/farm` y `/auth`. |
-| `UserRole` | Incluye `farmer` para lectura (listados de usuarios); `/users/create` sigue aceptando solo roles de personal. Las cuentas farmer se crean únicamente con `/farmer-accounts/*` (§3.12), que enlazan la `Person` existente. |
+| Auditoría | Un test recorre todas las rutas registradas: sin sesión, 401 en todas salvo login y logout; sesión farmer, 403 fuera de `/farm` y `/auth`; sesión `user`, 403 en `/farm`. |
+| Roles | `UserRole` (`admin`, `user`, `farmer`) para respuestas y `StaffRole` (`admin`, `user`) para entradas, definidos en `app/core/roles.py`. `/users/create` y `/users/update` solo aceptan roles de personal. Las cuentas farmer se crean únicamente con `/farmer-accounts/*` (§3.12), que enlazan la `Person` existente. |
+| Módulo de Usuarios | Administra solo cuentas del personal: `/users/get` no lista cuentas farmer y sus rutas por id responden 404 para ellas. Así la pantalla de Usuarios, cuyo selector de rol solo tiene Usuario y Administrador, no puede convertir una cuenta farmer en personal. |
 
 ### Matriz resumen
 
