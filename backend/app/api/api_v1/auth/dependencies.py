@@ -1,5 +1,6 @@
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from app.core.roles import STAFF_ROLES
 from app.core.security import decode_token
 from app.core.db.session import get_db
 from app.models.user import User
@@ -28,5 +29,17 @@ def get_current_user(
 
 def require_admin(current_user=Depends(get_current_user)):
     if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    return current_user
+
+
+def require_staff(current_user=Depends(get_current_user)):
+    """
+    Restringe el acceso al personal de Shaya (roles `admin` y `user`).
+
+    Protege los módulos del negocio: un caficultor recibe 403 aunque tenga
+    sesión iniciada.
+    """
+    if current_user.role not in STAFF_ROLES:
         raise HTTPException(status_code=403, detail="No tienes permisos")
     return current_user
