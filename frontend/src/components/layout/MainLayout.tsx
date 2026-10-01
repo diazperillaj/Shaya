@@ -13,6 +13,13 @@ import { menuItems, type MenuItem } from "../../config/menuConfig";
 type SetActiveMenuItem = (item: number) => void;
 
 /**
+ * Indica si la pantalla es de celular (menor al breakpoint `md` de
+ * Tailwind), donde el sidebar es un panel superpuesto al contenido.
+ */
+const isSmallScreen = (): boolean =>
+  window.matchMedia("(max-width: 767px)").matches;
+
+/**
  * Props del componente Sidebar.
  */
 interface SidebarProps {
@@ -43,8 +50,9 @@ interface SidebarProps {
 function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
   /**
    * Indica si el sidebar se encuentra expandido.
+   * En el celular arranca cerrado para no tapar el contenido.
    */
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => !isSmallScreen());
 
   /**
    * Definición de los ítems del menú principal.
@@ -71,6 +79,11 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
       setActiveMenuItem(item.id);
     } else {
       navigate("/", { state: { menuItem: item.id } });
+    }
+
+    // En el celular el menú tapa el contenido: se cierra al elegir
+    if (isSmallScreen()) {
+      setIsSidebarOpen(false);
     }
   };
 
