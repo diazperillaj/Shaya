@@ -1,16 +1,8 @@
 from pydantic import BaseModel, StringConstraints
 from typing import Optional
+from app.core.roles import StaffRole, UserRole
 from app.schemas.person import PersonCreate, PersonResponse
 from typing_extensions import Annotated
-
-from enum import Enum
-
-class UserRole(str, Enum):
-    """
-    Enumeración que define los roles permitidos para los usuarios del sistema.
-    """
-    admin = 'admin'
-    user = 'user'
 
 
 Username = Annotated[
@@ -29,11 +21,14 @@ class UserCreate(BaseModel):
 
     Contiene las validaciones necesarias para garantizar la integridad
     de los datos antes de ser procesados por la lógica de negocio.
+
+    Solo admite roles del personal: las cuentas de caficultores se crean
+    desde el módulo de cultivo, enlazadas a su registro de caficultor.
     """
 
     username: Username
     password: Password
-    role: UserRole
+    role: StaffRole
     person: PersonCreate
 
 class UserResponse(BaseModel):
@@ -55,11 +50,12 @@ class UserUpdate(BaseModel):
     Modelo utilizado para la actualización parcial de un usuario.
 
     Todos los campos son opcionales, permitiendo actualizaciones parciales.
+    El rol solo puede cambiar entre roles del personal.
     """
 
     username: Optional[Username] = None
     password: Optional[Password] = None
-    role: Optional[UserRole] = None
+    role: Optional[StaffRole] = None
     person: Optional[PersonCreate] = None
 
 class UserUpdateResponse(BaseModel):
