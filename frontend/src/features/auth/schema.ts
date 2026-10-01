@@ -1,3 +1,5 @@
+import type { Role } from './roles'
+
 /**
  * Payload utilizado para la autenticación de usuarios.
  *
@@ -29,5 +31,5 @@ export interface User {
   username: string
 
   /** Rol asignado al usuario dentro del sistema */
-  role: string
+  role: Role
 }
