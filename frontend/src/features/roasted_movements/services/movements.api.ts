@@ -1,4 +1,5 @@
 import type { RoastedMovement, RoastedMovementCreate } from '../models/types'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 const BASE_URL = '/api/v1/roasted-movements'
 
@@ -17,7 +18,7 @@ export const createMovement = async (payload: RoastedMovementCreate): Promise<Ro
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail ?? 'Error al crear el movimiento')
+    throw new Error(apiErrorMessage(err, 'Error al crear el movimiento'))
   }
   return res.json()
 }
@@ -29,6 +30,6 @@ export const deleteMovement = async (id: number): Promise<void> => {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail ?? 'Error al eliminar el movimiento')
+    throw new Error(apiErrorMessage(err, 'Error al eliminar el movimiento'))
   }
 }

@@ -1,5 +1,6 @@
 import type { Product, ProductsQuery } from "../models/types";
 import { mapProductFromApi } from "../mapper/product.mapper";
+import { apiErrorMessage } from "../../../utils/apiError";
 
 const BASE_URL = "/api/v1/products";
 
@@ -47,7 +48,7 @@ export const createProduct = async (Product: Product): Promise<Product> => {
   const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(data.detail || "Error creando producto");
+    throw new Error(apiErrorMessage(data, "Error creando producto"));
   }
 
   if (!res.ok) throw new Error("Error creando producto");
@@ -79,7 +80,7 @@ export const updateProduct = async (Product: Product): Promise<Product> => {
   console.log(data.detail);
 
   if (!res.ok) {
-    throw new Error(data.detail || "Error creando producto");
+    throw new Error(apiErrorMessage(data, "Error actualizando producto"));
   }
 
   if (!res.ok) throw new Error("Error creando producto");
@@ -99,6 +100,6 @@ export const deleteProduct = async (id: number): Promise<void> => {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.detail || "Error eliminando producto");
+    throw new Error(apiErrorMessage(data, "Error eliminando producto"));
   }
 };

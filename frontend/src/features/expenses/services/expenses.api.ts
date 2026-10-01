@@ -8,6 +8,7 @@ import type {
   UpdateExpensePayload,
 } from '../models/types'
 import { mapExpenseFromApi } from '../mapper/expense.mapper'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 const EXPENSES_URL = '/api/v1/general-expenses'
 const CATEGORIES_URL = '/api/v1/expense-categories'
@@ -40,7 +41,7 @@ export const createExpense = async (payload: CreateExpensePayload): Promise<Gene
     body: JSON.stringify(payload),
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error creando gasto')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error creando gasto'))
   return mapExpenseFromApi(data)
 }
 
@@ -55,7 +56,7 @@ export const updateExpense = async (
     body: JSON.stringify(payload),
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error actualizando gasto')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error actualizando gasto'))
   return mapExpenseFromApi(data)
 }
 
@@ -66,7 +67,7 @@ export const deleteExpense = async (id: number): Promise<void> => {
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new Error(data.detail || 'Error eliminando gasto')
+    throw new Error(apiErrorMessage(data, 'Error eliminando gasto'))
   }
 }
 
@@ -86,7 +87,7 @@ export const createExpenseCategory = async (name: string): Promise<ExpenseCatego
     body: JSON.stringify({ name }),
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error creando categoría')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error creando categoría'))
   return data
 }
 
@@ -98,7 +99,7 @@ export const updateExpenseCategory = async (id: number, name: string): Promise<E
     body: JSON.stringify({ name }),
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error actualizando categoría')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error actualizando categoría'))
   return data
 }
 
@@ -109,7 +110,7 @@ export const deleteExpenseCategory = async (id: number): Promise<void> => {
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new Error(data.detail || 'Error eliminando categoría')
+    throw new Error(apiErrorMessage(data, 'Error eliminando categoría'))
   }
 }
 
@@ -129,7 +130,7 @@ export const createPaymentMethod = async (name: string): Promise<PaymentMethod> 
     body: JSON.stringify({ name }),
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error creando método de pago')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error creando método de pago'))
   return data
 }
 
@@ -141,7 +142,7 @@ export const updatePaymentMethod = async (id: number, name: string): Promise<Pay
     body: JSON.stringify({ name }),
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error actualizando método de pago')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error actualizando método de pago'))
   return data
 }
 
@@ -152,6 +153,6 @@ export const deletePaymentMethod = async (id: number): Promise<void> => {
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new Error(data.detail || 'Error eliminando método de pago')
+    throw new Error(apiErrorMessage(data, 'Error eliminando método de pago'))
   }
 }

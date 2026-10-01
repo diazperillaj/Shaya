@@ -15,6 +15,7 @@ import type {
 import { mapFairFromApi, mapFairProductFromApi, mapFairReportFromApi } from '../mapper/fair.mapper'
 import type { RoastedCoffeeProduct } from '../../sales/models/types'
 import type { RoastedCoffeeApiResponse as MaquiladoApiResponse } from '../../roasted_coffee/models/types'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 const BASE = '/api/v1/fairs'
 const MAQUILADO_URL = '/api/v1/maquilado'
@@ -28,7 +29,7 @@ const opts = (method = 'GET', body?: unknown) => ({
 
 async function handle<T>(res: Response): Promise<T> {
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail ?? 'Error en la solicitud')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error en la solicitud'))
   return data as T
 }
 
@@ -59,7 +60,7 @@ export const updateFair = async (id: number, payload: CreateFairPayload): Promis
 
 export const deleteFair = async (id: number): Promise<void> => {
   const res = await fetch(`${BASE}/delete/${id}`, opts('DELETE'))
-  if (!res.ok) { const d = await res.json(); throw new Error(d.detail ?? 'Error eliminando') }
+  if (!res.ok) { const d = await res.json(); throw new Error(apiErrorMessage(d, 'Error eliminando')) }
 }
 
 export const closeFair = async (id: number): Promise<Fair> => {
@@ -145,7 +146,7 @@ export const updateFairProduct = async (id: number, payload: FairProductPayload)
 
 export const deleteFairProduct = async (id: number): Promise<void> => {
   const res = await fetch(`${PRODUCTS_URL}/delete/${id}`, opts('DELETE'))
-  if (!res.ok) { const d = await res.json(); throw new Error(d.detail ?? 'Error eliminando') }
+  if (!res.ok) { const d = await res.json(); throw new Error(apiErrorMessage(d, 'Error eliminando')) }
 }
 
 // ─── Support data ─────────────────────────────────────────────────────────────

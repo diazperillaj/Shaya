@@ -1,5 +1,6 @@
 import type { Inventory, InventorysQuery } from '../models/types'
 import { mapInventoryFromApi } from '../mapper/inventory.mapper'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 const BASE_URL = '/api/v1/inventory'
 const FARMER_URL = '/api/v1/farmers'
@@ -78,7 +79,7 @@ export const createInventory = async (inventory: Inventory): Promise<Inventory> 
 
   const data = await res.json()
 
-  if (!res.ok) throw new Error(data.detail || 'Error creando inventario')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error creando inventario'))
 
   return mapInventoryFromApi(data)
 }
@@ -116,7 +117,7 @@ export const updateInventory = async (inventory: Inventory): Promise<Inventory> 
 
   const data = await res.json()
 
-  if (!res.ok) throw new Error(data.detail || 'Error actualizando inventario')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error actualizando inventario'))
 
   return mapInventoryFromApi(data)
 }
@@ -132,6 +133,6 @@ export const deleteInventory = async (id: number): Promise<void> => {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new Error(data.detail || 'Error eliminando inventario')
+    throw new Error(apiErrorMessage(data, 'Error eliminando inventario'))
   }
 }

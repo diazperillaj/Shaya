@@ -1,4 +1,5 @@
 import type { LoginPayload, User } from './schema'
+import { apiErrorMessage } from '../../utils/apiError'
 
 /**
  * URL base del módulo de autenticación.
@@ -32,7 +33,7 @@ export async function login(
 
   if (!res.ok) {
     const data = await res.json()
-    throw new Error(data.detail || 'Error al iniciar sesión')
+    throw new Error(apiErrorMessage(data, 'Error al iniciar sesión'))
   }
 }
 
