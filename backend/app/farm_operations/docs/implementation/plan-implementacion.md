@@ -4,7 +4,7 @@
 > de planeación aprobados ([arquitectura.md](../arquitectura.md) §12) en
 > bloques de trabajo ejecutables.
 > Estado: **✅ aprobado** (2026-09-22).
-> Última actualización: 2026-10-01
+> Última actualización: 2026-10-02
 
 ---
 
@@ -287,8 +287,23 @@ plan-migraciones M2.
 - Selector "aplicar a: este lote / varios lotes / toda la finca" en las
   labores que lo admiten; clima por finca con lote opcional.
 
+**Implementado además** (sin cambios de esquema fuera de M2):
+- Las seis labores comparten un servicio y un generador de rutas
+  (`api/v1/labors/`); cada una declara sus esquemas y si admite el registro
+  múltiple. Clima y análisis de suelo tienen su propio recurso.
+- Los ciclos de un lote no se solapan y su rango cubre sus labores. Un
+  ciclo cerrado admite labores olvidadas con fecha dentro del ciclo, y el
+  último ciclo se puede reabrir para corregir un cierre por error.
+- El lote se cierra solo sin ciclo activo, y no se eliminan lotes, fincas ni
+  insumos con ciclos, labores o registros de clima.
+- El reparto por área es una función pura del frontend (`labors/split.ts`):
+  redondea cada parte y la última absorbe el redondeo, para que la suma sea
+  exactamente el total.
+
 **Pruebas:** un solo ciclo activo por lote (409); no se abre ciclo en un lote
-cerrado; `other_detail` exigido; `bulk-create` todo o nada; reparto por área.
+cerrado; `other_detail` exigido; `bulk-create` todo o nada; ciclos sin
+solaparse; labores dentro del ciclo; insumo desactivado; alcance por finca.
+El reparto por área se verifica en el navegador.
 
 **Terminado cuando:** el farmer abre un ciclo, registra cualquier labor desde
 el celular en menos de un minuto, y registra una fertilización de toda la
@@ -530,7 +545,7 @@ Decisiones de la infraestructura:
 |---|---|---|---|
 | 1A — Cimientos | [#1](https://github.com/diazperillaj/Shaya/pull/1), [#2](https://github.com/diazperillaj/Shaya/pull/2), [#3](https://github.com/diazperillaj/Shaya/pull/3) | ✅ | Infraestructura (#1, que incluye #2) y acceso por rol y navegación (#3). |
 | 1B — Dominio base | — (directo a `main`) | ✅ | M6 descartada (§3, bloque 1B). |
-| 2 — Ciclos y labores | — | ⬜ | |
+| 2 — Ciclos y labores | — (directo a `main`) | ✅ | Reapertura del último ciclo y labores en ciclos cerrados dentro de sus fechas (§3, bloque 2). |
 | 3 — Cosechas y jornales | — | ⬜ | |
 | 4 — Beneficio, secado y calidad | — | ⬜ | |
 | 5 — Generador sintético | — | ⬜ | |
@@ -545,6 +560,7 @@ Decisiones de la infraestructura:
 |---|---|
 | especificacion-api.md §2 | Endpoints existentes restringidos a roles de personal; `UserRole` y creación de cuentas farmer (2.1, 2.2). |
 | especificacion-api.md §3.5 | `bulk-create` de labores con reparto por área (bloque 2). |
+| especificacion-api.md §3.4–3.5, modelo-datos.md §3.5, plan-migraciones.md M2 | Reapertura del último ciclo, ciclos sin solaparse, labores dentro del ciclo (también en ciclos cerrados), CHECK `ck_crop_cycles_end_date_status`, clima y suelo como recursos propios (bloque 2). |
 | plan-migraciones.md §1, §2, §4 | Migración base consolidada con el ID del head (2.3); registro central de modelos y relaciones solo desde el lado de cultivo (2.5); M6 descartada (bloque 1B). |
 | arquitectura.md C4, modelo-datos.md §8 | El farmer Shaya se registra desde la interfaz, sin dato semilla (bloque 1B). |
 | especificacion-api.md §2, §3, §5 | `FarmAccess` en lugar de `get_accessible_farm`; endpoints de activación y de configuración resuelta de finca; listado de cuentas; valor heredado en la config resuelta (bloque 1B). |

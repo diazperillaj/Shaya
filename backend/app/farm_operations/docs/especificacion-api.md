@@ -2,9 +2,9 @@
 
 > Documento 3 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Basado en el modelo de datos aprobado ([modelo-datos.md](modelo-datos.md)).
-> Estado: **✅ aprobado** (2026-08-06). Implementados §3.1–3.3, 3.6, los
-> empleados de §3.7 y §3.12 (bloque 1B).
-> Última actualización: 2026-10-01
+> Estado: **✅ aprobado** (2026-08-06). Implementados §3.1–3.3 y 3.6, los
+> empleados de §3.7 y §3.12 (bloque 1B), y §3.4–3.5 (bloque 2).
+> Última actualización: 2026-10-02
 
 ---
 
@@ -88,7 +88,7 @@ mínimo (`farm` = `require_farm_role` + scoping de finca).
 | GET | `/farms/get` | farm | Lista con scoping. Filtros: `search` (nombre, vereda o municipio), `active`. |
 | GET | `/farms/get/{id}` | farm | Detalle + dueño + conteo de lotes activos. |
 | PUT | `/farms/update/{id}` | farm | Incluye `active`. |
-| DELETE | `/farms/delete/{id}` | farm | Solo sin lotes ni empleados (409). |
+| DELETE | `/farms/delete/{id}` | farm | Solo sin lotes, empleados ni registros de clima (409). |
 
 ### 3.2 `plots` (+ eventos y ciclo de vida)
 
@@ -96,12 +96,12 @@ mínimo (`farm` = `require_farm_role` + scoping de finca).
 |---|---|---|---|
 | POST | `/plots/create` | farm | Crea lote (terreno + siembra). Si trae `renewed_from_plot_id`, el service valida que el anterior esté `closed` y pertenezca a la misma finca. |
 | GET | `/plots/get` | farm | Filtros: `farm_id`, `status`, `variety`. |
-| GET | `/plots/get/{id}` | farm | Detalle + edad efectiva calculada + última zoca + lote que lo renovó (el ciclo activo se suma en el bloque 2). |
+| GET | `/plots/get/{id}` | farm | Detalle + edad efectiva calculada + última zoca + lote que lo renovó + ciclo activo. |
 | GET | `/plots/get/{id}/renewal-defaults` | farm | Datos del terreno del lote para precargar el formulario del lote nuevo (renovación). |
 | PUT | `/plots/update/{id}` | farm | Nombre único entre los lotes activos de la finca (409). |
-| POST | `/plots/{id}/close` | farm | Cierre definitivo (D2): registra `plot_event(closure)` y `closed_at` (por defecto, hoy). Exigirá no tener ciclo activo desde el bloque 2. |
+| POST | `/plots/{id}/close` | farm | Cierre definitivo (D2): registra `plot_event(closure)` y `closed_at` (por defecto, hoy). Exige no tener ciclo activo y no ser anterior al fin del último ciclo (409). |
 | POST | `/plots/{id}/reopen` | farm | Solo corrección de error: registra `plot_event(reopening)`. 409 si el terreno ya se renovó o si otro lote activo usa el mismo nombre. |
-| DELETE | `/plots/delete/{id}` | farm | Solo sin eventos ni renovaciones (409); los ciclos se suman en el bloque 2. |
+| DELETE | `/plots/delete/{id}` | farm | Solo sin eventos, ciclos, análisis de suelo, registros de clima ni renovaciones (409). |
 | POST | `/plots/{id}/events/create` | farm | Evento manual: `zoca`, `partial_replant`, `shade_change`, `other` (+`other_detail`). `closure`/`reopening` solo vía close/reopen. 409 sobre un lote cerrado. |
 | GET | `/plots/{id}/events/get` | farm | Historial de eventos. |
 
@@ -119,29 +119,52 @@ mínimo (`farm` = `require_farm_role` + scoping de finca).
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| POST | `/crop-cycles/create` | farm | Abre ciclo en un lote `active` sin ciclo activo (409 si ya hay). `cycle_number` lo asigna el service. |
-| GET | `/crop-cycles/get` | farm | Filtros: `plot_id`, `status`. |
-| GET | `/crop-cycles/get/{id}` | farm | Detalle + resumen de labores y cosechas del ciclo. |
-| PUT | `/crop-cycles/update/{id}` | farm | Fechas/observaciones. |
-| POST | `/crop-cycles/{id}/close` | farm | Cierra el ciclo (exige cosechas cerradas; asigna `end_date`). |
-| DELETE | `/crop-cycles/delete/{id}` | farm | Solo sin registros colgados (RESTRICT). |
+| POST | `/crop-cycles/create` | farm | Abre ciclo en un lote `active` sin ciclo activo (409 si ya hay). `cycle_number` lo asigna el service. `start_date` (por defecto, hoy) no es anterior a la siembra ni al fin del ciclo anterior: los ciclos de un lote no se solapan. |
+| GET | `/crop-cycles/get` | farm | Filtros: `plot_id`, `farm_id`, `status`. |
+| GET | `/crop-cycles/get/{id}` | farm | Detalle + resumen por tipo de labor: cantidad, última fecha y costo total (las cosechas se suman en el bloque 3). |
+| PUT | `/crop-cycles/update/{id}` | farm | Fechas y observaciones. `end_date` solo en ciclos cerrados. Las fechas siguen sin solaparse con los ciclos vecinos y cubren todas las labores del ciclo (409). |
+| POST | `/crop-cycles/{id}/close` | farm | Cierra el ciclo y asigna `end_date` (por defecto, hoy), que no deja labores por fuera. Exigirá cosechas cerradas desde el bloque 3. |
+| POST | `/crop-cycles/{id}/reopen` | farm | Solo corrección de error: el último ciclo de un lote activo vuelve a `active` y pierde su `end_date`. |
+| DELETE | `/crop-cycles/delete/{id}` | farm | Solo sin labores (409). |
+
+El lote expone su ciclo activo (`active_cycle: {id, cycle_number, start_date}`
+en `GET /plots/get` y `/plots/get/{id}`), para registrar labores sin otra
+consulta.
 
 ### 3.5 Labores del ciclo
 
-Mismo patrón CRUD para las siete: `fertilizations`, `phytosanitary-apps`,
-`irrigations`, `pest-monitorings`, `cultural-practices`, `flowering-records`,
-`soil-analyses`:
+Mismo patrón CRUD para las seis: `fertilizations`, `phytosanitary-apps`,
+`irrigations`, `pest-monitorings`, `cultural-practices`, `flowering-records`.
+Un solo servicio y un generador de rutas las atienden; cada labor declara sus
+esquemas y si admite el registro en varios lotes.
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| POST | `/<labor>/create` | farm | El body lleva `crop_cycle_id` (`plot_id` en `soil-analyses`). Valida enum `other` → exige `other_detail`. |
-| POST | `/<labor>/bulk-create` | farm | Solo `fertilizations`, `phytosanitary-apps`, `irrigations`, `cultural-practices` y `flowering-records` (no las mediciones propias de cada lote). Body: campos comunes de la labor + `items: [{crop_cycle_id, quantity?, cost?}]`. El frontend precarga el reparto proporcional al área de cada lote (partes iguales si falta el área) y el usuario lo edita antes de guardar. Todos los ciclos deben estar activos y ser de la misma finca. Crea un registro por ciclo en una sola transacción (todo o nada). |
-| GET | `/<labor>/get` | farm | Filtros: `crop_cycle_id` / `plot_id`, rango de fechas. |
-| PUT | `/<labor>/update/{id}` | farm | |
+| POST | `/<labor>/create` | farm | El body lleva `crop_cycle_id`. Valida enum `other` → exige `other_detail`. |
+| POST | `/<labor>/bulk-create` | farm | Solo `fertilizations`, `phytosanitary-apps`, `irrigations`, `cultural-practices` y `flowering-records` (no las mediciones propias de cada lote). Body: campos comunes de la labor + `items: [{crop_cycle_id, …montos}]`, con los montos de cada lote: `quantity` y `cost` (fertilización y fitosanitario), `volume_liters` (riego), `cost` (labor cultural), ninguno (floración). El frontend precarga el reparto proporcional al área de cada lote (partes iguales si falta el área) y el usuario lo edita antes de guardar. Todos los ciclos deben estar activos y ser de la misma finca. Crea un registro por ciclo en una sola transacción (todo o nada). |
+| GET | `/<labor>/get` | farm | Filtros: `crop_cycle_id`, `plot_id`, `date_from`, `date_to`. Cada registro trae lote y número de ciclo; las labores con insumo, `supply: {id, name, unit}`. |
+| PUT | `/<labor>/update/{id}` | farm | El ciclo del registro no cambia. |
 | DELETE | `/<labor>/delete/{id}` | farm | Libre (las labores no tienen descendencia). |
 
-`climate-records` igual, con `farm_id` obligatorio y `plot_id` opcional en el
-body.
+Reglas comunes al registrar o corregir:
+
+- La fecha cae dentro del ciclo: desde su inicio y, si está cerrado, hasta su
+  fin (409). Así una labor olvidada se completa después del cierre sin romper
+  la línea de tiempo del lote.
+- Un lote cerrado no recibe labores nuevas (409).
+- Un insumo desactivado no se usa en registros nuevos (409); un registro
+  existente se puede corregir conservando su insumo.
+
+### 3.5.1 `soil-analyses` y `climate-records`
+
+El análisis de suelo cuelga del lote y el clima de la finca, así que tienen
+su propio recurso con el mismo CRUD (`/create`, `/get`, `/update/{id}`,
+`/delete/{id}`), sin registro múltiple.
+
+| Recurso | Body | Filtros de `/get` | Reglas |
+|---|---|---|---|
+| `soil-analyses` | `plot_id` + resultados | `plot_id`, `farm_id`, `date_from`, `date_to` | Al menos un resultado; puede ser anterior a la siembra; un lote cerrado no recibe análisis nuevos. |
+| `climate-records` | `farm_id` + `plot_id` opcional (vacío = toda la finca) + mediciones | `farm_id`, `plot_id`, `date_from`, `date_to` | Lluvia, temperatura u observación; mínima ≤ máxima; el lote debe ser de la finca y estar activo. |
 
 ### 3.6 `supplies` (catálogo global)
 
@@ -341,11 +364,12 @@ La API es **solo una capa** del módulo (arquitectura §10). Estructura completa
 app/farm_operations/
     docs/                    # esta documentación
     models/                  # SQLAlchemy — misma Base y cadena de Alembic
-        farm.py  plot.py  crop_cycle.py  harvest.py  supply.py
-        wet_processing.py  drying.py  quality_eval.py  employee.py  ...
+        farm.py  plot.py  crop_cycle.py  labors.py  climate_record.py  supply.py
+        harvest.py  wet_processing.py  drying.py  quality_eval.py  employee.py  ...
     services/                # lógica de dominio TRANSVERSAL (cruza recursos):
         access.py            #   FarmAccess: alcance del usuario sobre las fincas
         dates.py             #   fecha de negocio (calendario de Colombia)
+        cycle_records.py     #   labores de un ciclo: fechas extremas y resumen por tipo
         traceability.py      #   recorrer la cadena completa de un secado/parchment
         mass_balance.py      #   validaciones de kg entre etapas
         inventory_bridge.py  #   cierre de secado → Inventory + Parchment (transacción)
@@ -354,9 +378,9 @@ app/farm_operations/
         v1/                  # capa HTTP
             dependencies.py  #   require_farm_role, get_farm_access
             router.py        #   farm_router: compone todos los sub-routers
+            validation.py    #   validaciones compartidas (fechas futuras, `other_detail`)
             farms/  plots/  alert_configs/  crop_cycles/
-            fertilizations/  phytosanitary_apps/  irrigations/
-            pest_monitorings/  cultural_practices/  flowering_records/
+            labors/          #   las seis labores: tipos, servicio y rutas genéricas
             soil_analyses/  climate_records/  supplies/  employees/
             day_labors/  harvests/  quality_evals/  wet_processings/
             dryings/  farmer_accounts/  dashboard/  ml/

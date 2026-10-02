@@ -1,9 +1,10 @@
 # Farm Operations — Modelo de Datos
 
 > Documento 2 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
-> Estado: **✅ aprobado** (2026-08-06). Implementadas las tablas base §3.1–3.4,
-> 3.7 y 3.9 (migración M1, bloque 1B).
-> Última actualización: 2026-10-01
+> Estado: **✅ aprobado** (2026-08-06). Implementadas las tablas §3.1–3.4,
+> 3.7 y 3.9 (migración M1, bloque 1B) y §3.5, 3.6 y 3.8 (migración M2,
+> bloque 2).
+> Última actualización: 2026-10-02
 
 ---
 
@@ -202,6 +203,12 @@ Constraints:
 - Unicidad `(plot_id, cycle_number)`.
 - Índice parcial único: **un solo ciclo `active` por lote**.
 - `CHECK (end_date IS NULL OR end_date >= start_date)`.
+- `CHECK ((status = 'closed') = (end_date IS NOT NULL))`: un ciclo está
+  cerrado si y solo si tiene fecha de fin.
+
+En el servicio: los ciclos de un lote no se solapan (cada uno empieza cuando
+terminó el anterior o después) y el rango de fechas de un ciclo cubre todas
+sus labores.
 
 ### 3.6 `climate_records` — Registros climáticos manuales
 

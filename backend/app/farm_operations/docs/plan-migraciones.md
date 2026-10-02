@@ -2,9 +2,9 @@
 
 > Documento 6 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Materializa el [modelo de datos](modelo-datos.md) aprobado en Alembic.
-> Estado: **✅ aprobado** (2026-09-16). M1 implementada (bloque 1B); M6
-> descartada (§4).
-> Última actualización: 2026-10-01
+> Estado: **✅ aprobado** (2026-09-16). M1 y M2 implementadas (bloques 1B y
+> 2); M6 descartada (§4).
+> Última actualización: 2026-10-02
 
 ---
 
@@ -73,6 +73,8 @@ Crea (modelo-datos §3.1–3.4, 3.7, 3.9): `supplies`, `farms`, `plots`,
 
 ### M2 — `farm cycles and cycle records`
 
+✅ Revisión `ef59adecdc0b` (bloque 2).
+
 Crea (§3.5, 3.6, 3.8): `crop_cycles`, `climate_records`, `fertilizations`,
 `phytosanitary_apps`, `irrigations`, `pest_monitorings`,
 `cultural_practices`, `flowering_records`, `soil_analyses`.
@@ -81,9 +83,12 @@ Crea (§3.5, 3.6, 3.8): `crop_cycles`, `climate_records`, `fertilizations`,
   `farmseverityenum`, `farmintensityenum`, `farmculturalpracticetypeenum`.
 - Índice parcial único `uq_crop_cycles_one_active` sobre `(plot_id)`
   `WHERE status = 'active'`; único `(plot_id, cycle_number)`.
-- CHECK `ck_crop_cycles_dates` (`end_date IS NULL OR end_date >= start_date`).
+- CHECK `ck_crop_cycles_dates` (`end_date IS NULL OR end_date >= start_date`)
+  y `ck_crop_cycles_end_date_status` (cerrado ⇔ con `end_date`: reabrir un
+  ciclo le quita la fecha de fin).
 - Índices compuestos `(crop_cycle_id, <fecha>)` en cada tabla de labores;
   `(farm_id, record_date)` en clima; `(plot_id, analysis_date)` en suelo.
+  Además, `plot_id` en ciclos y en clima, para las consultas por lote.
 
 ### M3 — `farm harvests, harvest works, day labors`
 
