@@ -13,6 +13,7 @@ import type { Parchment  } from '../mapper/parchment.mapper'
 import { mapParchmentFromApi } from '../mapper/parchment.mapper'
 import type { Product } from '../../products/models/types'
 import { mapProductFromApi } from '../../products/mapper/product.mapper'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 const BASE_URL = '/api/v1/process'
 const PARCHMENT_URL = '/api/v1/inventory'
@@ -142,7 +143,7 @@ export const createProceso = async (
   console.log(payload);
   
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error creating process')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error creando el proceso'))
 
   return mapProcesoFromApi(data)
 }
@@ -165,7 +166,7 @@ export const updateProceso = async (
   })
 
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error updating process')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error actualizando el proceso'))
 
   return mapProcesoFromApi(data)
 }
@@ -179,7 +180,7 @@ export const deleteProceso = async (id: number): Promise<void> => {
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new Error(data.detail || 'Error eliminando el proceso')
+    throw new Error(apiErrorMessage(data, 'Error eliminando el proceso'))
   }
 }
 

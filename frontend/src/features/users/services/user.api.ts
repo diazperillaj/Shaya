@@ -1,5 +1,6 @@
 import type { User, UsersQuery } from '../models/types'
 import { mapUserFromApi } from '../mapper/user.mapper'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 /**
  * URL base del módulo de usuarios.
@@ -90,7 +91,7 @@ export const createUser = async (user: User): Promise<User> => {
   console.log(data.detail)
 
   if (!res.ok) {
-    throw new Error(data.detail || 'Error creando usuario')
+    throw new Error(apiErrorMessage(data, 'Error creando usuario'))
   }
 
   if (!res.ok) throw new Error('Error creando usuario')
@@ -142,7 +143,7 @@ export const updateUser = async (user: User): Promise<User> => {
   console.log(data.detail)
 
   if (!res.ok) {
-    throw new Error(data.detail || 'Error creando usuario')
+    throw new Error(apiErrorMessage(data, 'Error actualizando usuario'))
   }
 
   if (!res.ok) throw new Error('Error creando usuario')

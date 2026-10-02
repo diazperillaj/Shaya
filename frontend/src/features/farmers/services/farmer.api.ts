@@ -1,5 +1,6 @@
 import type { Farmer, FarmersQuery } from '../models/types'
 import { mapFarmerFromApi } from '../mapper/farmer.mapper'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 
 const BASE_URL = '/api/v1/farmers'
@@ -60,7 +61,7 @@ export const createFarmer = async (Farmer: Farmer): Promise<Farmer> => {
 
 
   if (!res.ok) {
-    throw new Error(data.detail || 'Error creando caficultor')
+    throw new Error(apiErrorMessage(data, 'Error creando caficultor'))
   }
 
   if (!res.ok) throw new Error('Error creando caficultor')
@@ -97,7 +98,7 @@ export const updateFarmer = async (Farmer: Farmer): Promise<Farmer> => {
   console.log(data.detail)
 
   if (!res.ok) {
-    throw new Error(data.detail || 'Error creando caficultor')
+    throw new Error(apiErrorMessage(data, 'Error actualizando caficultor'))
   }
 
   if (!res.ok) throw new Error('Error creando caficultor')

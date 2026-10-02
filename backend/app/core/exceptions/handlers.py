@@ -1,7 +1,10 @@
 from fastapi import Request
+from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
+
+from app.core.exceptions.domain import DomainError
 
 ERRORS = {
     "document": "El documento debe ser un valor numérico",
@@ -53,6 +56,18 @@ def register_exception_handlers(app):
 
             if field in ERRORS:
                 return raise_error(ERRORS[field])
+
+        # Sin mensaje personalizado: respuesta 422 estándar con el detalle.
+        return await request_validation_exception_handler(request, exc)
+
+
+    @app.exception_handler(DomainError)
+    async def domain_error_handler(request: Request, exc: DomainError):
+        """
+        Traduce las excepciones de reglas de negocio a su respuesta HTTP.
+        """
+
+        return raise_error(exc.detail, exc.status_code)
 
 
     @app.exception_handler(IntegrityError)

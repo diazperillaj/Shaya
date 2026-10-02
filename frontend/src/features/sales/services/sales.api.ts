@@ -11,6 +11,7 @@ import { mapCustomerFromApi } from '../../customers/mapper/customer.mapper'
 import type { User } from '../../users/models/types'
 import { mapUserFromApi } from '../../users/mapper/user.mapper'
 import type { RoastedCoffeeApiResponse as MaquiladoApiResponse } from '../../roasted_coffee/models/types'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 const SALES_URL = '/api/v1/sales'
 const CUSTOMERS_URL = '/api/v1/customers'
@@ -51,7 +52,7 @@ export const createSale = async (payload: CreateSalePayload): Promise<Sale> => {
   })
 
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error creando venta')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error creando venta'))
 
   return mapSaleFromApi(data)
 }
@@ -68,7 +69,7 @@ export const updateSale = async (
   })
 
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error actualizando venta')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error actualizando venta'))
 
   return mapSaleFromApi(data)
 }

@@ -1,6 +1,7 @@
 // features/processes/services/processExpenses.api.ts
 
 import type { ProcessExpense, ProcessExpensePayload } from '../models/types'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 const BASE_URL = '/api/v1/process-expenses'
 
@@ -38,7 +39,7 @@ export const createProcessExpense = async (
   })
 
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error creando el gasto')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error creando el gasto'))
 
   return mapExpenseFromApi(data)
 }
@@ -55,7 +56,7 @@ export const updateProcessExpense = async (
   })
 
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error actualizando el gasto')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error actualizando el gasto'))
 
   return mapExpenseFromApi(data)
 }
@@ -68,6 +69,6 @@ export const deleteProcessExpense = async (expenseId: number): Promise<void> => 
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new Error(data.detail || 'Error eliminando el gasto')
+    throw new Error(apiErrorMessage(data, 'Error eliminando el gasto'))
   }
 }

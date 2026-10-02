@@ -513,7 +513,7 @@ Decisiones de la infraestructura:
 
 | Bloque | PR | Estado | Notas |
 |---|---|---|---|
-| 1A — Cimientos | — | ⬜ | |
+| 1A — Cimientos | [#1](https://github.com/diazperillaj/Shaya/pull/1) | 🟡 | Parte 1/2 (infraestructura) en revisión; parte 2/2 (seguridad y navegación) pendiente. |
 | 1B — Dominio base | — | ⬜ | |
 | 2 — Ciclos y labores | — | ⬜ | |
 | 3 — Cosechas y jornales | — | ⬜ | |

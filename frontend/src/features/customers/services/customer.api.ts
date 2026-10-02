@@ -1,5 +1,6 @@
 import type { Customer, CustomersQuery } from '../models/types'
 import { mapCustomerFromApi } from '../mapper/customer.mapper'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 
 const BASE_URL = '/api/v1/customers'
@@ -64,7 +65,7 @@ export const createCustomer = async (Customer: Customer): Promise<Customer> => {
 
 
   if (!res.ok) {
-    throw new Error(data.detail || 'Error creando cliente')
+    throw new Error(apiErrorMessage(data, 'Error creando cliente'))
   }
 
   if (!res.ok) throw new Error('Error creando cliente')
@@ -101,7 +102,7 @@ export const updateCustomer = async (Customer: Customer): Promise<Customer> => {
   console.log(data.detail)
 
   if (!res.ok) {
-    throw new Error(data.detail || 'Error creando cliente')
+    throw new Error(apiErrorMessage(data, 'Error actualizando cliente'))
   }
 
   if (!res.ok) throw new Error('Error creando cliente')

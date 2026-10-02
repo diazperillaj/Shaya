@@ -18,9 +18,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import openpyxl
 
-# Importa la app completa para que todos los modelos queden registrados
-# y SQLAlchemy pueda resolver las relaciones entre ellos.
-import app.main  # noqa: F401
+# Registra todos los modelos para que SQLAlchemy pueda resolver las
+# relaciones entre ellos.
+from app import models_registry  # noqa: F401
 
 from app.core.db.session import SessionLocal
 from app.models.expense_category import ExpenseCategory

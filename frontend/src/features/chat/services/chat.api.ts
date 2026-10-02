@@ -3,6 +3,7 @@ import type {
   ConversationDetail,
   StreamCallbacks,
 } from '../models/types'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 /**
  * Base del microservicio del chatbot. En producción nginx enruta
@@ -70,7 +71,7 @@ export const streamMessage = async (
     let detail = 'Error enviando el mensaje'
     try {
       const data = await res.json()
-      detail = data.detail || detail
+      detail = apiErrorMessage(data, detail)
     } catch {
       /* respuesta sin JSON */
     }

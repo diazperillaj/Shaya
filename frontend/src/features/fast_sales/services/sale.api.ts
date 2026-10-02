@@ -2,6 +2,7 @@
 import { useAuth } from '../../auth/AuthContext'
 import type { Sale, SalesQuery } from '../models/types'
 import { mapSaleFromApi } from '../mapper/sale.mapper'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 const BASE_URL = "/api/v1/fast-sale";
 const PRODUCT_URL = "/api/v1/products";
@@ -73,7 +74,7 @@ export const useSalesService = () => {
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.detail || "Error creando venta");
+      throw new Error(apiErrorMessage(data, "Error creando venta"));
     }
 
     return mapSaleFromApi(data);
@@ -102,7 +103,7 @@ export const useSalesService = () => {
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.detail || "Error actualizando venta");
+      throw new Error(apiErrorMessage(data, "Error actualizando venta"));
     }
 
     return mapSaleFromApi(data);

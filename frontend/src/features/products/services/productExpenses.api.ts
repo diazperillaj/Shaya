@@ -1,6 +1,7 @@
 // features/products/services/productExpenses.api.ts
 
 import type { ProductExpense, ProductExpensePayload } from '../models/types'
+import { apiErrorMessage } from '../../../utils/apiError'
 
 const BASE_URL = '/api/v1/product-expenses'
 
@@ -37,7 +38,7 @@ export const createProductExpense = async (
   })
 
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error creando el costo')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error creando el costo'))
 
   return mapExpenseFromApi(data)
 }
@@ -54,7 +55,7 @@ export const updateProductExpense = async (
   })
 
   const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || 'Error actualizando el costo')
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error actualizando el costo'))
 
   return mapExpenseFromApi(data)
 }
@@ -67,6 +68,6 @@ export const deleteProductExpense = async (expenseId: number): Promise<void> => 
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new Error(data.detail || 'Error eliminando el costo')
+    throw new Error(apiErrorMessage(data, 'Error eliminando el costo'))
   }
 }
