@@ -1,8 +1,9 @@
 # Farm Operations — Modelo de Datos
 
 > Documento 2 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
-> Estado: **✅ aprobado** (2026-08-06) — sin código ni migraciones aún.
-> Última actualización: 2026-08-06
+> Estado: **✅ aprobado** (2026-08-06). Implementadas las tablas base §3.1–3.4,
+> 3.7 y 3.9 (migración M1, bloque 1B).
+> Última actualización: 2026-10-01
 
 ---
 
@@ -628,14 +629,15 @@ sales → detail_sales → inventories → parchments
 3. Cosecha y nómina: `harvests`, `harvest_works`, `day_labors`.
 4. Proceso: `wet_processings`, `wet_processing_inputs`, `dryings`,
    `drying_inputs`, `drying_humidity_checks`, `quality_evals`.
-5. Integración: `parchments.drying_id` + datos semilla (farmer **Shaya** con
-   su `Person`; defaults de `supplies` comunes opcionales).
+5. Integración: `parchments.drying_id`. Sin datos semilla: el farmer
+   **Shaya** se registra desde la interfaz como cualquier caficultor
+   (plan-migraciones §4, M6 descartada).
 
-## 9. Decisiones de este documento — ✅ validadas por el usuario (2026-08-06)
+## 9. Decisiones de diseño
 
 | # | Decisión | Alternativa descartada |
 |---|---|---|
-| R1 | El beneficio se llama **`WetProcessing`** (`wet_processings`) | `Processing` colisiona conceptualmente con el `Process` existente (maquila). Si prefieres otro nombre (`Benefit`, `WetMill`), es solo renombrar. |
+| R1 | El beneficio se llama **`WetProcessing`** (`wet_processings`) | `Processing` colisiona conceptualmente con el `Process` existente (maquila). |
 | R2 | La **composición de la cosecha** (% maduros, verdes, brocados) vive solo en `quality_evals(stage='cherry')`, no duplicada en `harvests` | Tenerla en ambas tablas crea dos fuentes de verdad. La UI puede mostrar el formulario de composición dentro de la pantalla de cosecha, pero escribe en `quality_evals`. |
 | R3 | `employees` es **independiente de `persons`** | Reusar `Person` obligaría documento/email únicos y mezclaría recolectores informales con el eje de identidad del sistema (users/farmers/customers). Si un empleado llega a necesitar cuenta, se crea su `Person` en ese momento. |
 | R4 | `origin_batch` **se conserva** como texto libre para café comprado; la trazabilidad real va por la nueva `parchments.drying_id` | Convertir `origin_batch` en FK rompería los datos históricos importados de Excel y quitaría el campo de código de lote para compras a terceros. |

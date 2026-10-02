@@ -2,8 +2,9 @@
 
 > Documento 6 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Materializa el [modelo de datos](modelo-datos.md) aprobado en Alembic.
-> Estado: **✅ aprobado** (2026-09-16) — no se ha escrito código.
-> Última actualización: 2026-09-16
+> Estado: **✅ aprobado** (2026-09-16). M1 implementada (bloque 1B); M6
+> descartada (§4).
+> Última actualización: 2026-10-01
 
 ---
 
@@ -41,7 +42,7 @@ paralela, ningún `branch_labels`.
 
 | Tema | Regla |
 |---|---|
-| Una migración por bloque funcional | 6 revisiones (§4). Cada una deja la base de datos en un estado coherente y desplegable por sí sola. |
+| Una migración por bloque funcional | 5 revisiones (§4). Cada una deja la base de datos en un estado coherente y desplegable por sí sola. |
 | Nombres de enum en Postgres | Minúsculas, igual a la clase, **con prefijo `farm`** cuando el nombre sería genérico: `farmplotstatusenum`, `farmseverityenum`, `farmintensityenum`. Evita colisiones futuras con otros módulos (`severityenum` a secas es demasiado ambiguo). |
 | Enums en downgrade | Toda migración que crea un tipo enum lo elimina en `downgrade()` (`sa.Enum(name=...).drop(op.get_bind())`). Postgres no lo borra solo al borrar la tabla. |
 | Índices parciales | `op.create_index(..., postgresql_where=sa.text("status = 'active'"))`. |
@@ -55,6 +56,8 @@ paralela, ningún `branch_labels`.
 Cada revisión `Revises` la anterior; la primera revisa `d4a7c9e12f56`.
 
 ### M1 — `farm base: supplies, farms, plots, events, alert configs, employees`
+
+✅ Revisión `3ec895d2c6b0` (bloque 1B).
 
 Crea (modelo-datos §3.1–3.4, 3.7, 3.9): `supplies`, `farms`, `plots`,
 `plot_events`, `alert_configs`, `employees`.
@@ -124,24 +127,19 @@ op.create_index('idx_parchment_drying_id', 'parchments', ['drying_id'])
 `drying_id = NULL` = café comprado. Downgrade: drop index, constraint, FK y
 columna, en ese orden.
 
-### M6 — `seed Shaya farmer`
+### ~~M6 — `seed Shaya farmer`~~ (descartada)
 
-Migración **de datos**, idempotente (decisión C4: la producción propia entra a
-inventario con el farmer Shaya):
+Iba a ser una migración de datos que insertaba el farmer Shaya con el
+marcador `document = 'SHAYA'`. Se descarta en el bloque 1B:
 
-- Si no existe una `Person` con `document = 'SHAYA'` (marcador estable, no
-  un nombre que pueda editarse): inserta `Person(full_name='Shaya',
-  document='SHAYA')` y `Farmer(person_id, farm_name='Shaya',
-  village='-', municipality='-')`.
-- Si existe, no hace nada (permite correr la migración en una base que ya lo
-  tenga por otra vía).
-- Downgrade: elimina el farmer y la persona **solo si** ninguna `farm` ni
-  `parchment` los referencia; si sí, aborta con mensaje claro.
+- **Ningún código necesita identificar al farmer Shaya.** La producción
+  propia sale a inventario con el farmer dueño de la finca (C4), igual que
+  la de cualquier caficultor; no hay que buscarlo por un marcador.
+- **El marcador chocaría con la validación del documento**, que solo admite
+  números: editar ese farmer desde la interfaz fallaría.
 
-**Orden:** M6 no depende de las tablas nuevas (inserta en `persons` y
-`farmers`, que ya existen) y es requisito para registrar la finca propia desde
-el principio, así que se ejecuta en el bloque 1B y en la cadena queda
-inmediatamente después de M1 (plan de implementación, bloque 1B).
+El farmer Shaya se registra desde la interfaz como cualquier caficultor, y
+la finca propia se crea con él como dueño.
 
 El rol `farmer` en `users.role` **no requiere migración** (columna `String`,
 E3). Un catálogo inicial de `supplies` comunes (Urea, DAP, 25-4-24, cal
@@ -180,4 +178,3 @@ migración: es conveniencia, no requisito para que la app funcione.
 | Nombre de enum en el modelo ≠ nombre en la migración → la app falla al insertar | `name=` fijado en `enums.py` y copiado literal a la migración; el test de humo de M1 inserta un registro por enum. |
 | Un modelo nuevo no importado en `env.py` → autogenerate lo omite en silencio | `models/__init__.py` importa todos y `env.py` importa el paquete; revisión de que la migración crea las 23 tablas del modelo de datos. |
 | M5 sobre una base con datos reales de `parchments` | Es solo `ADD COLUMN NULL`: no bloquea, no reescribe filas. Sin riesgo de downtime a esta escala. |
-| Migración de datos (M6) corriendo en entornos donde Shaya ya existe con otro documento | Idempotencia por `document = 'SHAYA'`; si hay un farmer "Shaya" sin ese documento, se **documenta** el paso manual de asignárselo antes de migrar, en vez de adivinar por nombre. |

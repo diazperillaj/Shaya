@@ -2,8 +2,10 @@
 
 > Documento 5 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Basado en el modelo de datos, la API y el diseño ML aprobados.
-> Estado: **✅ aprobado** (2026-09-16) — no se ha escrito código.
-> Última actualización: 2026-09-16
+> Estado: **✅ aprobado** (2026-09-16). Implementados los valores por defecto
+> y la resolución de umbrales por finca y lote (§4.4, bloque 1B); el dashboard y el
+> cálculo de alertas llegan en el bloque 6.
+> Última actualización: 2026-10-01
 
 ---
 

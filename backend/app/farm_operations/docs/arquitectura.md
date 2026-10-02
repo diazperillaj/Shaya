@@ -1,8 +1,9 @@
 # Farm Operations — Arquitectura y Planeación
 
 > Documento maestro del módulo de cultivo y trazabilidad.
-> Estado: **en planeación** — no se ha escrito código.
-> Última actualización: 2026-08-06
+> Estado: **en implementación** — avance por bloque en el
+> [plan de implementación](implementation/plan-implementacion.md) §7.
+> Última actualización: 2026-10-01
 
 ---
 
@@ -66,7 +67,7 @@ durante la vida del lote.
 | C1 | La producción propia entra a `parchments` **por el mismo flujo de compra actual, sin caso especial**, con un **valor asignado por el usuario**: al ingresar el café propio se indica `full_price` (precio por carga de 125 kg que el productor decide — el precio base del mercado a esa fecha como mínimo, o más si valora su café por encima) y `purchase_price` se calcula con la regla de 3 vigente (`kg × full_price / 125`). Los campos conservan exactamente su semántica actual. | "Tal cual como funciona actualmente": `full_price` = precio de la carga, `purchase_price` = total prorrateado por los kg del lote ([service.py `calculate_purchase_price`](../../api/api_v1/inventory/service.py)). Así el café propio queda valorizado en inventario (costeo y márgenes reales). El origen (producido vs comprado) se distingue por la relación con el secado (`origin_batch` FK), no por el precio. |
 | C2 | La trazabilidad hacia inventario va por una **columna nueva** `parchments.drying_id` (FK al secado, nullable, unique). `origin_batch` **se conserva** como texto libre para el código de lote del café comprado y los datos históricos. | Es el eslabón que une los dos dominios. Convertir `origin_batch` en FK rompería los valores históricos importados de Excel y dejaría las compras a terceros sin campo de código. (Refinado en modelo-datos R4.) |
 | C3 | Conviven ambos orígenes de pergamino: **producido** (sale de Farm Operations) y **comprado** a terceros (flujo actual sin trazabilidad de cultivo). | El pergamino seco además puede venderse directamente sin pasar a proceso. |
-| C4 | Toda `Farm` **se enlaza a un `Farmer` existente** (`farmer_id` obligatorio): primero se crea el caficultor, luego sus fincas. Un `Farmer` puede tener **varias fincas**. La producción propia usa el `Farmer` **Shaya** (dato semilla). | Reutiliza la entidad existente y resuelve `parchments.farmer_id` sin cambios: el pergamino producido en finca propia sale con el farmer Shaya. |
+| C4 | Toda `Farm` **se enlaza a un `Farmer` existente** (`farmer_id` obligatorio): primero se crea el caficultor, luego sus fincas. Un `Farmer` puede tener **varias fincas**. La producción propia usa un `Farmer` **Shaya**, registrado desde la interfaz como cualquier caficultor (sin dato semilla). | Reutiliza la entidad existente y resuelve `parchments.farmer_id` sin cambios: el pergamino producido en finca propia sale con el farmer dueño de la finca, que es Shaya. |
 | D1 | Jerarquía **Finca → Lote**: la finca contiene lotes; cada lote representa **una única siembra** sobre un terreno (variedad, fecha de siembra, procedencia de semilla, área). | Refleja cómo piensa el caficultor: "cada lote es como una variedad". |
 | D2 | **Ciclo de vida del lote**: cuando un lote **deja de dar cosecha se cierra definitivamente**. La **reapertura solo existe para corregir un cierre hecho por error** (el usuario cerró sin querer), no para revivir lotes agotados. Si el terreno se siembra de nuevo, **se crea un lote nuevo**, con referencia opcional al anterior (`renewed_from_plot_id`) para conservar la historia del terreno. En el **primer registro** de un lote ya cultivado se puede indicar la **edad actual del cultivo** (fecha de siembra estimada o edad en años). | Soporta onboarding de fincas con cultivos ya establecidos y el ciclo real: siembra → producción → agotamiento → cierre → nueva siembra = nuevo lote. |
 | D3 | Cada lote tiene **varios ciclos productivos** (`CropCycle`): al terminar una cosecha empieza un ciclo nuevo sobre la misma siembra. | Comparar ciclos del mismo lote a lo largo del tiempo es insumo clave del ML. |
@@ -334,7 +335,7 @@ la trazabilidad (pesos y vínculos entre etapas).
 |---|---|
 | `parchments.drying_id` | **Columna nueva**: FK hacia el secado, nullable (el café comprado no tiene secado registrado), unique. `origin_batch` se conserva como texto libre para compras y datos históricos (C2/R4). |
 | `parchments.purchase_price`, `full_price` | Sin cambio de schema ni de lógica: la producción propia entra con el `full_price` (precio por carga) que el productor asigne — precio base del mercado o superior — y `purchase_price` se calcula con la regla de 3 actual. Semántica intacta (C1). |
-| `parchments.farmer_id` | Sin cambio de schema: toda `Farm` pertenece a un `Farmer` (C4). La producción propia entra con el `Farmer` **Shaya** (dato semilla); la de fincas de terceros, con su farmer correspondiente. |
+| `parchments.farmer_id` | Sin cambio de schema: toda `Farm` pertenece a un `Farmer` (C4). El pergamino entra con el farmer dueño de la finca: Shaya en la finca propia, el caficultor correspondiente en las de terceros. |
 | `users.role` | Nuevo valor `farmer` (E3). Sin cambio de schema (columna `String`). |
 | Venta directa de pergamino | El pergamino producido puede venderse sin entrar a proceso — flujo ya soportado por inventario/ventas una vez el registro existe en `parchments`. |
 

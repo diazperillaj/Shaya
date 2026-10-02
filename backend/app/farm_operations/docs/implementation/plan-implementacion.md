@@ -4,7 +4,7 @@
 > de planeación aprobados ([arquitectura.md](../arquitectura.md) §12) en
 > bloques de trabajo ejecutables.
 > Estado: **✅ aprobado** (2026-09-22).
-> Última actualización: 2026-09-22
+> Última actualización: 2026-10-01
 
 ---
 
@@ -25,7 +25,7 @@ backend primero y el frontend después:
 | # | Bloque | Queda funcionando | Migraciones | Complejidad |
 |---|---|---|---|---|
 | 1A | Cimientos | App lista para usuarios externos, base reproducible, pruebas | Migración base consolidada | Alta — seguridad y patrones |
-| 1B | Dominio base | Fincas, lotes, insumos, empleados, config. de alertas, cuentas farmer | M1, M6 | Media |
+| 1B | Dominio base | Fincas, lotes, insumos, empleados, config. de alertas, cuentas farmer | M1 | Media |
 | 2 | Ciclos y labores | Seguimiento agronómico completo | M2 | Media — volumen de formularios |
 | 3 | Cosechas y jornales | Recolección y pagos | M3 | Media |
 | 4 | Beneficio, secado y calidad | Trazabilidad completa venta → lote | M4, M5 | Alta — pivotes, balance, transacción con inventario |
@@ -196,7 +196,7 @@ tablas de cultivo; es valioso por sí solo. Puede ir en uno o dos PRs
    en `api_v1.py` bajo `/farm`.
 4. **Seguridad de roles** (2.1, 2.2): `require_staff`,
    `require_farm_role`, `UserRole` y bloqueo del farmer en el chatbot.
-   (`get_accessible_farm` necesita el modelo `Farm`: va en el 1B.)
+   (El alcance por finca necesita el modelo `Farm`: va en el 1B.)
 5. **Manejo de errores** (2.4) y base `DomainError` (§5.2).
 6. **Infraestructura de pruebas** (§4), incluido el test de auditoría de
    rutas.
@@ -212,22 +212,25 @@ tablas de cultivo; es valioso por sí solo. Puede ir en uno o dos PRs
 - los módulos existentes funcionan igual para `admin` y `user`;
 - un error de validación devuelve 422 con detalle.
 
-### Bloque 1B — Dominio base (M1 + M6)
+### Bloque 1B — Dominio base (M1)
 
 **Referencias:** [modelo-datos.md](../modelo-datos.md) §3.1–3.4, 3.7, 3.9 ·
 [especificacion-api.md](../especificacion-api.md) §3.1–3.3, 3.6, 3.7
-(empleados), 3.12 · [plan-migraciones.md](../plan-migraciones.md) M1, M6.
+(empleados), 3.12 · [plan-migraciones.md](../plan-migraciones.md) M1.
 
 **Backend**
 - Modelos y M1: `supplies`, `farms`, `plots`, `plot_events`,
   `alert_configs`, `employees`.
-- **M6 (farmer Shaya) se adelanta a este bloque**: no depende de tablas
-  nuevas (inserta en `persons` y `farmers`, que ya existen) y es requisito
-  para registrar la finca propia desde el principio (C4). Antes de fijar el
-  marcador `document = 'SHAYA'`, verificar que no choque con la validación
-  numérica del documento en los formularios de personas (editar el farmer
-  Shaya desde la UI no debe fallar).
-- `get_accessible_farm` (scoping por finca), que depende del modelo `Farm`.
+- **M6 (farmer Shaya) se descarta**: el marcador `document = 'SHAYA'`
+  choca con la validación numérica del documento (editar ese farmer desde
+  la UI fallaría) y ningún código necesita identificarlo, porque el
+  pergamino sale con el farmer dueño de la finca. El farmer Shaya se
+  registra desde la interfaz ([plan-migraciones.md](../plan-migraciones.md) §4).
+- `FarmAccess` (alcance por finca), que depende del modelo `Farm`: un
+  servicio que usan los services de cada recurso, no una dependencia por
+  ruta, para que el generador y los scripts lo reutilicen.
+- Fechas de negocio en el calendario de Colombia (`services/dates.py`): el
+  servidor corre en UTC y `date.today()` adelanta el día desde las 7 p. m.
 - Diccionario `DEFAULTS` de alertas (valores de dashboards-alertas §4): lo
   necesita ya el endpoint de configuración resuelta; el bloque 6 lo reutiliza.
 - Endpoints de fincas, lotes (incluye `close`, `reopen`,
@@ -248,11 +251,13 @@ tablas de cultivo; es valioso por sí solo. Puede ir en uno o dos PRs
 
 **Pruebas:** scoping (el farmer A recibe 404 sobre la finca de B); CHECK del
 lote (fecha de siembra o edad); nombre de lote reutilizable tras el cierre
-(índice parcial); resolución lote → finca → default; M6 idempotente.
+(índice parcial); cierre, reapertura y renovación; edad efectiva; resolución
+lote → finca → default; fechas del servidor en el calendario de Colombia.
 
 **Terminado cuando:** el admin crea un farmer con cuenta; el farmer inicia
-sesión, ve solo "Cultivo" y registra su finca, lotes, empleados e insumos; la
-finca propia de Shaya queda registrada con el farmer Shaya.
+sesión, ve solo "Cultivo" y registra su finca, lotes, empleados e insumos; el
+admin puede registrar la finca propia de Shaya con un farmer Shaya creado
+desde la interfaz.
 
 ### Bloque 2 — Ciclos y labores (M2)
 
@@ -474,14 +479,14 @@ Decisiones de la infraestructura:
 
 ### 5.1 Flujo de trabajo
 
-- Una rama por bloque (`feat/farm-1a-foundations`, `feat/farm-1b-base`…) y
-  un PR a `main` que enlaza los documentos de referencia y lleva el checklist
-  de §5.3.
+- El bloque 1A se integró con ramas y PRs a `main`. Desde el 1B, cada bloque
+  se trabaja directamente sobre `main` en local, se revisa contra el
+  checklist de §5.3 antes del commit y se sube una vez aprobado.
 - Commits breves en inglés, formato convencional (`feat:`, `fix:`, `docs:`,
   `test:`, `refactor:`).
 - **Los documentos de planeación son la fuente de verdad**: si durante la
   implementación algo se desvía del diseño, el documento se actualiza en el
-  mismo PR.
+  mismo cambio.
 
 ### 5.2 Código
 
@@ -493,7 +498,7 @@ Decisiones de la infraestructura:
 - Dirección de dependencias: cultivo → núcleo, nunca al revés (2.5).
 - Enums de cultivo con prefijo `farm` en Postgres (plan-migraciones §3).
 
-### 5.3 Definición de terminado (todo PR)
+### 5.3 Definición de terminado (todo bloque)
 
 - [ ] Migración con `upgrade` y `downgrade` probados (si aplica).
 - [ ] Pruebas nuevas y existentes en verde, incluida la auditoría de rutas.
@@ -523,8 +528,8 @@ Decisiones de la infraestructura:
 
 | Bloque | PR | Estado | Notas |
 |---|---|---|---|
-| 1A — Cimientos | [#1](https://github.com/diazperillaj/Shaya/pull/1), [#2](https://github.com/diazperillaj/Shaya/pull/2) | 🟡 | Parte 1/2 (infraestructura) y parte 2/2 (acceso por rol y navegación) en revisión. |
-| 1B — Dominio base | — | ⬜ | |
+| 1A — Cimientos | [#1](https://github.com/diazperillaj/Shaya/pull/1), [#2](https://github.com/diazperillaj/Shaya/pull/2), [#3](https://github.com/diazperillaj/Shaya/pull/3) | ✅ | Infraestructura (#1, que incluye #2) y acceso por rol y navegación (#3). |
+| 1B — Dominio base | — (directo a `main`) | ✅ | M6 descartada (§3, bloque 1B). |
 | 2 — Ciclos y labores | — | ⬜ | |
 | 3 — Cosechas y jornales | — | ⬜ | |
 | 4 — Beneficio, secado y calidad | — | ⬜ | |
@@ -532,7 +537,7 @@ Decisiones de la infraestructura:
 | 6 — Dashboard y alertas | — | ⬜ | |
 | 7 — Proyección de calidad | — | ⬜ | |
 
-⬜ pendiente · 🟡 en curso · ✅ fusionado
+⬜ pendiente · 🟡 en curso · ✅ en `main`
 
 ## 8. Ajustes a los documentos de planeación
 
@@ -540,7 +545,9 @@ Decisiones de la infraestructura:
 |---|---|
 | especificacion-api.md §2 | Endpoints existentes restringidos a roles de personal; `UserRole` y creación de cuentas farmer (2.1, 2.2). |
 | especificacion-api.md §3.5 | `bulk-create` de labores con reparto por área (bloque 2). |
-| plan-migraciones.md §1, §2, §4 | Migración base consolidada con el ID del head (2.3); registro central de modelos y relaciones solo desde el lado de cultivo (2.5); M6 se adelanta al bloque 1B. |
+| plan-migraciones.md §1, §2, §4 | Migración base consolidada con el ID del head (2.3); registro central de modelos y relaciones solo desde el lado de cultivo (2.5); M6 descartada (bloque 1B). |
+| arquitectura.md C4, modelo-datos.md §8 | El farmer Shaya se registra desde la interfaz, sin dato semilla (bloque 1B). |
+| especificacion-api.md §2, §3, §5 | `FarmAccess` en lugar de `get_accessible_farm`; endpoints de activación y de configuración resuelta de finca; listado de cuentas; valor heredado en la config resuelta (bloque 1B). |
 | dashboards-alertas.md §7 | Enlaces de alertas a rutas `/cultivo/...` (2.6); extracción de componentes de gráfica (2.8). |
 
 ## 9. Fuera de alcance

@@ -2,8 +2,9 @@
 
 > Documento 3 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Basado en el modelo de datos aprobado ([modelo-datos.md](modelo-datos.md)).
-> Estado: **✅ aprobado** (2026-08-06) — no se ha escrito código.
-> Última actualización: 2026-08-06
+> Estado: **✅ aprobado** (2026-08-06). Implementados §3.1–3.3, 3.6, los
+> empleados de §3.7 y §3.12 (bloque 1B).
+> Última actualización: 2026-10-01
 
 ---
 
@@ -38,13 +39,15 @@ Heredadas de la API existente:
 | Dependencia | Comportamiento |
 |---|---|
 | `require_farm_role` | Pasa si `role in ('admin', 'farmer')`; 403 para `user` (personal de Shaya no opera cultivo en v1). |
-| `get_accessible_farm(farm_id)` | `admin` → cualquier finca. `farmer` → la finca solo si `farm.farmer.person_id == current_user.person_id`; si no, 404. |
+| `get_farm_access` | Entrega un `FarmAccess` (`services/access.py`) con el alcance del usuario: `admin` → cualquier finca; `farmer` → solo las fincas de su registro de caficultor (`farm.farmer.person_id == current_user.person_id`). Fuera del alcance, 404. |
 | Scoping de listas | Los `GET /get` sin `farm_id` devuelven: `admin` → todo (filtrable), `farmer` → solo sus fincas. Automático en el service. |
 
-Todo recurso anidado (lote, ciclo, cosecha, secado…) resuelve su finca raíz y
-aplica `get_accessible_farm`. Los catálogos (`supplies`) son globales: lectura
-para cualquier autenticado del módulo, escritura también (creación al vuelo,
-D7), borrado solo `admin`.
+El alcance vive en un servicio y no en una dependencia por ruta: así no
+depende de FastAPI y lo reutilizan el generador y los scripts. Todo recurso
+anidado (lote, empleado, ciclo, cosecha, secado…) resuelve su finca raíz con
+`FarmAccess`. Los catálogos (`supplies`) son globales: lectura para cualquier
+autenticado del módulo, escritura también (creación al vuelo, D7),
+desactivación y borrado solo `admin`.
 
 ### Módulos existentes y rol `farmer`
 
@@ -81,11 +84,11 @@ mínimo (`farm` = `require_farm_role` + scoping de finca).
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| POST | `/farms/create` | farm | Crea finca. `farmer_id` obligatorio: `admin` indica cualquiera; `farmer` solo el suyo (se valida). |
-| GET | `/farms/get` | farm | Lista con scoping. Filtros: `search`, `active`. |
-| GET | `/farms/get/{id}` | farm | Detalle + conteo de lotes activos. |
-| PUT | `/farms/update/{id}` | farm | |
-| DELETE | `/farms/delete/{id}` | farm | Solo sin lotes (RESTRICT). |
+| POST | `/farms/create` | farm | Crea finca. `farmer_id`: el `admin` lo indica siempre (400 si falta); el `farmer` lo omite y se usa el suyo (otro → 403). Nombre único por caficultor (409). |
+| GET | `/farms/get` | farm | Lista con scoping. Filtros: `search` (nombre, vereda o municipio), `active`. |
+| GET | `/farms/get/{id}` | farm | Detalle + dueño + conteo de lotes activos. |
+| PUT | `/farms/update/{id}` | farm | Incluye `active`. |
+| DELETE | `/farms/delete/{id}` | farm | Solo sin lotes ni empleados (409). |
 
 ### 3.2 `plots` (+ eventos y ciclo de vida)
 
@@ -93,22 +96,23 @@ mínimo (`farm` = `require_farm_role` + scoping de finca).
 |---|---|---|---|
 | POST | `/plots/create` | farm | Crea lote (terreno + siembra). Si trae `renewed_from_plot_id`, el service valida que el anterior esté `closed` y pertenezca a la misma finca. |
 | GET | `/plots/get` | farm | Filtros: `farm_id`, `status`, `variety`. |
-| GET | `/plots/get/{id}` | farm | Detalle + ciclo activo + edad efectiva calculada. |
+| GET | `/plots/get/{id}` | farm | Detalle + edad efectiva calculada + última zoca + lote que lo renovó (el ciclo activo se suma en el bloque 2). |
 | GET | `/plots/get/{id}/renewal-defaults` | farm | Datos del terreno del lote para precargar el formulario del lote nuevo (renovación). |
-| PUT | `/plots/update/{id}` | farm | |
-| POST | `/plots/{id}/close` | farm | Cierre definitivo (D2): exige sin ciclo activo; registra `plot_event(closure)` y `closed_at`. |
-| POST | `/plots/{id}/reopen` | farm | Solo corrección de error: registra `plot_event(reopening)`. |
-| DELETE | `/plots/delete/{id}` | farm | Solo sin ciclos (RESTRICT). |
-| POST | `/plots/{id}/events/create` | farm | Evento manual: `zoca`, `partial_replant`, `shade_change`, `other` (+`other_detail`). `closure`/`reopening` solo vía close/reopen. |
+| PUT | `/plots/update/{id}` | farm | Nombre único entre los lotes activos de la finca (409). |
+| POST | `/plots/{id}/close` | farm | Cierre definitivo (D2): registra `plot_event(closure)` y `closed_at` (por defecto, hoy). Exigirá no tener ciclo activo desde el bloque 2. |
+| POST | `/plots/{id}/reopen` | farm | Solo corrección de error: registra `plot_event(reopening)`. 409 si el terreno ya se renovó o si otro lote activo usa el mismo nombre. |
+| DELETE | `/plots/delete/{id}` | farm | Solo sin eventos ni renovaciones (409); los ciclos se suman en el bloque 2. |
+| POST | `/plots/{id}/events/create` | farm | Evento manual: `zoca`, `partial_replant`, `shade_change`, `other` (+`other_detail`). `closure`/`reopening` solo vía close/reopen. 409 sobre un lote cerrado. |
 | GET | `/plots/{id}/events/get` | farm | Historial de eventos. |
 
 ### 3.3 `alert-configs`
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| PUT | `/alert-configs/farm/{farm_id}` | farm | Upsert de la config de finca (una fila; campos `null` = heredar default). |
-| PUT | `/alert-configs/plot/{plot_id}` | farm | Upsert del override de lote. |
-| GET | `/alert-configs/resolved/plot/{plot_id}` | farm | Config **efectiva** del lote (lote → finca → default), con el origen de cada valor: `{"max_drying_days": {"value": 12, "source": "farm"}}`. |
+| PUT | `/alert-configs/farm/{farm_id}` | farm | Upsert de la config de finca (una fila; campos `null` = heredar default). Todo en `null` elimina la fila. Devuelve la config resuelta. |
+| PUT | `/alert-configs/plot/{plot_id}` | farm | Upsert del override de lote, con las mismas reglas. |
+| GET | `/alert-configs/resolved/farm/{farm_id}` | farm | Config **efectiva** de la finca (finca → default). |
+| GET | `/alert-configs/resolved/plot/{plot_id}` | farm | Config **efectiva** del lote (lote → finca → default), con el origen de cada valor y lo que heredaría si el nivel propio quedara vacío (§4). |
 | DELETE | `/alert-configs/plot/{plot_id}` | farm | Elimina el override (vuelve a heredar). |
 
 ### 3.4 `crop-cycles`
@@ -143,10 +147,11 @@ body.
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| POST | `/supplies/create` | farm | Creación al vuelo desde formularios (D7). Única por `(name, supply_type)` → 409 si existe. |
-| GET | `/supplies/get` | farm | Filtros: `supply_type`, `search`, `active`. |
+| POST | `/supplies/create` | farm | Creación al vuelo desde formularios (D7). Única por `(name, supply_type)`, sin distinguir mayúsculas → 409 si existe. |
+| GET | `/supplies/get` | farm | Filtros: `supply_type`, `search` (nombre o composición), `active`. |
 | PUT | `/supplies/update/{id}` | farm | |
 | POST | `/supplies/{id}/deactivate` | admin | Oculta sin borrar (histórico lo referencia). |
+| POST | `/supplies/{id}/activate` | admin | Lo vuelve a mostrar. |
 | DELETE | `/supplies/delete/{id}` | admin | Solo si ninguna labor lo referencia (RESTRICT). |
 
 ### 3.7 `employees` y `day-labors`
@@ -154,9 +159,10 @@ body.
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
 | POST | `/employees/create` | farm | `farm_id` en body. |
-| GET | `/employees/get` | farm | Filtros: `farm_id`, `active`, `search`. |
+| GET | `/employees/get` | farm | Filtros: `farm_id`, `active`, `search` (nombre o documento). |
 | PUT | `/employees/update/{id}` | farm | |
 | POST | `/employees/{id}/deactivate` | farm | Preferido sobre delete (histórico de pagos). |
+| POST | `/employees/{id}/activate` | farm | |
 | DELETE | `/employees/delete/{id}` | farm | Solo sin registros (RESTRICT). |
 | POST | `/day-labors/create` | farm | Jornal: `employee_id`, `activity_type` (+`other_detail`), `plot_id` opcional, `daily_value`. |
 | GET | `/day-labors/get` | farm | Filtros: `employee_id`, `plot_id`, `paid`, rango de fechas. |
@@ -218,7 +224,8 @@ body.
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| POST | `/farmer-accounts/create` | admin | Da acceso a un farmer: `{farmer_id, username, password}` → crea `User(role='farmer', person_id=farmer.person_id)`. 409 si esa persona ya tiene usuario. |
+| GET | `/farmer-accounts/get` | admin | Caficultores con el estado de su acceso: usuario y rol de la cuenta de su persona (si tiene), y número de fincas. |
+| POST | `/farmer-accounts/create` | admin | Da acceso a un farmer: `{farmer_id, username, password}` → crea `User(role='farmer', person_id=farmer.person_id)`. 409 si esa persona ya tiene usuario o el nombre de usuario está en uso. |
 | POST | `/farmer-accounts/create-full` | admin | Farmer nuevo + cuenta en una operación: datos de `Person` + `Farmer` + credenciales. |
 
 ### 3.13 Dashboard y alertas
@@ -294,14 +301,23 @@ Response:
 
 ```json
 {
+  "farm_id": 1,
   "plot_id": 3,
   "values": {
-    "fertilization_reminder_days": {"value": 90, "source": "farm"},
-    "max_drying_days":             {"value": 15, "source": "plot"},
-    "broca_alert_pct":             {"value": 2.0, "source": "default"}
+    "fertilization_reminder_days": {"value": "90", "source": "farm",
+                                    "inherited_value": "90", "inherited_source": "farm"},
+    "max_drying_days":             {"value": "12", "source": "plot",
+                                    "inherited_value": "15", "inherited_source": "default"},
+    "irrigation_reminder_days":    {"value": null, "source": "default",
+                                    "inherited_value": null, "inherited_source": "default"}
   }
 }
 ```
+
+Los valores son decimales serializados como texto; `null` = recordatorio
+desactivado. `inherited_value`/`inherited_source` dicen qué aplicaría si el
+nivel consultado dejara vacío ese campo: el formulario lo muestra como ayuda
+junto a cada valor propio.
 
 ### Alerta del dashboard — elemento de `GET /dashboard/alerts`
 
@@ -328,13 +344,15 @@ app/farm_operations/
         farm.py  plot.py  crop_cycle.py  harvest.py  supply.py
         wet_processing.py  drying.py  quality_eval.py  employee.py  ...
     services/                # lógica de dominio TRANSVERSAL (cruza recursos):
+        access.py            #   FarmAccess: alcance del usuario sobre las fincas
+        dates.py             #   fecha de negocio (calendario de Colombia)
         traceability.py      #   recorrer la cadena completa de un secado/parchment
         mass_balance.py      #   validaciones de kg entre etapas
         inventory_bridge.py  #   cierre de secado → Inventory + Parchment (transacción)
-        alerts.py            #   cálculo de alertas (config resuelta + datos)
+        alerts.py            #   DEFAULTS, resolución de umbrales y cálculo de alertas
     api/
         v1/                  # capa HTTP
-            dependencies.py  #   require_farm_role, get_accessible_farm
+            dependencies.py  #   require_farm_role, get_farm_access
             router.py        #   farm_router: compone todos los sub-routers
             farms/  plots/  alert_configs/  crop_cycles/
             fertilizations/  phytosanitary_apps/  irrigations/
@@ -356,7 +374,7 @@ Reparto de responsabilidades:
 `router.py` raíz incluye cada sub-router con su prefijo y tag
 (`farm-plots`, `farm-harvests`… para agrupar en Swagger).
 
-## 6. Decisiones de este documento — para tu revisión
+## 6. Decisiones de diseño
 
 | # | Decisión | Racional / alternativa |
 |---|---|---|

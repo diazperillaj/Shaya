@@ -405,7 +405,7 @@ archivo.
 Dependencias nuevas en `backend/requirements.txt`: `scikit-learn`, `pandas`,
 `pyarrow`, `joblib` (sin GPU, sin frameworks pesados).
 
-## 9. Decisiones de este documento — para tu revisión
+## 9. Decisiones de diseño
 
 | # | Decisión | Alternativa descartada |
 |---|---|---|
