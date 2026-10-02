@@ -35,3 +35,43 @@ class SupplyTypeEnum(enum.Enum):
     herbicide = "herbicide"
     amendment = "amendment"
     other = "other"
+
+
+class CycleStatusEnum(enum.Enum):
+    """Estado del ciclo productivo de un lote: solo uno activo por lote."""
+
+    active = "active"
+    closed = "closed"
+
+
+class FertilizationMethodEnum(enum.Enum):
+    """Forma de aplicar el fertilizante."""
+
+    soil = "soil"
+    foliar = "foliar"
+
+
+class SeverityEnum(enum.Enum):
+    """Severidad observada en un monitoreo de plagas."""
+
+    low = "low"
+    medium = "medium"
+    high = "high"
+
+
+class IntensityEnum(enum.Enum):
+    """Intensidad de una floración."""
+
+    low = "low"
+    medium = "medium"
+    high = "high"
+
+
+class CulturalPracticeTypeEnum(enum.Enum):
+    """Labores culturales del cafetal."""
+
+    weeding = "weeding"
+    pruning = "pruning"
+    shade_regulation = "shade_regulation"
+    amendment = "amendment"
+    other = "other"

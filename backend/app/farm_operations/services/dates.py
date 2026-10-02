@@ -14,3 +14,8 @@ def business_today() -> date:
 def business_date(moment: datetime) -> date:
     """Fecha en Colombia de un instante guardado con zona horaria."""
     return moment.astimezone(BUSINESS_TZ).date()
+
+
+def format_date(value: date) -> str:
+    """Fecha para mensajes al usuario: 15/03/2026."""
+    return value.strftime("%d/%m/%Y")

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Query, Session
 
 from app.core.exceptions.domain import DomainError, NotFoundError, PermissionDeniedError
 from app.core.roles import UserRole
-from app.farm_operations.models import Employee, Farm, Plot
+from app.farm_operations.models import CropCycle, Employee, Farm, Plot
 from app.models.farmer import Farmer
 
 
@@ -83,6 +83,47 @@ class FarmAccess:
         if not plot:
             raise NotFoundError("Lote no encontrado")
         return plot
+
+    # ── Ciclos y registros ────────────────────────────────────────────────
+
+    def cycles(self) -> Query:
+        """Ciclos de los lotes visibles para el usuario."""
+        query = self.db.query(CropCycle).join(CropCycle.plot).join(Plot.farm)
+        if not self.is_admin:
+            query = query.filter(Farm.farmer_id == self.farmer_id)
+        return query
+
+    def get_cycle(self, cycle_id: int) -> CropCycle:
+        cycle = self.cycles().filter(CropCycle.id == cycle_id).first()
+        if not cycle:
+            raise NotFoundError("Ciclo no encontrado")
+        return cycle
+
+    def cycle_records(self, model) -> Query:
+        """Registros de `model` que cuelgan de un ciclo visible (labores)."""
+        query = (
+            self.db.query(model)
+            .join(CropCycle, model.crop_cycle_id == CropCycle.id)
+            .join(Plot, CropCycle.plot_id == Plot.id)
+            .join(Farm, Plot.farm_id == Farm.id)
+        )
+        if not self.is_admin:
+            query = query.filter(Farm.farmer_id == self.farmer_id)
+        return query
+
+    def plot_records(self, model) -> Query:
+        """Registros de `model` que cuelgan de un lote visible (análisis de suelo)."""
+        query = self.db.query(model).join(Plot, model.plot_id == Plot.id).join(Farm, Plot.farm_id == Farm.id)
+        if not self.is_admin:
+            query = query.filter(Farm.farmer_id == self.farmer_id)
+        return query
+
+    def farm_records(self, model) -> Query:
+        """Registros de `model` que cuelgan de una finca visible (clima)."""
+        query = self.db.query(model).join(Farm, model.farm_id == Farm.id)
+        if not self.is_admin:
+            query = query.filter(Farm.farmer_id == self.farmer_id)
+        return query
 
     # ── Empleados ─────────────────────────────────────────────────────────
 

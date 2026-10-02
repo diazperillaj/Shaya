@@ -13,7 +13,7 @@ import pytest
 from app.models.farmer import Farmer
 from app.models.person import Person
 from app.models.user import User
-from tests.farm_operations.payloads import API, FARM, PLOT
+from tests.farm_operations.payloads import API, CYCLE, FARM, PLOT, SUPPLY
 
 
 @pytest.fixture
@@ -56,3 +56,23 @@ def create_plot(client):
         return response.json()
 
     return _create_plot
+
+
+@pytest.fixture
+def create_cycle(client):
+    def _create_cycle(plot_id: int, **overrides) -> dict:
+        response = client.post(f"{API}/crop-cycles/create", json={**CYCLE, "plot_id": plot_id, **overrides})
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    return _create_cycle
+
+
+@pytest.fixture
+def create_supply(client):
+    def _create_supply(**overrides) -> dict:
+        response = client.post(f"{API}/supplies/create", json={**SUPPLY, **overrides})
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    return _create_supply

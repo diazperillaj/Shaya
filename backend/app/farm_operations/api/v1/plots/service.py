@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions.domain import ConflictError
+from app.farm_operations.api.v1.crop_cycles.service import active_cycles_by_plot, last_cycle_end
 from app.farm_operations.api.v1.plots.schema import (
     PlotCloseRequest,
     PlotCreate,
@@ -14,10 +15,11 @@ from app.farm_operations.api.v1.plots.schema import (
     PlotReopenRequest,
     PlotUpdate,
 )
-from app.farm_operations.models import Plot, PlotEvent
+from app.farm_operations.api.v1.validation import clean_other_detail
+from app.farm_operations.models import ClimateRecord, CropCycle, Plot, PlotEvent, SoilAnalysis
 from app.farm_operations.models.enums import PlotEventTypeEnum, PlotStatusEnum
 from app.farm_operations.services.access import FarmAccess
-from app.farm_operations.services.dates import business_date, business_today
+from app.farm_operations.services.dates import business_date, business_today, format_date
 
 DAYS_PER_YEAR = Decimal("365.25")
 
@@ -132,6 +134,15 @@ class PlotService:
         if plot.planting_date and payload.closed_at < plot.planting_date:
             raise ConflictError("La fecha de cierre no puede ser anterior a la siembra")
 
+        active = active_cycles_by_plot(self.db, [plot.id]).get(plot.id)
+        if active is not None:
+            raise ConflictError(f"Cierra primero el ciclo activo del lote (ciclo {active.cycle_number})")
+        last_end = last_cycle_end(self.db, plot.id)
+        if last_end is not None and payload.closed_at < last_end:
+            raise ConflictError(
+                f"La fecha de cierre no puede ser anterior al fin del último ciclo ({format_date(last_end)})"
+            )
+
         plot.status = PlotStatusEnum.closed
         plot.closed_at = payload.closed_at
         self.db.add(PlotEvent(
@@ -167,10 +178,17 @@ class PlotService:
         return self.get_plot(plot.id)
 
     def delete_plot(self, plot_id: int) -> None:
-        """Elimina un lote recién creado: sin historial ni renovaciones."""
+        """Elimina un lote recién creado: sin historial, ciclos, registros ni renovaciones."""
         plot = self.access.get_plot(plot_id)
         if self.db.query(PlotEvent.id).filter(PlotEvent.plot_id == plot.id).first():
             raise ConflictError("No se puede eliminar: el lote tiene historial de eventos")
+        if self.db.query(CropCycle.id).filter(CropCycle.plot_id == plot.id).first():
+            raise ConflictError("No se puede eliminar: el lote tiene ciclos productivos")
+        if (
+            self.db.query(SoilAnalysis.id).filter(SoilAnalysis.plot_id == plot.id).first()
+            or self.db.query(ClimateRecord.id).filter(ClimateRecord.plot_id == plot.id).first()
+        ):
+            raise ConflictError("No se puede eliminar: el lote tiene análisis de suelo o registros de clima")
         if self._renewal_of(plot.id) is not None:
             raise ConflictError("No se puede eliminar: otro lote es su renovación")
 
@@ -186,7 +204,7 @@ class PlotService:
             plot_id=plot.id,
             event_type=payload.event_type,
             event_date=payload.event_date,
-            other_detail=(payload.other_detail or "").strip() or None,
+            other_detail=clean_other_detail(payload.event_type == PlotEventTypeEnum.other, payload.other_detail),
             description=payload.description,
         )
         self.db.add(event)
@@ -245,11 +263,13 @@ class PlotService:
             .filter(Plot.renewed_from_plot_id.in_(ids))
             .all()
         )
+        active_cycles = active_cycles_by_plot(self.db, ids)
 
         today = business_today()
         responses = []
         for plot in plots:
             last_zoca = last_zocas.get(plot.id)
+            active_cycle = active_cycles.get(plot.id)
             responses.append({
                 "id": plot.id,
                 "farm_id": plot.farm_id,
@@ -263,5 +283,10 @@ class PlotService:
                 "created_at": plot.created_at,
                 "effective_age_years": effective_age_years(plot, last_zoca, today),
                 "last_zoca_date": last_zoca,
+                "active_cycle": {
+                    "id": active_cycle.id,
+                    "cycle_number": active_cycle.cycle_number,
+                    "start_date": active_cycle.start_date,
+                } if active_cycle else None,
             })
         return responses

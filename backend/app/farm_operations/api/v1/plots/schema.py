@@ -4,6 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.farm_operations.api.v1.validation import not_in_future, require_other_detail
 from app.farm_operations.models.enums import PlotEventTypeEnum, PlotStatusEnum
 from app.farm_operations.services.dates import business_today
 
@@ -15,12 +16,6 @@ MANUAL_EVENT_TYPES = {
     PlotEventTypeEnum.shade_change,
     PlotEventTypeEnum.other,
 }
-
-
-def not_in_future(value: Optional[date], what: str) -> Optional[date]:
-    if value is not None and value > business_today():
-        raise ValueError(f"{what} no puede ser futura")
-    return value
 
 
 class PlotBase(BaseModel):
@@ -80,6 +75,14 @@ class PlotUpdate(PlotBase):
     pass
 
 
+class ActiveCycleRef(BaseModel):
+    """Ciclo activo del lote, para registrar labores sin otra consulta."""
+
+    id: int
+    cycle_number: int
+    start_date: date
+
+
 class PlotResponse(BaseModel):
     id: int
     farm_id: int
@@ -110,6 +113,7 @@ class PlotResponse(BaseModel):
         ..., description="Años desde la siembra o la última zoca (congelada al cierre)"
     )
     last_zoca_date: Optional[date]
+    active_cycle: Optional[ActiveCycleRef]
 
 
 class RenewalDefaults(BaseModel):
@@ -158,8 +162,7 @@ class PlotEventCreate(BaseModel):
 
     @model_validator(mode="after")
     def other_needs_detail(self):
-        if self.event_type == PlotEventTypeEnum.other and not (self.other_detail or "").strip():
-            raise ValueError("Indica cuál evento es")
+        require_other_detail(self.event_type == PlotEventTypeEnum.other, self.other_detail, "Indica cuál evento es")
         return self
 
 

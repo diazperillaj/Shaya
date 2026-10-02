@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions.domain import ConflictError, NotFoundError
 from app.farm_operations.api.v1.supplies.schema import SupplyCreate, SupplyUpdate
-from app.farm_operations.models import Supply
+from app.farm_operations.api.v1.validation import clean_other_detail
+from app.farm_operations.models import Fertilization, PhytosanitaryApp, Supply
 from app.farm_operations.models.enums import SupplyTypeEnum
 
 
@@ -67,8 +68,11 @@ class SupplyService:
         return supply
 
     def delete_supply(self, supply_id: int) -> None:
-        # Las labores que lo referencien (bloque 2) lo bloquearán con RESTRICT
+        """Elimina un insumo que ninguna labor usa; si alguna lo usa, se desactiva."""
         supply = self.get_supply(supply_id)
+        for model in (Fertilization, PhytosanitaryApp):
+            if self.db.query(model.id).filter(model.supply_id == supply.id).first():
+                raise ConflictError("No se puede eliminar: hay labores que usan este insumo. Desactívalo")
         self.db.delete(supply)
         self.db.commit()
 
@@ -78,7 +82,7 @@ class SupplyService:
         return {
             "name": payload.name.strip(),
             "supply_type": payload.supply_type,
-            "other_detail": payload.other_detail.strip() if is_other else None,
+            "other_detail": clean_other_detail(is_other, payload.other_detail),
             "unit": payload.unit.strip(),
             "composition": (payload.composition or "").strip() or None,
         }

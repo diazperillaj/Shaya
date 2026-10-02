@@ -1,11 +1,16 @@
 from fastapi import APIRouter, Depends
 
 from app.farm_operations.api.v1.alert_configs import router as alert_configs_router
+from app.farm_operations.api.v1.climate_records import router as climate_records_router
+from app.farm_operations.api.v1.crop_cycles import router as crop_cycles_router
 from app.farm_operations.api.v1.dependencies import require_farm_role
 from app.farm_operations.api.v1.employees import router as employees_router
 from app.farm_operations.api.v1.farmer_accounts import router as farmer_accounts_router
 from app.farm_operations.api.v1.farms import router as farms_router
+from app.farm_operations.api.v1.labors.kinds import LABOR_KINDS
+from app.farm_operations.api.v1.labors.router import build_router as build_labor_router
 from app.farm_operations.api.v1.plots import router as plots_router
+from app.farm_operations.api.v1.soil_analyses import router as soil_analyses_router
 from app.farm_operations.api.v1.supplies import router as supplies_router
 
 """
@@ -23,6 +28,11 @@ farm_router = APIRouter(dependencies=[Depends(require_farm_role)])
 
 farm_router.include_router(farms_router.router, prefix="/farms", tags=["farm-farms"])
 farm_router.include_router(plots_router.router, prefix="/plots", tags=["farm-plots"])
+farm_router.include_router(crop_cycles_router.router, prefix="/crop-cycles", tags=["farm-crop-cycles"])
+for kind in LABOR_KINDS:
+    farm_router.include_router(build_labor_router(kind), prefix=f"/{kind.path}", tags=[f"farm-{kind.path}"])
+farm_router.include_router(soil_analyses_router.router, prefix="/soil-analyses", tags=["farm-soil-analyses"])
+farm_router.include_router(climate_records_router.router, prefix="/climate-records", tags=["farm-climate-records"])
 farm_router.include_router(alert_configs_router.router, prefix="/alert-configs", tags=["farm-alert-configs"])
 farm_router.include_router(supplies_router.router, prefix="/supplies", tags=["farm-supplies"])
 farm_router.include_router(employees_router.router, prefix="/employees", tags=["farm-employees"])

@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.farm_operations.api.v1.validation import require_other_detail
 from app.farm_operations.models.enums import SupplyTypeEnum
 
 
@@ -17,8 +18,7 @@ class SupplyBase(BaseModel):
 
     @model_validator(mode="after")
     def other_needs_detail(self):
-        if self.supply_type == SupplyTypeEnum.other and not (self.other_detail or "").strip():
-            raise ValueError("Indica qué tipo de insumo es")
+        require_other_detail(self.supply_type == SupplyTypeEnum.other, self.other_detail, "Indica qué tipo de insumo es")
         return self
 
 

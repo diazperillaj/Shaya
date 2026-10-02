@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions.domain import ConflictError
 from app.farm_operations.api.v1.farms.schema import FarmCreate, FarmUpdate
-from app.farm_operations.models import Employee, Farm, Plot
+from app.farm_operations.models import ClimateRecord, Employee, Farm, Plot
 from app.farm_operations.models.enums import PlotStatusEnum
 from app.farm_operations.services.access import FarmAccess
 
@@ -65,6 +65,8 @@ class FarmService:
             raise ConflictError("No se puede eliminar: la finca tiene lotes registrados")
         if self.db.query(Employee.id).filter(Employee.farm_id == farm.id).first():
             raise ConflictError("No se puede eliminar: la finca tiene empleados registrados")
+        if self.db.query(ClimateRecord.id).filter(ClimateRecord.farm_id == farm.id).first():
+            raise ConflictError("No se puede eliminar: la finca tiene registros de clima")
 
         self.db.delete(farm)
         self.db.commit()
