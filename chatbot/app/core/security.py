@@ -7,6 +7,10 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.core.db import business_engine
 
+# El asistente consulta todo el negocio: solo para el personal de Shaya.
+# Misma lista que `STAFF_ROLES` del backend (app/core/roles.py).
+STAFF_ROLES = frozenset({"admin", "user"})
+
 
 @dataclass(frozen=True)
 class CurrentUser:
@@ -29,7 +33,8 @@ def decode_token(token: str) -> dict | None:
 def get_current_user(request: Request) -> CurrentUser:
     """
     Valida la MISMA cookie de sesión del backend (access_token, JWT HS256
-    firmado con el SECRET_KEY compartido) y verifica que el usuario exista.
+    firmado con el SECRET_KEY compartido) y verifica que el usuario exista y
+    sea del personal: un caficultor (rol `farmer`) recibe 403.
     No hay llamadas entre servicios: la verificación es local + una consulta
     de solo lectura a public.users.
     """
@@ -49,5 +54,8 @@ def get_current_user(request: Request) -> CurrentUser:
 
     if not row:
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
+
+    if row.role not in STAFF_ROLES:
+        raise HTTPException(status_code=403, detail="No tienes permisos")
 
     return CurrentUser(id=row.id, username=row.username, role=row.role)

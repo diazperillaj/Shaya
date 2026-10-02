@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { logout } from "../../features/auth/service";
+import { useAuth } from "../../features/auth/AuthContext";
+import { hasRole } from "../../features/auth/roles";
 import { useNavigate } from "react-router-dom";
-import { menuItems } from "../../config/menuConfig";
+import { menuItems, type MenuItem } from "../../config/menuConfig";
 
 /**
  * Tipo de la función encargada de cambiar
@@ -11,14 +13,25 @@ import { menuItems } from "../../config/menuConfig";
 type SetActiveMenuItem = (item: number) => void;
 
 /**
+ * Indica si la pantalla es de celular (menor al breakpoint `md` de
+ * Tailwind), donde el sidebar es un panel superpuesto al contenido.
+ */
+const isSmallScreen = (): boolean =>
+  window.matchMedia("(max-width: 767px)").matches;
+
+/**
  * Props del componente Sidebar.
  */
 interface SidebarProps {
   /** Contenido principal renderizado a la derecha del sidebar */
   children: React.ReactNode;
 
-  /** Callback para cambiar la vista activa del menú */
-  setActiveMenuItem: SetActiveMenuItem;
+  /**
+   * Callback para cambiar la vista activa del menú. Solo lo pasa el inicio;
+   * desde otras rutas (p. ej. Cultivo), elegir una de esas vistas vuelve al
+   * inicio con ella abierta.
+   */
+  setActiveMenuItem?: SetActiveMenuItem;
 }
 
 /**
@@ -37,8 +50,9 @@ interface SidebarProps {
 function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
   /**
    * Indica si el sidebar se encuentra expandido.
+   * En el celular arranca cerrado para no tapar el contenido.
    */
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => !isSmallScreen());
 
   /**
    * Definición de los ítems del menú principal.
@@ -47,6 +61,31 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
 
   /** Hook de navegación de React Router */
   const navigate = useNavigate();
+
+  /** Usuario autenticado: el menú muestra solo las secciones de su rol */
+  const { user } = useAuth();
+  const visibleItems = menuItems.filter((item) => hasRole(user?.role, item.roles));
+
+  /**
+   * Abre la sección elegida en el menú.
+   *
+   * Las secciones con ruta propia navegan a ella; las demás son vistas del
+   * inicio y se abren ahí.
+   */
+  const handleSelect = (item: MenuItem): void => {
+    if (item.path) {
+      navigate(item.path);
+    } else if (setActiveMenuItem) {
+      setActiveMenuItem(item.id);
+    } else {
+      navigate("/", { state: { menuItem: item.id } });
+    }
+
+    // En el celular el menú tapa el contenido: se cierra al elegir
+    if (isSmallScreen()) {
+      setIsSidebarOpen(false);
+    }
+  };
 
   /**
    * Maneja el cierre de sesión del usuario.
@@ -124,14 +163,14 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
 
         {/* Menu Items */}
         <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-1 scrollbar-thin scrollbar-thumb-emerald-700 scrollbar-track-transparent">
-          {menuItems.map((item, index) => {
+          {visibleItems.map((item, index) => {
             const Icon = item.icon;
             return (
               <div
                 key={item.name}
                 className={`group relative flex items-center gap-4 px-4 py-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:bg-emerald-800/60 hover:shadow-lg hover:translate-x-1 ${isSidebarOpen ? "" : "justify-center"}`}
                 style={{ animationDelay: `${index * 50}ms` }}
-                onClick={() => setActiveMenuItem(Number(item.id))}
+                onClick={() => handleSelect(item)}
               >
                 <div className="flex items-center justify-center w-5 h-5 text-emerald-200 group-hover:text-white group-hover:scale-110 transition-all duration-200">
                   {<Icon className="w-5 h-5" />}

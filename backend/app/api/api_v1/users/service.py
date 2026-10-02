@@ -3,12 +3,14 @@ from sqlalchemy import or_
 from app.models.user import User
 from app.models.person import Person
 from app.schemas.user import UserCreate, UserUpdate
+from app.core.roles import STAFF_ROLES
 from app.core.security import get_password_hash
 from sqlalchemy import desc
 from typing import List
 
 #Manejo de excepciones
 from fastapi import HTTPException, status
+from app.core.exceptions.domain import NotFoundError
 
 
 
@@ -79,6 +81,18 @@ class UserService:
 
 
 
+    def _staff_users(self):
+        """
+        Consulta base del módulo: solo cuentas del personal de Shaya.
+
+        Las cuentas de caficultores se administran desde el módulo de
+        cultivo; aquí no se listan ni se pueden consultar, editar o eliminar.
+        """
+
+        return self.db.query(User).filter(User.role.in_(STAFF_ROLES))
+
+
+
     def get_users(self) -> List[User]:
         """
         Obtiene la lista de usuarios registrados.
@@ -91,8 +105,7 @@ class UserService:
         """
 
         return (
-            self.db
-            .query(User)
+            self._staff_users()
             .options(joinedload(User.person))
             .join(User.person)
             .order_by(desc(User.id))
@@ -109,10 +122,18 @@ class UserService:
             user_id (int): ID del usuario.
 
         Returns:
-            User | None: Usuario encontrado o None si no existe.
+            User: Usuario encontrado.
+
+        Raises:
+            NotFoundError: Si el usuario no existe.
         """
 
-        return self.db.query(User).filter(User.id == user_id).first()
+        user = self._staff_users().filter(User.id == user_id).first()
+
+        if not user:
+            raise NotFoundError("Usuario no encontrado")
+
+        return user
 
 
 
@@ -170,11 +191,16 @@ class UserService:
             user_data (UserUpdate): Datos a modificar.
 
         Returns:
-            User | None: Usuario actualizado o None si no existe.
+            User: Usuario actualizado.
+
+        Raises:
+            NotFoundError: Si el usuario no existe.
         """
 
-        user = self.db.query(User).filter(User.id == user_id).first()
+        user = self._staff_users().filter(User.id == user_id).first()
 
+        if not user:
+            raise NotFoundError("Usuario no encontrado")
 
         if user_data.person and user_data.person.document:
             raise_if_exists(
@@ -202,10 +228,6 @@ class UserService:
                 ),
                 "El usuario ya existe"
             )
-
-
-        if not user:
-            return None
 
         if user_data.username is not None:
             user.username = user_data.username
@@ -244,7 +266,7 @@ class UserService:
             Boolean: True si se elimino, false si no lo logro.
         """
 
-        user = self.db.query(User).filter(User.id == user_id).first()
+        user = self._staff_users().filter(User.id == user_id).first()
 
         if not user:
             return False
@@ -277,7 +299,7 @@ class UserService:
             List[User]: Usuarios que cumplen los criterios.
         """
 
-        query = self.db.query(User).options(joinedload(User.person))
+        query = self._staff_users().options(joinedload(User.person))
 
         if search:
             query = query.join(User.person).filter(

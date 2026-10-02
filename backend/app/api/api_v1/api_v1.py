@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.api.api_v1.auth.dependencies import require_staff
 from app.api.api_v1.users import router as users_router
 from app.api.api_v1.auth import router as auth_router
 from app.api.api_v1.farmers import router as farmers_router
@@ -28,28 +29,39 @@ de los distintos módulos del sistema (usuarios, roles, etc.).
 Cada router se incluye con:
 - Un prefijo de ruta
 - Un conjunto de etiquetas para la documentación Swagger
+
+Control de acceso por grupo:
+- Autenticación: abierta (login, sesión actual y logout sirven a todos los roles).
+- Módulos del negocio: solo el personal de Shaya. El guardia se declara una
+  sola vez en `staff_router`; un caficultor recibe 403 en cualquiera de ellos.
+- Módulo de cultivo: su router aplica su propio control de acceso.
 """
 
 api_router = APIRouter()
 
-api_router.include_router(users_router.router, prefix="/users", tags=["users"])
 api_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
-api_router.include_router(farmers_router.router, prefix="/farmers", tags=["farmers"])
-api_router.include_router(customers_router.router, prefix="/customers", tags=["customers"])
-api_router.include_router(inventory_router.router, prefix="/inventory", tags=["inventory"])
-api_router.include_router(product_router.router, prefix="/products", tags=["product"])
-api_router.include_router(process_router.router, prefix="/process", tags=["process"])
-api_router.include_router(maquilado_router.router, prefix="/maquilado", tags=["maquilado"])
-api_router.include_router(sales_router.router, prefix="/sales", tags=["sales"])
-api_router.include_router(dashboard_router.router, prefix="/dashboard", tags=["dashboard"])
-api_router.include_router(fairs_router.router, prefix="/fairs", tags=["fairs"])
-api_router.include_router(roasted_movements_router.router, prefix="/roasted-movements", tags=["roasted-movements"])
-api_router.include_router(process_expenses_router.router, prefix="/process-expenses", tags=["process-expenses"])
-api_router.include_router(product_expenses_router.router, prefix="/product-expenses", tags=["product-expenses"])
-api_router.include_router(general_expenses_router.router, prefix="/general-expenses", tags=["general-expenses"])
-api_router.include_router(expense_categories_router.router, prefix="/expense-categories", tags=["expense-categories"])
-api_router.include_router(payment_methods_router.router, prefix="/payment-methods", tags=["payment-methods"])
-api_router.include_router(fair_products_router.router, prefix="/fair-products", tags=["fair-products"])
+
+staff_router = APIRouter(dependencies=[Depends(require_staff)])
+
+staff_router.include_router(users_router.router, prefix="/users", tags=["users"])
+staff_router.include_router(farmers_router.router, prefix="/farmers", tags=["farmers"])
+staff_router.include_router(customers_router.router, prefix="/customers", tags=["customers"])
+staff_router.include_router(inventory_router.router, prefix="/inventory", tags=["inventory"])
+staff_router.include_router(product_router.router, prefix="/products", tags=["product"])
+staff_router.include_router(process_router.router, prefix="/process", tags=["process"])
+staff_router.include_router(maquilado_router.router, prefix="/maquilado", tags=["maquilado"])
+staff_router.include_router(sales_router.router, prefix="/sales", tags=["sales"])
+staff_router.include_router(dashboard_router.router, prefix="/dashboard", tags=["dashboard"])
+staff_router.include_router(fairs_router.router, prefix="/fairs", tags=["fairs"])
+staff_router.include_router(roasted_movements_router.router, prefix="/roasted-movements", tags=["roasted-movements"])
+staff_router.include_router(process_expenses_router.router, prefix="/process-expenses", tags=["process-expenses"])
+staff_router.include_router(product_expenses_router.router, prefix="/product-expenses", tags=["product-expenses"])
+staff_router.include_router(general_expenses_router.router, prefix="/general-expenses", tags=["general-expenses"])
+staff_router.include_router(expense_categories_router.router, prefix="/expense-categories", tags=["expense-categories"])
+staff_router.include_router(payment_methods_router.router, prefix="/payment-methods", tags=["payment-methods"])
+staff_router.include_router(fair_products_router.router, prefix="/fair-products", tags=["fair-products"])
+
+api_router.include_router(staff_router)
 
 # Módulo de cultivo: sus sub-routers definen prefijo y etiqueta propios
 api_router.include_router(farm_router, prefix="/farm")

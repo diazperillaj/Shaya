@@ -9,6 +9,7 @@ import {
   Wheat,
   Clipboard,
   PersonStanding,
+  Sprout,
   UserCog,
   ArrowRightLeft,
   Receipt,
@@ -29,13 +30,19 @@ import MovementsPage from "../features/roasted_movements/MovementsPage";
 import UsersPage from "../features/users/UsersPage";
 import ExpensesPage from "../features/expenses/ExpensesPage";
 import ChatPage from "../features/chat/ChatPage";
+import { FARM_ROLES, STAFF_ROLES, type Role } from "../features/auth/roles";
 
 export interface MenuItem {
   id: number;
   name: string;
   icon: LucideIcon;
   label: string;
-  component: ComponentType<any>;
+  /** Roles que ven la sección en el menú (obligatorio: no hay acceso por defecto) */
+  roles: readonly Role[];
+  /** Vista que se abre dentro del inicio. No aplica a las secciones con `path`. */
+  component?: ComponentType<any>;
+  /** Ruta propia de la sección (p. ej. Cultivo); al elegirla se navega a ella */
+  path?: string;
   props?: Record<string, unknown>;
   /** true = la página ocupa todo el alto y maneja su propio scroll (ej. chat) */
   fluid?: boolean;
@@ -47,6 +54,7 @@ export const menuItems: MenuItem[] = [
     name: "Inicio",
     icon: Home,
     label: "home",
+    roles: STAFF_ROLES,
     component: DashboardPage,
   },
   {
@@ -54,6 +62,7 @@ export const menuItems: MenuItem[] = [
     name: "Ventas",
     icon: ShoppingBag,
     label: "sales",
+    roles: STAFF_ROLES,
     component: SalesPage,
   },
   {
@@ -61,6 +70,7 @@ export const menuItems: MenuItem[] = [
     name: "Gastos",
     icon: Receipt,
     label: "expenses",
+    roles: STAFF_ROLES,
     component: ExpensesPage,
   },
   {
@@ -68,6 +78,7 @@ export const menuItems: MenuItem[] = [
     name: "Maquilado",
     icon: Coffee,
     label: "roasted_coffee",
+    roles: STAFF_ROLES,
     component: RoastedCoffeePage,
   },
   {
@@ -75,14 +86,23 @@ export const menuItems: MenuItem[] = [
     name: "Procesos",
     icon: Newspaper,
     label: "processes",
+    roles: STAFF_ROLES,
     component: InventoryProcessedPage,
   },
-  { id: 4, name: "Ferias", icon: Store, label: "fairs", component: FairsPage },
+  {
+    id: 4,
+    name: "Ferias",
+    icon: Store,
+    label: "fairs",
+    roles: STAFF_ROLES,
+    component: FairsPage,
+  },
   {
     id: 5,
     name: "Clientes",
     icon: Users,
     label: "clients",
+    roles: STAFF_ROLES,
     component: CustomersPage,
   },
   {
@@ -90,6 +110,7 @@ export const menuItems: MenuItem[] = [
     name: "Productos",
     icon: Wheat,
     label: "products",
+    roles: STAFF_ROLES,
     component: ProductsPage,
   },
   {
@@ -97,6 +118,7 @@ export const menuItems: MenuItem[] = [
     name: "Inventario",
     icon: Clipboard,
     label: "inventory",
+    roles: STAFF_ROLES,
     component: InventorysPage,
   },
   {
@@ -104,13 +126,23 @@ export const menuItems: MenuItem[] = [
     name: "Caficultores",
     icon: PersonStanding,
     label: "farmers",
+    roles: STAFF_ROLES,
     component: FarmersPage,
+  },
+  {
+    id: 13,
+    name: "Cultivo",
+    icon: Sprout,
+    label: "farm_operations",
+    roles: FARM_ROLES,
+    path: "/cultivo",
   },
   {
     id: 9,
     name: "Movimientos",
     icon: ArrowRightLeft,
     label: "movements",
+    roles: STAFF_ROLES,
     component: MovementsPage,
   },
   {
@@ -118,6 +150,7 @@ export const menuItems: MenuItem[] = [
     name: "Usuarios",
     icon: UserCog,
     label: "users",
+    roles: STAFF_ROLES,
     component: UsersPage,
   },
   {
@@ -125,6 +158,7 @@ export const menuItems: MenuItem[] = [
     name: "Asistente",
     icon: Bot,
     label: "assistant",
+    roles: STAFF_ROLES,
     component: ChatPage,
     fluid: true,
   },

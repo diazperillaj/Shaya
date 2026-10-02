@@ -3,6 +3,7 @@
 # mezclarse nunca con los contenedores de la app.
 #
 #   docker compose -f docker-compose.test.yml run --rm tests
+#   docker compose -f docker-compose.test.yml run --rm chatbot-tests
 #   docker compose -f docker-compose.test.yml down
 name: shaya-test
 
@@ -40,3 +41,24 @@ services:
       db-test:
         condition: service_healthy
     command: ["pytest"]
+
+  # Pruebas unitarias del asistente: no usan base de datos ni Redis ni el LLM,
+  # así que las conexiones apuntan a valores ficticios.
+  chatbot-tests:
+    build: ./chatbot
+    working_dir: /app
+    volumes:
+      - ./chatbot:/app
+    environment:
+      ENV: test
+      BUSINESS_DB_HOST: unused
+      BUSINESS_DB_NAME: unused
+      BUSINESS_DB_USER: unused
+      BUSINESS_DB_PASSWORD: unused
+      CHAT_DB_USER: unused
+      CHAT_DB_PASSWORD: unused
+      SECRET_KEY: test-secret-key
+      FRONTEND_URL: http://localhost:5173
+      LLM_API_KEY: unused
+      PYTHONDONTWRITEBYTECODE: 1
+    command: ["python", "-m", "pytest", "-q", "tests"]
