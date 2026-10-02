@@ -1,7 +1,11 @@
 import type {
   AlertParameter,
   AlertSource,
+  CulturalPracticeType,
+  FertilizationMethod,
+  Intensity,
   PlotEventType,
+  Severity,
   SupplyType,
 } from './types'
 
@@ -86,3 +90,35 @@ export const SHADE_SUGGESTIONS = [
   'Libre exposición', 'Guamo', 'Plátano', 'Nogal cafetero', 'Sombrío mixto',
 ]
 export const UNIT_SUGGESTIONS = ['kg', 'g', 'L', 'cc', 'bulto']
+
+export const FERTILIZATION_METHOD_LABELS: Record<FertilizationMethod, string> = {
+  soil: 'Edáfica (al suelo)',
+  foliar: 'Foliar',
+}
+
+export const SEVERITY_LABELS: Record<Severity, string> = {
+  low: 'Baja',
+  medium: 'Media',
+  high: 'Alta',
+}
+
+export const INTENSITY_LABELS: Record<Intensity, string> = {
+  low: 'Baja',
+  medium: 'Media',
+  high: 'Alta',
+}
+
+export const CULTURAL_PRACTICE_LABELS: Record<CulturalPracticeType, string> = {
+  weeding: 'Deshierba o plateo',
+  pruning: 'Poda',
+  shade_regulation: 'Regulación de sombrío',
+  amendment: 'Encalado',
+  other: 'Otra',
+}
+
+export const TARGET_SUGGESTIONS = [
+  'Broca', 'Roya', 'Maleza', 'Cochinilla', 'Minador', 'Gotera', 'Mancha de hierro', 'Llaga macana',
+]
+export const OTHER_PEST_SUGGESTIONS = ['Cochinilla', 'Minador', 'Mal rosado', 'Gotera', 'Mancha de hierro']
+export const IRRIGATION_METHOD_SUGGESTIONS = ['Aspersión', 'Goteo', 'Manguera', 'Microaspersión']
+export const TEXTURE_SUGGESTIONS = SOIL_SUGGESTIONS

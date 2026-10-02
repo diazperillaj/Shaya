@@ -10,6 +10,8 @@ interface SupplyFormDialogProps {
   supply?: Supply
   /** Tipo preseleccionado al crear desde un formulario de labor */
   defaultType?: SupplyType
+  /** Nombre ya escrito en la búsqueda del formulario de labor */
+  initialName?: string
   onClose: () => void
   onSaved: (supply: Supply) => void
 }
@@ -20,9 +22,15 @@ interface SupplyFormDialogProps {
  * Se usa desde el catálogo y, en las labores, para crear un insumo al vuelo
  * sin salir del formulario.
  */
-export default function SupplyFormDialog({ supply, defaultType = 'fertilizer', onClose, onSaved }: SupplyFormDialogProps) {
+export default function SupplyFormDialog({
+  supply,
+  defaultType = 'fertilizer',
+  initialName = '',
+  onClose,
+  onSaved,
+}: SupplyFormDialogProps) {
   const { values, bind, requireFields } = useFormValues({
-    name: supply?.name ?? '',
+    name: supply?.name ?? initialName,
     supply_type: supply?.supply_type ?? defaultType,
     other_detail: supply?.other_detail ?? '',
     unit: supply?.unit ?? 'kg',

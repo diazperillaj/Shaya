@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Archive, BellRing, History, LandPlot, Pencil, RotateCcw, Sprout } from 'lucide-react'
 import AlertConfigDialog from '../alerts/AlertConfigDialog'
+import CyclePanel from '../cycles/CyclePanel'
+import SoilAnalysesCard from '../soil/SoilAnalysesCard'
 import { Badge, Button, Card, DetailList, ErrorMessage, Loading, PageHeader } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { fmtDate, fmtMoney, fmtNumber, treesPerHectare } from '../format'
@@ -102,6 +104,7 @@ function PlotDetail({ id }: { id: number }) {
 
       {actionError && <ErrorMessage message={actionError} />}
       <RenewalNotice plot={plot} />
+      <CyclePanel plot={plot} onPlotChanged={reloadPlot} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Siembra">
@@ -139,7 +142,7 @@ function PlotDetail({ id }: { id: number }) {
             ]}
           />
         </Card>
-        <Card title="Historial">
+        <Card title="Historial del lote">
           {events && events.length === 0 && (
             <p className="text-sm text-gray-400">
               Sin eventos. Registra aquí zocas, resiembras o cambios de sombrío.
@@ -160,6 +163,7 @@ function PlotDetail({ id }: { id: number }) {
             </ol>
           )}
         </Card>
+        <SoilAnalysesCard plotId={plot.id} canAdd={active} />
       </div>
 
       {plot.observations && (

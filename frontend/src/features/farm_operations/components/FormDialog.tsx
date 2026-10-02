@@ -8,7 +8,8 @@ interface FormDialogProps {
   icon: LucideIcon
   /** Texto de apoyo bajo el título */
   description?: ReactNode
-  submitLabel?: string
+  /** `null` oculta el botón de guardar: diálogos que solo ofrecen opciones */
+  submitLabel?: string | null
   /** `danger` para acciones como cerrar un lote */
   tone?: 'default' | 'danger'
   /** Formularios largos (p. ej. lote) usan un diálogo más ancho */
@@ -23,6 +24,9 @@ interface FormDialogProps {
   destructive?: { label: string; confirm: string; onConfirm: () => Promise<void> }
   children?: ReactNode
 }
+
+/** Diálogos abiertos, del más antiguo al más reciente */
+const openDialogs: symbol[] = []
 
 /**
  * Diálogo de formulario del módulo de cultivo.
@@ -44,14 +48,25 @@ export default function FormDialog({
 }: FormDialogProps) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [token] = useState(() => Symbol('dialog'))
+
+  useEffect(() => {
+    openDialogs.push(token)
+    return () => {
+      openDialogs.splice(openDialogs.indexOf(token), 1)
+    }
+  }, [token])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !busy) onClose()
+      // Con un diálogo abierto sobre otro (p. ej. un insumo nuevo desde una
+      // labor), Escape cierra solo el de arriba
+      const isTop = openDialogs[openDialogs.length - 1] === token
+      if (e.key === 'Escape' && !busy && isTop) onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [busy, onClose])
+  }, [busy, onClose, token])
 
   const run = async (action: () => Promise<void>) => {
     setError(null)
@@ -67,6 +82,9 @@ export default function FormDialog({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
+    // Un diálogo abierto desde otro se monta en un portal, pero sus eventos
+    // siguen subiendo por el árbol de React hasta el formulario de abajo
+    e.stopPropagation()
     run(onSubmit)
   }
 
@@ -126,18 +144,20 @@ export default function FormDialog({
             disabled={busy}
             className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-50"
           >
-            Cancelar
+            {submitLabel === null ? 'Cerrar' : 'Cancelar'}
           </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white shadow-md transition disabled:opacity-60 ${
-              tone === 'danger' ? 'bg-red-800 hover:bg-red-900' : 'bg-emerald-900 hover:bg-emerald-950'
-            }`}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {submitLabel}
-          </button>
+          {submitLabel !== null && (
+            <button
+              type="submit"
+              disabled={busy}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white shadow-md transition disabled:opacity-60 ${
+                tone === 'danger' ? 'bg-red-800 hover:bg-red-900' : 'bg-emerald-900 hover:bg-emerald-950'
+              }`}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {submitLabel}
+            </button>
+          )}
         </div>
       </form>
     </div>

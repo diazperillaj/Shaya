@@ -94,6 +94,13 @@ export interface Plot extends PlotFields {
   /** Años desde la siembra o la última zoca (congelada al cierre) */
   effective_age_years: number
   last_zoca_date: string | null
+  active_cycle: ActiveCycleRef | null
+}
+
+export interface ActiveCycleRef {
+  id: number
+  cycle_number: number
+  start_date: string
 }
 
 export interface PlotCreatePayload extends PlotFields {
@@ -238,3 +245,183 @@ export interface NewFarmerAccountPayload {
   username: string
   password: string
 }
+
+/* =======================
+   CICLOS
+======================= */
+
+export type CycleStatus = 'active' | 'closed'
+
+export interface CropCycle {
+  id: number
+  plot_id: number
+  plot_name: string
+  farm_id: number
+  cycle_number: number
+  start_date: string
+  end_date: string | null
+  status: CycleStatus
+  observations: string | null
+  created_at: string
+}
+
+/** Labores de un tipo dentro del ciclo */
+export interface RecordSummary {
+  kind: LaborKind
+  count: number
+  last_date: string | null
+  /** Solo en las labores con costo */
+  total_cost: number | null
+}
+
+export interface CycleDetail extends CropCycle {
+  summary: RecordSummary[]
+}
+
+export interface CycleUpdatePayload {
+  start_date: string
+  /** Solo en ciclos cerrados */
+  end_date: string | null
+  observations: string | null
+}
+
+/* =======================
+   LABORES
+======================= */
+
+/** Tipo de labor, igual al segmento de su ruta en la API */
+export type LaborKind =
+  | 'fertilizations'
+  | 'phytosanitary-apps'
+  | 'irrigations'
+  | 'pest-monitorings'
+  | 'cultural-practices'
+  | 'flowering-records'
+
+export type FertilizationMethod = 'soil' | 'foliar'
+export type Severity = 'low' | 'medium' | 'high'
+export type Intensity = 'low' | 'medium' | 'high'
+export type CulturalPracticeType = 'weeding' | 'pruning' | 'shade_regulation' | 'amendment' | 'other'
+
+interface LaborBase {
+  id: number
+  crop_cycle_id: number
+  cycle_number: number
+  plot_id: number
+  plot_name: string
+  observations: string | null
+  created_at: string
+}
+
+export interface SupplyRef {
+  id: number
+  name: string
+  unit: string
+}
+
+export interface Fertilization extends LaborBase {
+  supply_id: number
+  supply: SupplyRef
+  application_date: string
+  method: FertilizationMethod
+  quantity: number
+  dose_per_tree_g: number | null
+  cost: number | null
+}
+
+export interface PhytosanitaryApp extends LaborBase {
+  supply_id: number
+  supply: SupplyRef
+  application_date: string
+  target: string
+  quantity: number
+  dose_description: string | null
+  cost: number | null
+}
+
+export interface Irrigation extends LaborBase {
+  irrigation_date: string
+  method: string | null
+  duration_minutes: number | null
+  volume_liters: number | null
+}
+
+export interface PestMonitoring extends LaborBase {
+  monitoring_date: string
+  broca_pct: number | null
+  roya_pct: number | null
+  other_pest: string | null
+  other_pest_pct: number | null
+  severity: Severity | null
+}
+
+export interface CulturalPractice extends LaborBase {
+  practice_type: CulturalPracticeType
+  other_detail: string | null
+  practice_date: string
+  cost: number | null
+}
+
+export interface FloweringRecord extends LaborBase {
+  flowering_date: string
+  intensity: Intensity
+}
+
+export interface LaborRecords {
+  fertilizations: Fertilization
+  'phytosanitary-apps': PhytosanitaryApp
+  irrigations: Irrigation
+  'pest-monitorings': PestMonitoring
+  'cultural-practices': CulturalPractice
+  'flowering-records': FloweringRecord
+}
+
+/** Un registro de cualquier labor, con su tipo */
+export type AnyLabor = { [K in LaborKind]: { kind: K; record: LaborRecords[K] } }[LaborKind]
+
+/** Cuerpo de una labor: campos propios sin id ni datos del ciclo */
+export type LaborPayload = Record<string, string | number | null>
+
+/* =======================
+   CLIMA Y SUELO
+======================= */
+
+export interface ClimateRecord {
+  id: number
+  farm_id: number
+  plot_id: number | null
+  plot_name: string | null
+  record_date: string
+  rainfall_mm: number | null
+  temp_min_c: number | null
+  temp_max_c: number | null
+  observations: string | null
+  created_at: string
+}
+
+export interface ClimatePayload {
+  plot_id: number | null
+  record_date: string
+  rainfall_mm: number | null
+  temp_min_c: number | null
+  temp_max_c: number | null
+  observations: string | null
+}
+
+export interface SoilAnalysis {
+  id: number
+  plot_id: number
+  plot_name: string
+  analysis_date: string
+  ph: number | null
+  organic_matter_pct: number | null
+  nitrogen: number | null
+  phosphorus: number | null
+  potassium: number | null
+  texture: string | null
+  laboratory: string | null
+  observations: string | null
+  created_at: string
+}
+
+export type SoilAnalysisPayload = Omit<SoilAnalysis, 'id' | 'plot_id' | 'plot_name' | 'created_at'>

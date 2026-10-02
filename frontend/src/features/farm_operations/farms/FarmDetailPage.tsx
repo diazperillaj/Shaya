@@ -1,19 +1,22 @@
 import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { BellRing, CirclePlus, LandPlot, MapPinned, Pencil } from 'lucide-react'
+import { BellRing, CirclePlus, ClipboardPlus, LandPlot, MapPinned, Pencil } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext'
 import AlertConfigDialog from '../alerts/AlertConfigDialog'
+import ClimateCard from '../climate/ClimateCard'
 import { Badge, Button, Card, DetailList, ErrorMessage, Loading, PageHeader } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import EmployeesCard from '../employees/EmployeesCard'
 import { fmtNumber, plural } from '../format'
-import type { Plot } from '../models/types'
+import LaborChooserDialog from '../labors/LaborChooserDialog'
+import LaborFormDialog from '../labors/LaborFormDialog'
+import type { LaborKind, Plot } from '../models/types'
 import PlotFormDialog from '../plots/PlotFormDialog'
 import { fetchFarm } from '../services/farms.api'
 import { fetchPlots } from '../services/plots.api'
 import FarmFormDialog from './FarmFormDialog'
 
-type Dialog = 'edit' | 'alerts' | 'new-plot' | null
+type Dialog = 'edit' | 'alerts' | 'new-plot' | 'labor-chooser' | { labor: LaborKind } | null
 
 /**
  * Detalle de una finca: sus datos, sus lotes y sus trabajadores.
@@ -91,9 +94,16 @@ function FarmDetail({ id }: { id: number }) {
       <Card
         title="Lotes"
         actions={
-          <Button variant="primary" icon={CirclePlus} onClick={() => setDialog('new-plot')}>
-            Nuevo lote
-          </Button>
+          <>
+            {activePlots.length > 0 && (
+              <Button icon={ClipboardPlus} onClick={() => setDialog('labor-chooser')}>
+                Registrar labor
+              </Button>
+            )}
+            <Button variant="primary" icon={CirclePlus} onClick={() => setDialog('new-plot')}>
+              Nuevo lote
+            </Button>
+          </>
         }
       >
         {plots && activePlots.length === 0 && (
@@ -118,7 +128,25 @@ function FarmDetail({ id }: { id: number }) {
         )}
       </Card>
 
+      <ClimateCard farmId={farm.id} plots={activePlots} />
       <EmployeesCard farmId={farm.id} />
+
+      {dialog === 'labor-chooser' && (
+        <LaborChooserDialog
+          description="La misma labor en varios lotes de la finca, con un registro por lote"
+          onlyBulk
+          onChoose={(labor) => setDialog({ labor })}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {typeof dialog === 'object' && dialog !== null && (
+        <LaborFormDialog
+          kind={dialog.labor}
+          farmId={farm.id}
+          onClose={() => setDialog(null)}
+          onSaved={() => setDialog(null)}
+        />
+      )}
 
       {dialog === 'edit' && (
         <FarmFormDialog
@@ -169,7 +197,13 @@ function PlotList({ plots }: { plots: Plot[] }) {
                 </p>
               </div>
             </div>
-            {plot.status === 'closed' && <Badge>Cerrado</Badge>}
+            {plot.status === 'closed' ? (
+              <Badge>Cerrado</Badge>
+            ) : plot.active_cycle ? (
+              <Badge tone="green">Ciclo {plot.active_cycle.cycle_number}</Badge>
+            ) : (
+              <Badge tone="amber">Sin ciclo activo</Badge>
+            )}
           </Link>
         </li>
       ))}
