@@ -3,7 +3,9 @@ import type {
   AlertSource,
   CulturalPracticeType,
   FertilizationMethod,
+  HarvestPaymentType,
   Intensity,
+  LaborActivity,
   PlotEventType,
   Severity,
   SupplyType,
@@ -122,3 +124,22 @@ export const TARGET_SUGGESTIONS = [
 export const OTHER_PEST_SUGGESTIONS = ['Cochinilla', 'Minador', 'Mal rosado', 'Gotera', 'Mancha de hierro']
 export const IRRIGATION_METHOD_SUGGESTIONS = ['Aspersión', 'Goteo', 'Manguera', 'Microaspersión']
 export const TEXTURE_SUGGESTIONS = SOIL_SUGGESTIONS
+
+export const HARVEST_PAYMENT_LABELS: Record<HarvestPaymentType, string> = {
+  per_kg: 'Al peso',
+  per_day: 'Por jornal',
+}
+
+export const LABOR_ACTIVITY_LABELS: Record<LaborActivity, string> = {
+  weeding: 'Deshierba o plateo',
+  pruning: 'Poda',
+  fertilization: 'Fertilización',
+  phytosanitary: 'Fumigación',
+  irrigation: 'Riego',
+  shade_regulation: 'Regulación de sombrío',
+  maintenance: 'Mantenimiento',
+  other: 'Otra',
+}
+
+/** Kilos por arroba: la recolección se pesa en kg o en arrobas */
+export const KG_PER_ARROBA = 12.5

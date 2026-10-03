@@ -11,6 +11,7 @@ import { fmtNumber, plural } from '../format'
 import LaborChooserDialog from '../labors/LaborChooserDialog'
 import LaborFormDialog from '../labors/LaborFormDialog'
 import type { LaborKind, Plot } from '../models/types'
+import DayLaborsCard from '../payroll/DayLaborsCard'
 import PlotFormDialog from '../plots/PlotFormDialog'
 import { fetchFarm } from '../services/farms.api'
 import { fetchPlots } from '../services/plots.api'
@@ -130,6 +131,7 @@ function FarmDetail({ id }: { id: number }) {
 
       <ClimateCard farmId={farm.id} plots={activePlots} />
       <EmployeesCard farmId={farm.id} />
+      <DayLaborsCard farmId={farm.id} plots={activePlots} />
 
       {dialog === 'labor-chooser' && (
         <LaborChooserDialog

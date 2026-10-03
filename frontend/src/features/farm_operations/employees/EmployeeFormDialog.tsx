@@ -19,7 +19,8 @@ export default function EmployeeFormDialog({
   farmId: number
   employee?: Employee
   onClose: () => void
-  onSaved: () => void
+  /** Recibe el empleado guardado (nada si se eliminó) */
+  onSaved: (employee?: Employee) => void
 }) {
   const { values, bind, requireFields } = useFormValues({
     full_name: employee?.full_name ?? '',
@@ -36,9 +37,7 @@ export default function EmployeeFormDialog({
       phone: textOrNull(values.phone),
       observations: textOrNull(values.observations),
     }
-    if (employee) await updateEmployee(employee.id, payload)
-    else await createEmployee(farmId, payload)
-    onSaved()
+    onSaved(employee ? await updateEmployee(employee.id, payload) : await createEmployee(farmId, payload))
   }
 
   return (

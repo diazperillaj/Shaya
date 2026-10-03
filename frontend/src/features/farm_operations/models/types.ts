@@ -425,3 +425,143 @@ export interface SoilAnalysis {
 }
 
 export type SoilAnalysisPayload = Omit<SoilAnalysis, 'id' | 'plot_id' | 'plot_name' | 'created_at'>
+
+/* =======================
+   COSECHAS, JORNALES Y PAGOS
+======================= */
+
+export type HarvestStatus = 'open' | 'closed'
+export type HarvestPaymentType = 'per_kg' | 'per_day'
+export type LaborActivity =
+  | 'weeding'
+  | 'pruning'
+  | 'fertilization'
+  | 'phytosanitary'
+  | 'irrigation'
+  | 'shade_regulation'
+  | 'maintenance'
+  | 'other'
+
+export interface HarvestWork {
+  id: number
+  harvest_id: number
+  employee_id: number
+  employee_name: string
+  work_date: string
+  payment_type: HarvestPaymentType
+  kg_collected: number | null
+  rate_per_kg: number | null
+  day_value: number | null
+  total_value: number
+  paid: boolean
+  paid_at: string | null
+  created_at: string
+}
+
+export interface HarvestWorkPayload {
+  employee_id: number
+  work_date: string
+  payment_type: HarvestPaymentType
+  kg_collected: number | null
+  /** `null` usa la tarifa de la cosecha */
+  rate_per_kg: number | null
+  /** `null` usa el jornal de la cosecha */
+  day_value: number | null
+}
+
+export interface Harvest {
+  id: number
+  crop_cycle_id: number
+  cycle_number: number
+  plot_id: number
+  plot_name: string
+  farm_id: number
+  pass_number: number
+  start_date: string
+  end_date: string | null
+  status: HarvestStatus
+  rate_per_kg: number | null
+  rate_per_day: number | null
+  total_cherry_kg: number | null
+  observations: string | null
+  created_at: string
+  works_count: number
+  /** Suma de los kg anotados en la recolección */
+  kg_registered: number
+  value_total: number
+  value_pending: number
+}
+
+export interface HarvestDetail extends Harvest {
+  works: HarvestWork[]
+}
+
+export interface HarvestPayload {
+  start_date: string
+  rate_per_kg: number | null
+  rate_per_day: number | null
+  observations: string | null
+}
+
+export interface HarvestUpdatePayload extends HarvestPayload {
+  /** Solo en cosechas cerradas */
+  end_date: string | null
+  total_cherry_kg: number | null
+}
+
+export interface DayLabor {
+  id: number
+  employee_id: number
+  employee_name: string
+  farm_id: number
+  labor_date: string
+  activity_type: LaborActivity
+  other_detail: string | null
+  plot_id: number | null
+  plot_name: string | null
+  daily_value: number
+  paid: boolean
+  paid_at: string | null
+  observations: string | null
+  created_at: string
+}
+
+export interface DayLaborPayload {
+  employee_id: number
+  labor_date: string
+  activity_type: LaborActivity
+  other_detail: string | null
+  plot_id: number | null
+  daily_value: number
+  observations: string | null
+}
+
+/** Un trabajo por pagar o pagado: recolección de un día o un jornal */
+export interface PaymentItem {
+  kind: 'harvest_work' | 'day_labor'
+  id: number
+  farm_id: number
+  employee_id: number
+  employee_name: string
+  item_date: string
+  amount: number
+  paid: boolean
+  paid_at: string | null
+  plot_name: string | null
+  harvest_id: number | null
+  pass_number: number | null
+  payment_type: HarvestPaymentType | null
+  kg_collected: number | null
+  activity_type: LaborActivity | null
+  other_detail: string | null
+}
+
+export interface PaymentSelection {
+  harvest_work_ids: number[]
+  day_labor_ids: number[]
+}
+
+export interface PaymentResult {
+  count: number
+  total: number
+}

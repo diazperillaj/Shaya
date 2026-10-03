@@ -3,6 +3,7 @@ import { CalendarCheck, CalendarPlus, CalendarRange, ClipboardPlus, Pencil, Rota
 import { Badge, Button, Card, EmptyState, ErrorMessage, Loading } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { fmtDate } from '../format'
+import HarvestsSection from '../harvests/HarvestsSection'
 import LaborChooserDialog from '../labors/LaborChooserDialog'
 import LaborFormDialog from '../labors/LaborFormDialog'
 import LaborHistory from '../labors/LaborHistory'
@@ -181,6 +182,9 @@ function CycleView({
         </p>
       )}
 
+      <HarvestsSection cycle={cycle} canOpen={plot.status === 'active'} />
+
+      <h3 className="text-sm font-semibold text-gray-900">Labores</h3>
       {error && <ErrorMessage message={error} />}
       {!labors && !error && <Loading />}
       {labors && <LaborHistory labors={labors} onEdit={(labor) => setDialog({ kind: 'edit-labor', labor })} />}

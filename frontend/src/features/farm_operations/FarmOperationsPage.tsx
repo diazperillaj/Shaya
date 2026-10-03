@@ -7,6 +7,8 @@ import RequireRole from '../auth/RequireRole'
 import FarmerAccountsPage from './accounts/FarmerAccountsPage'
 import FarmDetailPage from './farms/FarmDetailPage'
 import FarmsPage from './farms/FarmsPage'
+import HarvestPage from './harvests/HarvestPage'
+import PaymentsPage from './payroll/PaymentsPage'
 import PlotDetailPage from './plots/PlotDetailPage'
 import SuppliesPage from './supplies/SuppliesPage'
 
@@ -25,7 +27,8 @@ const TABS: Tab[] = [
     label: 'Fincas',
     icon: MapPinned,
     matches: (path) =>
-      path === '/cultivo' || path.startsWith('/cultivo/fincas') || path.startsWith('/cultivo/lotes'),
+      path === '/cultivo' ||
+      ['/cultivo/fincas', '/cultivo/lotes', '/cultivo/cosechas'].some((prefix) => path.startsWith(prefix)),
   },
   {
     to: '/cultivo/insumos',
@@ -80,7 +83,9 @@ export default function FarmOperationsPage() {
         <Routes>
           <Route index element={<FarmsPage />} />
           <Route path="fincas/:farmId" element={<FarmDetailPage />} />
+          <Route path="fincas/:farmId/pagos" element={<PaymentsPage />} />
           <Route path="lotes/:plotId" element={<PlotDetailPage />} />
+          <Route path="cosechas/:harvestId" element={<HarvestPage />} />
           <Route path="insumos" element={<SuppliesPage />} />
           <Route
             path="cuentas"
