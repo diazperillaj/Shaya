@@ -26,7 +26,8 @@ export default function HarvestStatusDialog({
   const closing = harvest.status === 'open'
   const { values, bind, requireFields } = useFormValues({
     end_date: todayIso(),
-    total: harvest.kg_registered > 0 ? toInput(harvest.kg_registered) : '',
+    // Lo registrado en la recolección, o lo ya beneficiado si es más
+    total: toInput(Math.max(harvest.kg_registered, harvest.kg_processed) || null),
   })
   const [unit, setUnit] = useState<WeightUnit>('kg')
   const totalField = bind('total')
@@ -69,7 +70,7 @@ export default function HarvestStatusDialog({
         <WeightField
           label="Total de café cereza"
           required
-          hint={`Registrado en la recolección: ${fmtNumber(harvest.kg_registered, 3, 'kg')}. Súmale lo recogido sin pago (familia) o sin pesar.`}
+          hint={`Registrado en la recolección: ${fmtNumber(harvest.kg_registered, 3, 'kg')}; ya beneficiado: ${fmtNumber(harvest.kg_processed, 3, 'kg')}. Súmale lo recogido sin pago (familia) o sin pesar.`}
           value={totalField.value}
           error={totalField.error}
           onChange={totalField.onChange}

@@ -12,6 +12,7 @@ import { fmtDate, fmtMoney, fmtNumber, todayIso } from '../format'
 import type { HarvestDetail, HarvestWork } from '../models/types'
 import { fetchEmployees } from '../services/employees.api'
 import { createHarvestWork, fetchHarvest } from '../services/harvests.api'
+import QualityCard from '../quality/QualityCard'
 import HarvestFormDialog from './HarvestFormDialog'
 import HarvestStatusDialog from './HarvestStatusDialog'
 import HarvestWorkDialog from './HarvestWorkDialog'
@@ -87,6 +88,7 @@ function HarvestView({ id }: { id: number }) {
       {open && <WorkEntry harvest={harvest} onAdded={reload} />}
       <WorksByDay harvest={harvest} onEdit={(work) => setDialog({ kind: 'work', work })} />
       <WorksByEmployee harvest={harvest} />
+      <QualityCard stage="cherry" target={{ harvest_id: harvest.id }} />
 
       {dialog?.kind === 'edit' && (
         <HarvestFormDialog
@@ -122,10 +124,11 @@ function Totals({ harvest }: { harvest: HarvestDetail }) {
       : ['Recogido hoy', fmtNumber(kgToday, 1, 'kg'), fmtDate(today)],
     ['Valor de la recolección', fmtMoney(harvest.value_total), `${harvest.works_count} registros`],
     ['Pendiente de pago', fmtMoney(harvest.value_pending), harvest.value_pending > 0 ? 'Por liquidar' : 'Todo pagado'],
+    ['Beneficiado', fmtNumber(harvest.kg_processed, 1, 'kg'), 'Café cereza ya en beneficio'],
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
       {tiles.map(([label, value, detail]) => (
         <div key={label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
           <p className="text-xs text-gray-500">{label}</p>

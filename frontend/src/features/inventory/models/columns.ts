@@ -1,5 +1,7 @@
 // src/features/Inventorys/columns.ts
+import { createElement } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
+import OriginCell from '../OriginCell'
 import type { Inventory } from './types'
 
 /**
@@ -78,6 +80,12 @@ export const InventoryColumns: ColumnDef<Inventory>[] = [
   {
     accessorKey: 'date',
     header: 'Fecha de compra',
+  },
+
+  {
+    accessorKey: 'drying_id',
+    header: 'Origen',
+    cell: ({ row }) => createElement(OriginCell, { parchmentId: row.original.id, dryingId: row.original.drying_id }),
   },
 
   {

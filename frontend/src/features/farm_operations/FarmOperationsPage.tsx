@@ -9,6 +9,10 @@ import FarmDetailPage from './farms/FarmDetailPage'
 import FarmsPage from './farms/FarmsPage'
 import HarvestPage from './harvests/HarvestPage'
 import PaymentsPage from './payroll/PaymentsPage'
+import DryingPage from './postharvest/DryingPage'
+import PostharvestPage from './postharvest/PostharvestPage'
+import { DryingTracePage, ParchmentTracePage } from './postharvest/TraceabilityPage'
+import WetProcessingPage from './postharvest/WetProcessingPage'
 import PlotDetailPage from './plots/PlotDetailPage'
 import SuppliesPage from './supplies/SuppliesPage'
 
@@ -28,7 +32,8 @@ const TABS: Tab[] = [
     icon: MapPinned,
     matches: (path) =>
       path === '/cultivo' ||
-      ['/cultivo/fincas', '/cultivo/lotes', '/cultivo/cosechas'].some((prefix) => path.startsWith(prefix)),
+      ['/cultivo/fincas', '/cultivo/lotes', '/cultivo/cosechas', '/cultivo/beneficios', '/cultivo/secados', '/cultivo/trazabilidad']
+        .some((prefix) => path.startsWith(prefix)),
   },
   {
     to: '/cultivo/insumos',
@@ -84,6 +89,11 @@ export default function FarmOperationsPage() {
           <Route index element={<FarmsPage />} />
           <Route path="fincas/:farmId" element={<FarmDetailPage />} />
           <Route path="fincas/:farmId/pagos" element={<PaymentsPage />} />
+          <Route path="fincas/:farmId/poscosecha" element={<PostharvestPage />} />
+          <Route path="beneficios/:wetProcessingId" element={<WetProcessingPage />} />
+          <Route path="secados/:dryingId" element={<DryingPage />} />
+          <Route path="secados/:dryingId/trazabilidad" element={<DryingTracePage />} />
+          <Route path="trazabilidad/pergamino/:parchmentId" element={<ParchmentTracePage />} />
           <Route path="lotes/:plotId" element={<PlotDetailPage />} />
           <Route path="cosechas/:harvestId" element={<HarvestPage />} />
           <Route path="insumos" element={<SuppliesPage />} />

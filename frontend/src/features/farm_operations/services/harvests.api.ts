@@ -9,7 +9,7 @@ import type {
 import { request, toNumber } from './http'
 
 type HarvestDecimal =
-  | 'rate_per_kg' | 'rate_per_day' | 'total_cherry_kg' | 'kg_registered' | 'value_total' | 'value_pending'
+  | 'rate_per_kg' | 'rate_per_day' | 'total_cherry_kg' | 'kg_registered' | 'value_total' | 'value_pending' | 'kg_processed'
 type WorkDecimal = 'kg_collected' | 'rate_per_kg' | 'day_value' | 'total_value'
 
 type HarvestApi = Omit<Harvest, HarvestDecimal> & Record<HarvestDecimal, string | null>
@@ -32,6 +32,7 @@ const mapHarvest = (harvest: HarvestApi): Harvest => ({
   kg_registered: toNumber(harvest.kg_registered) ?? 0,
   value_total: toNumber(harvest.value_total) ?? 0,
   value_pending: toNumber(harvest.value_pending) ?? 0,
+  kg_processed: toNumber(harvest.kg_processed) ?? 0,
 })
 
 const mapDetail = ({ works, ...harvest }: DetailApi): HarvestDetail => ({
@@ -92,4 +93,12 @@ export const updateHarvestWork = async (id: number, payload: HarvestWorkPayload)
 
 export const deleteHarvestWork = async (id: number): Promise<void> => {
   await request(`/harvests/works/delete/${id}`, 'Error eliminando la recolección', { method: 'DELETE' })
+}
+
+/** Cosechas de la finca, para armar los beneficios */
+export const fetchFarmHarvests = async (farmId: number): Promise<Harvest[]> => {
+  const harvests = await request<HarvestApi[]>('/harvests/get', 'Error obteniendo las cosechas', {
+    query: { farm_id: farmId },
+  })
+  return harvests.map(mapHarvest)
 }

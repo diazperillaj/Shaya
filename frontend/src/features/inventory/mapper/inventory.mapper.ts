@@ -21,4 +21,6 @@ export const mapInventoryFromApi = (i: InventoryApiResponse) => ({
   date: i.purchase_date,
 
   observation: i.inventory.observations?.trim() || 'Sin observación',
+
+  drying_id: i.drying_id ?? null,
 })

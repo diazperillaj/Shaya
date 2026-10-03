@@ -490,6 +490,8 @@ export interface Harvest {
   kg_registered: number
   value_total: number
   value_pending: number
+  /** Café cereza ya repartido en beneficios */
+  kg_processed: number
 }
 
 export interface HarvestDetail extends Harvest {
@@ -564,4 +566,173 @@ export interface PaymentSelection {
 export interface PaymentResult {
   count: number
   total: number
+}
+
+/* =======================
+   BENEFICIO, SECADO Y CALIDAD
+======================= */
+
+export type ProcessStatus = 'in_progress' | 'completed'
+export type FermentationMethod = 'tank' | 'dry' | 'water' | 'other'
+export type DryingMethod = 'elba' | 'marquesina' | 'patio' | 'mechanical_silo' | 'other'
+export type DryingDestination = 'inventory' | 'direct_sale' | 'stored'
+export type QualityStage = 'cherry' | 'parchment'
+
+export interface WetInput {
+  harvest_id: number
+  cherry_kg: number
+  plot_id: number
+  plot_name: string
+  cycle_number: number
+  pass_number: number
+  harvest_status: HarvestStatus
+}
+
+/** Etapas del beneficio; se registran a medida que ocurren */
+export interface WetProcessingStages {
+  floats_kg: number | null
+  floats_method: string | null
+  pulped_at: string | null
+  fermentation_start: string | null
+  fermentation_end: string | null
+  fermentation_method: FermentationMethod | null
+  fermentation_other_detail: string | null
+  fermentation_decided_by: string | null
+  fermentation_criteria: string | null
+  ambient_temp_c: number | null
+  wash_count: number | null
+  washed_kg: number | null
+  observations: string | null
+}
+
+export interface WetProcessing extends WetProcessingStages {
+  id: number
+  farm_id: number
+  farm_name: string
+  status: ProcessStatus
+  created_at: string
+  /** Café cereza que entró (suma de los aportes) */
+  cherry_kg: number
+  fermentation_hours: number | null
+  /** Café lavado ya repartido en secados */
+  washed_kg_dried: number
+  inputs: WetInput[]
+}
+
+export interface DryingInputRow {
+  wet_processing_id: number
+  wet_kg: number
+  pulped_at: string | null
+  washed_kg: number | null
+}
+
+export interface HumidityCheck {
+  id: number
+  check_date: string
+  humidity_pct: number
+}
+
+export interface CompositionHarvest {
+  harvest_id: number
+  pass_number: number
+  crop_cycle_id: number
+  cycle_number: number
+  cherry_kg: number
+}
+
+export interface CompositionPlot {
+  plot_id: number
+  plot_name: string
+  variety: string
+  cherry_kg: number
+  share_pct: number
+  harvests: CompositionHarvest[]
+}
+
+export interface Drying {
+  id: number
+  farm_id: number
+  farm_name: string
+  status: ProcessStatus
+  method: DryingMethod
+  other_detail: string | null
+  start_date: string
+  end_date: string | null
+  final_humidity_pct: number | null
+  output_kg: number | null
+  packaging: string | null
+  sack_count: number | null
+  packed_at: string | null
+  storage_place: string | null
+  destination: DryingDestination | null
+  observations: string | null
+  created_at: string
+  /** Café lavado que entró */
+  wet_kg: number
+  days: number
+  /** Café cereza de las cosechas que terminó en este secado */
+  cherry_kg_traced: number
+  /** Pergamino seco / cereza trazada */
+  yield_pct: number | null
+  /** Rango esperado de humedad final (configuración de alertas de la finca) */
+  humidity_range: [number | null, number | null]
+  parchment_id: number | null
+  inputs: DryingInputRow[]
+  humidity_checks: HumidityCheck[]
+  composition: CompositionPlot[]
+}
+
+export interface DryingCompletePayload {
+  end_date: string
+  final_humidity_pct: number
+  output_kg: number
+  packaging: string | null
+  sack_count: number | null
+  packed_at: string | null
+  storage_place: string | null
+  destination: DryingDestination
+  inventory_data: { full_price: number; purchase_date: string } | null
+}
+
+export interface QualityEval {
+  id: number
+  stage: QualityStage
+  harvest_id: number | null
+  drying_id: number | null
+  eval_date: string
+  ripe_pct: number | null
+  green_pct: number | null
+  overripe_pct: number | null
+  bored_pct: number | null
+  humidity_pct: number | null
+  defects_pct: number | null
+  yield_factor: number | null
+  score: number | null
+  observations: string | null
+  created_at: string
+}
+
+export type QualityEvalPayload = Omit<QualityEval, 'id' | 'stage' | 'harvest_id' | 'drying_id' | 'created_at'>
+
+export interface TraceCycle {
+  crop_cycle_id: number
+  cycle_number: number
+  start_date: string
+  end_date: string | null
+  status: CycleStatus
+  cherry_kg: number
+  harvests: { harvest_id: number; pass_number: number; cherry_kg: number }[]
+  labors: RecordSummary[]
+}
+
+export interface DryingTrace {
+  drying: Drying
+  plots: (Omit<CompositionPlot, 'harvests'> & { cycles: TraceCycle[] })[]
+  wet_processings: {
+    wet_processing_id: number
+    pulped_at: string | null
+    cherry_kg: number
+    washed_kg: number | null
+    wet_kg: number
+  }[]
 }

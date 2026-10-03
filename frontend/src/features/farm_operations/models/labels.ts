@@ -2,11 +2,15 @@ import type {
   AlertParameter,
   AlertSource,
   CulturalPracticeType,
+  DryingDestination,
+  DryingMethod,
+  FermentationMethod,
   FertilizationMethod,
   HarvestPaymentType,
   Intensity,
   LaborActivity,
   PlotEventType,
+  ProcessStatus,
   Severity,
   SupplyType,
 } from './types'
@@ -143,3 +147,38 @@ export const LABOR_ACTIVITY_LABELS: Record<LaborActivity, string> = {
 
 /** Kilos por arroba: la recolección se pesa en kg o en arrobas */
 export const KG_PER_ARROBA = 12.5
+
+export const PROCESS_STATUS_LABELS: Record<ProcessStatus, string> = {
+  in_progress: 'En curso',
+  completed: 'Completado',
+}
+
+export const FERMENTATION_METHOD_LABELS: Record<FermentationMethod, string> = {
+  tank: 'En tanque',
+  dry: 'En seco',
+  water: 'Con agua',
+  other: 'Otro',
+}
+
+export const DRYING_METHOD_LABELS: Record<DryingMethod, string> = {
+  elba: 'Elba',
+  marquesina: 'Marquesina (parabólico)',
+  patio: 'Patio',
+  mechanical_silo: 'Silo mecánico',
+  other: 'Otro',
+}
+
+export const DRYING_DESTINATION_LABELS: Record<DryingDestination, string> = {
+  inventory: 'Al inventario',
+  direct_sale: 'Venta directa',
+  stored: 'Guardado en la finca',
+}
+
+/** Empaque por defecto del pergamino seco */
+export const DEFAULT_PACKAGING = 'Bolsa GrainPro + costal de fique'
+
+/** Kilos por carga: el precio del pergamino se da por carga (regla de 3) */
+export const KG_PER_CARGA = 125
+
+export const FLOATS_METHOD_SUGGESTIONS = ['Tanque', 'Zaranda', 'Tolva con agua']
+export const FERMENTATION_CRITERIA_SUGGESTIONS = ['Prueba de tacto', 'Prueba del palote', 'Medición de pH']

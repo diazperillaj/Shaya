@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { BellRing, CirclePlus, ClipboardPlus, LandPlot, MapPinned, Pencil } from 'lucide-react'
+import { BellRing, CirclePlus, ClipboardPlus, Factory, LandPlot, MapPinned, Pencil } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext'
 import AlertConfigDialog from '../alerts/AlertConfigDialog'
 import ClimateCard from '../climate/ClimateCard'
@@ -74,6 +74,7 @@ function FarmDetail({ id }: { id: number }) {
         }
         actions={
           <>
+            <Button icon={Factory} onClick={() => navigate(`/cultivo/fincas/${farm.id}/poscosecha`)}>Beneficio y secado</Button>
             <Button icon={BellRing} onClick={() => setDialog('alerts')}>Alertas</Button>
             <Button icon={Pencil} onClick={() => setDialog('edit')}>Editar</Button>
           </>

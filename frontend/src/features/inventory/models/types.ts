@@ -58,6 +58,9 @@ export interface Inventory {
   /** Fecha de compra */
   date: string
 
+  /** Secado del módulo de cultivo que lo produjo; `null` = café comprado */
+  drying_id: number | null
+
   /** Observaciones adicionales */
   observation?: string
 
@@ -97,4 +100,5 @@ export interface InventoryApiResponse {
   initial_quantity: string
   remaining_quantity: string
   purchase_date: string
+  drying_id: number | null
 }

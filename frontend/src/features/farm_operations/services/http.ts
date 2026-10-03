@@ -49,3 +49,15 @@ export async function request<T>(
 /** Convierte un decimal de la API (texto) a número, conservando `null` */
 export const toNumber = (value: string | number | null | undefined): number | null =>
   value === null || value === undefined || value === '' ? null : Number(value)
+
+/**
+ * Copia un objeto de la API convirtiendo a número sus campos decimales
+ * (que llegan como texto). Para respuestas con muchos decimales.
+ */
+export function withNumbers<T>(raw: unknown, fields: readonly string[]): T {
+  const record = { ...(raw as Record<string, unknown>) }
+  fields.forEach((field) => {
+    if (field in record) record[field] = toNumber(record[field] as string | null)
+  })
+  return record as T
+}

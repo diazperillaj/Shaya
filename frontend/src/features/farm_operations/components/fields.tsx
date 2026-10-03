@@ -124,6 +124,22 @@ export function DateField({ max, ...props }: BaseFieldProps & { max?: string }) 
   )
 }
 
+/** Fecha y hora local (p. ej. el despulpado o el inicio de la fermentación) */
+export function DateTimeField(props: BaseFieldProps) {
+  const id = useId()
+  return (
+    <FieldShell id={id} {...props}>
+      <input
+        id={id}
+        type="datetime-local"
+        value={props.value}
+        onChange={(e) => props.onChange(e.target.value)}
+        className={inputClass(props.error)}
+      />
+    </FieldShell>
+  )
+}
+
 export function SelectField({
   options,
   ...props
