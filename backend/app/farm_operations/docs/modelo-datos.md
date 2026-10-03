@@ -2,8 +2,8 @@
 
 > Documento 2 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Estado: **✅ aprobado** (2026-08-06). Implementadas las tablas §3.1–3.4,
-> 3.7 y 3.9 (migración M1, bloque 1B) y §3.5, 3.6 y 3.8 (migración M2,
-> bloque 2).
+> 3.7 y 3.9 (migración M1, bloque 1B), §3.5, 3.6 y 3.8 (migración M2,
+> bloque 2) y §3.10–3.12 (migración M3, bloque 3).
 > Última actualización: 2026-10-02
 
 ---
@@ -397,6 +397,8 @@ chocar con las restricciones únicas de `persons` (ver §9 punto R3).
 | created_at | DateTime(tz) | NOT NULL, default now() | |
 
 Unicidad: `(crop_cycle_id, pass_number)`.
+CHECKs: `end_date >= start_date`; cerrada ⇔ con `end_date`; cerrada ⇒ con
+`total_cherry_kg`. En el servicio: una sola cosecha abierta por ciclo.
 La **composición** (% maduros, % verdes, % brocados…) NO vive aquí sino en
 `quality_evals` con `stage='cherry'` — una sola fuente de verdad (§9 punto R2).
 
@@ -421,6 +423,8 @@ Constraint:
 `CHECK ((payment_type = 'per_kg' AND kg_collected IS NOT NULL AND rate_per_kg IS NOT NULL) OR (payment_type = 'per_day' AND day_value IS NOT NULL))`.
 
 Índices: `idx_hwork_harvest_date (harvest_id, work_date)`, `idx_hwork_employee_id`.
+`CHECK (paid = (paid_at IS NOT NULL))`: pagado ⇔ con fecha de pago (igual en
+`day_labors`).
 
 ### 3.12 `day_labors` — Jornales (labores no-cosecha)
 
@@ -437,6 +441,8 @@ Constraint:
 | paid_at | Date | NULL | |
 | observations | Text | NULL | |
 | created_at | DateTime(tz) | NOT NULL, default now() | |
+
+Índices: `idx_day_labor_employee_date (employee_id, labor_date)`, `idx_day_labor_plot_id`.
 
 ### 3.13 `quality_evals` — Evaluación de calidad (D5, una tabla con `stage`)
 

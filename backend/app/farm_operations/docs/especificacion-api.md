@@ -3,7 +3,8 @@
 > Documento 3 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Basado en el modelo de datos aprobado ([modelo-datos.md](modelo-datos.md)).
 > Estado: **✅ aprobado** (2026-08-06). Implementados §3.1–3.3 y 3.6, los
-> empleados de §3.7 y §3.12 (bloque 1B), y §3.4–3.5 (bloque 2).
+> empleados de §3.7 y §3.12 (bloque 1B), §3.4–3.5 (bloque 2), y los jornales
+> de §3.7, §3.8 y §3.8.1 (bloque 3).
 > Última actualización: 2026-10-02
 
 ---
@@ -187,27 +188,45 @@ su propio recurso con el mismo CRUD (`/create`, `/get`, `/update/{id}`,
 | POST | `/employees/{id}/deactivate` | farm | Preferido sobre delete (histórico de pagos). |
 | POST | `/employees/{id}/activate` | farm | |
 | DELETE | `/employees/delete/{id}` | farm | Solo sin registros (RESTRICT). |
-| POST | `/day-labors/create` | farm | Jornal: `employee_id`, `activity_type` (+`other_detail`), `plot_id` opcional, `daily_value`. |
-| GET | `/day-labors/get` | farm | Filtros: `employee_id`, `plot_id`, `paid`, rango de fechas. |
-| PUT | `/day-labors/update/{id}` | farm | |
-| POST | `/day-labors/{id}/pay` | farm | Marca `paid=true`, `paid_at=hoy`. |
-| DELETE | `/day-labors/delete/{id}` | farm | |
+| POST | `/day-labors/create` | farm | Jornal: `employee_id` (activo), `activity_type` (+`other_detail`), `plot_id` opcional (de la finca del empleado y activo), `daily_value`. |
+| GET | `/day-labors/get` | farm | Filtros: `farm_id`, `employee_id`, `plot_id`, `paid`, `date_from`, `date_to`. |
+| PUT | `/day-labors/update/{id}` | farm | Solo sin pagar (409). |
+| DELETE | `/day-labors/delete/{id}` | farm | Solo sin pagar (409). |
+
+El pago de los jornales se hace junto con el de la recolección (§3.8.1).
+Un empleado con recolección o jornales no se elimina: se desactiva.
 
 ### 3.8 `harvests` (sesión, patrón feria) y `harvest-works`
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| POST | `/harvests/create` | farm | Abre sesión: `crop_cycle_id`, `start_date`, tarifas default opcionales (`rate_per_kg` y/o `rate_per_day`). `pass_number` lo asigna el service. |
-| GET | `/harvests/get` | farm | Filtros: `crop_cycle_id`, `status`. |
-| GET | `/harvests/get/{id}` | farm | Detalle + trabajos diarios + total acumulado + calidad cereza si existe. |
-| PUT | `/harvests/update/{id}` | farm | |
-| POST | `/harvests/{id}/close` | farm | Cierra la sesión: recibe `total_cherry_kg` (precargado con la Σ de los trabajos que registraron kg; editable para incluir recolección familiar no paga o jornales sin pesaje). |
-| DELETE | `/harvests/delete/{id}` | farm | Solo sin aportes a beneficios (RESTRICT). |
-| POST | `/harvests/{id}/works/create` | farm | Registro diario: `employee_id`, `work_date`, `payment_type` (`per_kg` default / `per_day`). Si `per_kg`: `kg_collected` + `rate_per_kg` (default: el de la sesión). Si `per_day`: `day_value` (default: `rate_per_day` de la sesión) + `kg_collected` opcional. `total_value` lo calcula el service (kg × tarifa, o el jornal). |
-| GET | `/harvests/{id}/works/get` | farm | Filtros: `employee_id`, `paid`, fecha. |
-| PUT | `/harvests/works/update/{work_id}` | farm | Solo con cosecha `open`. |
-| POST | `/harvests/works/pay` | farm | Pago masivo: body `{"work_ids": [...]}` → marca `paid`. |
-| DELETE | `/harvests/works/delete/{work_id}` | farm | Solo con cosecha `open`. |
+| POST | `/harvests/create` | farm | Abre sesión en un ciclo `active`: `crop_cycle_id`, `start_date` (por defecto, hoy; no antes del ciclo), tarifas default opcionales (`rate_per_kg` y/o `rate_per_day`). `pass_number` lo asigna el service. Una sola cosecha abierta por ciclo (409). |
+| GET | `/harvests/get` | farm | Filtros: `crop_cycle_id`, `plot_id`, `farm_id`, `status`. Cada cosecha trae sus acumulados: `works_count`, `kg_registered`, `value_total`, `value_pending`. |
+| GET | `/harvests/get/{id}` | farm | Detalle + trabajos diarios + acumulados (la calidad cereza se suma en el bloque 4). |
+| PUT | `/harvests/update/{id}` | farm | Fechas, tarifas por defecto y observaciones; `end_date` y `total_cherry_kg` solo en cosechas cerradas. Las fechas caben en el ciclo y cubren la recolección (409). |
+| POST | `/harvests/{id}/close` | farm | Cierra la sesión: recibe `end_date` (por defecto, hoy; no antes de la última recolección) y `total_cherry_kg` (vacío = la Σ de los kg registrados; editable para incluir recolección familiar no paga o jornales sin pesaje). Sin kg registrados, el total es obligatorio. |
+| POST | `/harvests/{id}/reopen` | farm | Solo corrección de error: la última pasada de un ciclo activo vuelve a `open` y pierde fin y total. Exigirá no tener aportes a beneficios desde el bloque 4. |
+| DELETE | `/harvests/delete/{id}` | farm | Solo sin recolección registrada (409); exigirá no tener aportes a beneficios desde el bloque 4. |
+| POST | `/harvests/{id}/works/create` | farm | Registro diario (cosecha `open`): `employee_id` (activo, de la finca de la cosecha), `work_date` (no antes de la cosecha), `payment_type` (`per_kg` default / `per_day`). Si `per_kg`: `kg_collected` + `rate_per_kg` (default: el de la sesión). Si `per_day`: `day_value` (default: `rate_per_day` de la sesión) + `kg_collected` opcional. Sin tarifa propia ni de la sesión → 400. `total_value` lo calcula el service (kg × tarifa redondeado al peso, o el jornal). |
+| GET | `/harvests/{id}/works/get` | farm | Filtros: `employee_id`, `paid`. |
+| PUT | `/harvests/works/update/{work_id}` | farm | Solo sin pagar y con cosecha `open` (409). |
+| DELETE | `/harvests/works/delete/{work_id}` | farm | Solo sin pagar y con cosecha `open` (409). |
+
+Un ciclo se cierra solo sin cosechas abiertas, y su rango de fechas cubre sus
+cosechas y su recolección, igual que sus labores.
+
+### 3.8.1 `payments` (recolección y jornales)
+
+La recolección y los jornales se pagan juntos, por selección y en una sola
+transacción: así la pantalla de pagos liquida a un trabajador de una vez.
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| GET | `/payments/get` | farm | Recolección y jornales, ordenados por empleado y fecha. Filtros: `farm_id`, `employee_id`, `paid`, `date_from`, `date_to`. Cada elemento dice su tipo (`harvest_work` / `day_labor`), monto, estado de pago y su detalle (lote, pasada y kg; o actividad). |
+| POST | `/payments/pay` | farm | Body `{harvest_work_ids, day_labor_ids, paid_at}` (`paid_at` por defecto, hoy; no antes de cada trabajo). Marca como pagado lo pendiente; lo ya pagado no cambia. Responde cuántos y por cuánto. |
+| POST | `/payments/unpay` | farm | Deshace pagos marcados por error: lo elegido vuelve a pendiente. |
+
+Un id fuera del alcance del usuario responde 404 y no se paga nada.
 
 ### 3.9 `quality-evals`
 
@@ -382,7 +401,8 @@ app/farm_operations/
             farms/  plots/  alert_configs/  crop_cycles/
             labors/          #   las seis labores: tipos, servicio y rutas genéricas
             soil_analyses/  climate_records/  supplies/  employees/
-            day_labors/  harvests/  quality_evals/  wet_processings/
+            harvests/  day_labors/  payments/
+            quality_evals/  wet_processings/
             dryings/  farmer_accounts/  dashboard/  ml/
     ml/                      # features.py, predictor.py, artifacts/
 ```
@@ -407,5 +427,5 @@ Reparto de responsabilidades:
 | A3 | Los aportes (pivotes) se manejan **dentro** del recurso padre (`inputs` en create/update del beneficio y secado), no como CRUD independiente | Un aporte no tiene vida propia; editarlos sueltos permitiría romper el balance de masas con estados intermedios. |
 | A4 | Las alertas se **calculan al consultar**, no se persisten en tabla | Sin estado que sincronizar ni jobs; con los volúmenes del sistema la query es barata. Si algún día se quiere "marcar como vista", se agrega tabla en ese momento. |
 | A5 | `pass_number` y `cycle_number` los asigna el service (no vienen en el body) | Evita huecos y duplicados; el cliente no controla consecutivos. |
-| A6 | Pago masivo de recolección (`/harvests/works/pay` con lista de ids) | El caso real es "pagarle la semana a Pedro": marcar uno por uno sería tedioso. |
+| A6 | Pago masivo por selección (`/payments/pay`), de recolección y jornales juntos, en una transacción | El caso real es "pagarle la semana a Pedro": marcar uno por uno sería tedioso, y la recolección y los jornales se liquidan juntos. |
 | A7 | `to-inventory` como operación separada para secados `stored` | El café guardado en finca entra a inventario cuando el productor decida, con el mismo contrato de precios (R8). |

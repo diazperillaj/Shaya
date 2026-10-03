@@ -2,8 +2,8 @@
 
 > Documento 6 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Materializa el [modelo de datos](modelo-datos.md) aprobado en Alembic.
-> Estado: **✅ aprobado** (2026-09-16). M1 y M2 implementadas (bloques 1B y
-> 2); M6 descartada (§4).
+> Estado: **✅ aprobado** (2026-09-16). M1, M2 y M3 implementadas (bloques
+> 1B, 2 y 3); M6 descartada (§4).
 > Última actualización: 2026-10-02
 
 ---
@@ -92,6 +92,8 @@ Crea (§3.5, 3.6, 3.8): `crop_cycles`, `climate_records`, `fertilizations`,
 
 ### M3 — `farm harvests, harvest works, day labors`
 
+✅ Revisión `5a0431c0d075` (bloque 3).
+
 Crea (§3.10–3.12): `harvests`, `harvest_works`, `day_labors`.
 
 - Enums: `farmharveststatusenum`, `farmharvestpaymenttypeenum`,
@@ -99,8 +101,16 @@ Crea (§3.10–3.12): `harvests`, `harvest_works`, `day_labors`.
 - Único `harvests (crop_cycle_id, pass_number)`.
 - CHECK `ck_harvest_works_payment` (per_kg exige kg + tarifa; per_day exige
   `day_value`).
+- CHECKs de la cosecha: `ck_harvests_dates` (fin ≥ inicio),
+  `ck_harvests_end_date_status` (cerrada ⇔ con fin) y
+  `ck_harvests_closed_total` (cerrada ⇒ con total de cereza).
+- CHECKs de pago: `ck_harvest_works_paid` y `ck_day_labors_paid` (pagado ⇔
+  con fecha de pago).
 - `harvest_works.harvest_id` con `ondelete=CASCADE` (detalle de sesión);
   `employee_id` RESTRICT.
+- Índices: `(harvest_id, work_date)` y `employee_id` en la recolección,
+  `crop_cycle_id` en las cosechas, `(employee_id, labor_date)` y `plot_id`
+  en los jornales.
 
 ### M4 — `farm wet processing, drying, quality evals`
 

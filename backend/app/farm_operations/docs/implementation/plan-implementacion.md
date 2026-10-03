@@ -330,9 +330,23 @@ finca en una sola operación.
 guarda en `quality_evals`, que nace en M4 — el formulario de composición se
 agrega a la pantalla de cosecha en el bloque 4.
 
+**Implementado además** (sin cambios de esquema fuera de M3):
+- Una sola cosecha abierta por ciclo; la última pasada se puede reabrir
+  para corregir un cierre por error. El ciclo se cierra solo sin cosechas
+  abiertas y su rango cubre cosechas y recolección.
+- Un recurso `payments` paga recolección y jornales juntos, por selección y
+  en una transacción, y deshace pagos marcados por error (reemplaza los
+  pagos por separado de la especificación). Lo pagado no se edita ni se
+  borra.
+- Un empleado con recolección o jornales no se elimina: se desactiva.
+- En pantalla, la recolección y el total de cereza se escriben en kg o en
+  arrobas (F1); la página de la cosecha registra la recolección sin
+  diálogos y conserva fecha, forma de pago y unidad entre registros.
+
 **Pruebas:** CHECK de modalidad de pago; `total_value` calculado;
 `pass_number` consecutivo; trabajos de una cosecha cerrada no editables;
-total precargado = Σ kg registrados.
+total precargado = Σ kg registrados; una cosecha abierta por ciclo; pago por
+selección, idempotente y reversible; lo pagado no se edita.
 
 **Terminado cuando:** el farmer maneja una semana de cosecha real:
 recolección mixta (al peso y por jornal), liquidación de pagos y cierre con
@@ -546,7 +560,7 @@ Decisiones de la infraestructura:
 | 1A — Cimientos | [#1](https://github.com/diazperillaj/Shaya/pull/1), [#2](https://github.com/diazperillaj/Shaya/pull/2), [#3](https://github.com/diazperillaj/Shaya/pull/3) | ✅ | Infraestructura (#1, que incluye #2) y acceso por rol y navegación (#3). |
 | 1B — Dominio base | — (directo a `main`) | ✅ | M6 descartada (§3, bloque 1B). |
 | 2 — Ciclos y labores | — (directo a `main`) | ✅ | Reapertura del último ciclo y labores en ciclos cerrados dentro de sus fechas (§3, bloque 2). |
-| 3 — Cosechas y jornales | — | ⬜ | |
+| 3 — Cosechas y jornales | — (directo a `main`) | ✅ | Pagos de recolección y jornales juntos en `payments`; reapertura de la última pasada (§3, bloque 3). |
 | 4 — Beneficio, secado y calidad | — | ⬜ | |
 | 5 — Generador sintético | — | ⬜ | |
 | 6 — Dashboard y alertas | — | ⬜ | |
@@ -561,6 +575,7 @@ Decisiones de la infraestructura:
 | especificacion-api.md §2 | Endpoints existentes restringidos a roles de personal; `UserRole` y creación de cuentas farmer (2.1, 2.2). |
 | especificacion-api.md §3.5 | `bulk-create` de labores con reparto por área (bloque 2). |
 | especificacion-api.md §3.4–3.5, modelo-datos.md §3.5, plan-migraciones.md M2 | Reapertura del último ciclo, ciclos sin solaparse, labores dentro del ciclo (también en ciclos cerrados), CHECK `ck_crop_cycles_end_date_status`, clima y suelo como recursos propios (bloque 2). |
+| especificacion-api.md §3.7–3.8.1, modelo-datos.md §3.10–3.12, plan-migraciones.md M3 | Recurso `payments` en lugar de `/harvests/works/pay` y `/day-labors/{id}/pay`; reapertura de la última pasada; una cosecha abierta por ciclo; CHECKs de cierre de cosecha y de pago (bloque 3). |
 | plan-migraciones.md §1, §2, §4 | Migración base consolidada con el ID del head (2.3); registro central de modelos y relaciones solo desde el lado de cultivo (2.5); M6 descartada (bloque 1B). |
 | arquitectura.md C4, modelo-datos.md §8 | El farmer Shaya se registra desde la interfaz, sin dato semilla (bloque 1B). |
 | especificacion-api.md §2, §3, §5 | `FarmAccess` en lugar de `get_accessible_farm`; endpoints de activación y de configuración resuelta de finca; listado de cuentas; valor heredado en la config resuelta (bloque 1B). |
