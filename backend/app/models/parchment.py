@@ -1,8 +1,9 @@
 # app/models/pergamino.py
-from sqlalchemy import Integer, String, Date, Numeric, ForeignKey, Index
+from sqlalchemy import Integer, String, Date, Numeric, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.core.db.base import Base
 from decimal import Decimal
+from typing import Optional
 
 class Parchment(Base):
     """
@@ -16,6 +17,7 @@ class Parchment(Base):
     __table_args__ = (
         Index('idx_farmer', 'farmer_id'),
         Index('idx_purchase_date', 'purchase_date'),
+        UniqueConstraint('drying_id', name='uq_parchments_drying'),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -39,6 +41,13 @@ class Parchment(Base):
     remaining_quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     purchase_date: Mapped[Date] = mapped_column(Date, nullable=False)
     origin_batch: Mapped[str] = mapped_column(String(100), nullable=True)
+    # Secado del módulo de cultivo que lo produjo; NULL = café comprado.
+    # Solo la columna: el inventario no conoce el módulo de cultivo.
+    drying_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("dryings.id", ondelete="RESTRICT"),
+        nullable=True
+    )
     
     # Relaciones
     inventory = relationship("Inventory", back_populates="parchment")

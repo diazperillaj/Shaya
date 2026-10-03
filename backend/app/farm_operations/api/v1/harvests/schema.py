@@ -119,6 +119,7 @@ class HarvestResponse(BaseModel):
     kg_registered: Decimal = Field(..., description="Suma de los kg anotados en la recolección")
     value_total: Decimal = Field(..., description="Valor de toda la recolección")
     value_pending: Decimal = Field(..., description="Valor de la recolección sin pagar")
+    kg_processed: Decimal = Field(..., description="Café cereza ya repartido en beneficios")
 
 
 class HarvestDetail(HarvestResponse):

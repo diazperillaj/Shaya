@@ -5,6 +5,7 @@ from app.farm_operations.api.v1.climate_records import router as climate_records
 from app.farm_operations.api.v1.crop_cycles import router as crop_cycles_router
 from app.farm_operations.api.v1.day_labors import router as day_labors_router
 from app.farm_operations.api.v1.dependencies import require_farm_role
+from app.farm_operations.api.v1.dryings import router as dryings_router
 from app.farm_operations.api.v1.employees import router as employees_router
 from app.farm_operations.api.v1.farmer_accounts import router as farmer_accounts_router
 from app.farm_operations.api.v1.farms import router as farms_router
@@ -13,8 +14,11 @@ from app.farm_operations.api.v1.labors.kinds import LABOR_KINDS
 from app.farm_operations.api.v1.labors.router import build_router as build_labor_router
 from app.farm_operations.api.v1.payments import router as payments_router
 from app.farm_operations.api.v1.plots import router as plots_router
+from app.farm_operations.api.v1.quality_evals import router as quality_evals_router
 from app.farm_operations.api.v1.soil_analyses import router as soil_analyses_router
 from app.farm_operations.api.v1.supplies import router as supplies_router
+from app.farm_operations.api.v1.traceability import router as traceability_router
+from app.farm_operations.api.v1.wet_processings import router as wet_processings_router
 
 """
 Router principal del módulo de cultivo.
@@ -42,4 +46,8 @@ farm_router.include_router(employees_router.router, prefix="/employees", tags=["
 farm_router.include_router(harvests_router.router, prefix="/harvests", tags=["farm-harvests"])
 farm_router.include_router(day_labors_router.router, prefix="/day-labors", tags=["farm-day-labors"])
 farm_router.include_router(payments_router.router, prefix="/payments", tags=["farm-payments"])
+farm_router.include_router(wet_processings_router.router, prefix="/wet-processings", tags=["farm-wet-processings"])
+farm_router.include_router(dryings_router.router, prefix="/dryings", tags=["farm-dryings"])
+farm_router.include_router(quality_evals_router.router, prefix="/quality-evals", tags=["farm-quality-evals"])
+farm_router.include_router(traceability_router.router, prefix="/traceability", tags=["farm-traceability"])
 farm_router.include_router(farmer_accounts_router.router, prefix="/farmer-accounts", tags=["farm-farmer-accounts"])

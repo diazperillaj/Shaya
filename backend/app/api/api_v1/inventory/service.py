@@ -211,7 +211,8 @@ class ParchmentService:
             initial_quantity=parchment_data.initial_quantity,
             remaining_quantity=parchment_data.initial_quantity,
             purchase_date=parchment_data.purchase_date,
-            origin_batch=parchment_data.origin_batch
+            origin_batch=parchment_data.origin_batch,
+            drying_id=parchment_data.drying_id
         )
 
         self.db.add(parchment)

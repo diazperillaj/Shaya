@@ -1,10 +1,22 @@
 from typing import Optional
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Query, Session
 
 from app.core.exceptions.domain import DomainError, NotFoundError, PermissionDeniedError
 from app.core.roles import UserRole
-from app.farm_operations.models import CropCycle, DayLabor, Employee, Farm, Harvest, HarvestWork, Plot
+from app.farm_operations.models import (
+    CropCycle,
+    DayLabor,
+    Drying,
+    Employee,
+    Farm,
+    Harvest,
+    HarvestWork,
+    Plot,
+    QualityEval,
+    WetProcessing,
+)
 from app.models.farmer import Farmer
 
 
@@ -152,6 +164,32 @@ class FarmAccess:
         if not labor:
             raise NotFoundError("Jornal no encontrado")
         return labor
+
+    def get_wet_processing(self, wet_processing_id: int) -> WetProcessing:
+        record = self.farm_records(WetProcessing).filter(WetProcessing.id == wet_processing_id).first()
+        if not record:
+            raise NotFoundError("Beneficio no encontrado")
+        return record
+
+    def get_drying(self, drying_id: int) -> Drying:
+        record = self.farm_records(Drying).filter(Drying.id == drying_id).first()
+        if not record:
+            raise NotFoundError("Secado no encontrado")
+        return record
+
+    def quality_evals(self) -> Query:
+        """Evaluaciones de calidad de las cosechas y los secados visibles."""
+        harvests = self.cycle_records(Harvest).with_entities(Harvest.id).statement
+        dryings = self.farm_records(Drying).with_entities(Drying.id).statement
+        return self.db.query(QualityEval).filter(
+            or_(QualityEval.harvest_id.in_(harvests), QualityEval.drying_id.in_(dryings))
+        )
+
+    def get_quality_eval(self, eval_id: int) -> QualityEval:
+        record = self.quality_evals().filter(QualityEval.id == eval_id).first()
+        if not record:
+            raise NotFoundError("Evaluación no encontrada")
+        return record
 
     def plot_records(self, model) -> Query:
         """Registros de `model` que cuelgan de un lote visible (análisis de suelo)."""

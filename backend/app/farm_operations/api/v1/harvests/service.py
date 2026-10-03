@@ -13,11 +13,12 @@ from app.farm_operations.api.v1.harvests.schema import (
     HarvestUpdate,
     HarvestWorkFields,
 )
-from app.farm_operations.models import CropCycle, Harvest, HarvestWork, Plot
+from app.farm_operations.models import CropCycle, Harvest, HarvestWork, Plot, QualityEval, WetProcessingInput
 from app.farm_operations.models.enums import CycleStatusEnum, HarvestPaymentTypeEnum, HarvestStatusEnum
 from app.farm_operations.services.access import FarmAccess
 from app.farm_operations.services.cycle_records import open_harvest
 from app.farm_operations.services.dates import format_date
+from app.farm_operations.services.mass_balance import check_harvest_total, harvest_processed_kg
 
 CENT = Decimal("0.01")
 ZERO = Decimal(0)
@@ -121,6 +122,8 @@ class HarvestService:
             raise ConflictError("Una cosecha cerrada necesita su fecha de fin y su total de café cereza")
 
         self._validate_dates(harvest, payload.start_date, payload.end_date)
+        if payload.total_cherry_kg is not None:
+            check_harvest_total(self.db, harvest, payload.total_cherry_kg)
         harvest.start_date = payload.start_date
         harvest.rate_per_kg = payload.rate_per_kg
         harvest.rate_per_day = payload.rate_per_day
@@ -139,10 +142,12 @@ class HarvestService:
 
         total = payload.total_cherry_kg
         if total is None:
+            # Lo registrado en la recolección, o lo ya beneficiado si es más
             registered = sum((work.kg_collected or ZERO for work in harvest.works), ZERO)
-            if registered == 0:
+            total = max(registered, harvest_processed_kg(self.db, harvest.id))
+            if total == 0:
                 raise DomainError("Indica el total de café cereza: la recolección no tiene kg registrados")
-            total = registered
+        check_harvest_total(self.db, harvest, total)
 
         harvest.status = HarvestStatusEnum.closed
         harvest.end_date = payload.end_date
@@ -176,6 +181,10 @@ class HarvestService:
         harvest = self.access.get_harvest(harvest_id)
         if harvest.works:
             raise ConflictError("No se puede eliminar: la cosecha tiene recolección registrada")
+        if harvest_processed_kg(self.db, harvest.id) > 0:
+            raise ConflictError("No se puede eliminar: su café ya está en un beneficio")
+        if self.db.query(QualityEval.id).filter(QualityEval.harvest_id == harvest.id).first():
+            raise ConflictError("No se puede eliminar: la cosecha tiene evaluaciones de calidad")
         self.db.delete(harvest)
         self.db.commit()
 
@@ -280,6 +289,13 @@ class HarvestService:
             .all()
         }
 
+        processed = dict(
+            self.db.query(WetProcessingInput.harvest_id, func.sum(WetProcessingInput.cherry_kg))
+            .filter(WetProcessingInput.harvest_id.in_([harvest.id for harvest in harvests]))
+            .group_by(WetProcessingInput.harvest_id)
+            .all()
+        )
+
         responses = []
         for harvest in harvests:
             cycle = harvest.crop_cycle
@@ -304,6 +320,7 @@ class HarvestService:
                 "kg_registered": row.kg_registered if row else ZERO,
                 "value_total": row.value_total if row else ZERO,
                 "value_pending": row.value_pending if row else ZERO,
+                "kg_processed": processed.get(harvest.id, ZERO),
             })
         return responses
 

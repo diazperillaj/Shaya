@@ -35,7 +35,10 @@ class ParchmentCreate(BaseModel):
     purchase_date: date = Field(..., description="Fecha de compra del pergamino")
     origin_batch: Optional[str] = Field(None, max_length=100, description="Lote del caficultor")
     observations: Optional[str] = None
-    
+    drying_id: Optional[int] = Field(
+        None, gt=0, description="Secado del módulo de cultivo que lo produjo; vacío = café comprado"
+    )
+
     @field_validator('purchase_date')
     @classmethod
     def validate_date_not_future(cls, v: date) -> date:
@@ -88,7 +91,8 @@ class ParchmentResponse(BaseModel):
     remaining_quantity: Decimal
     purchase_date: date
     origin_batch: Optional[str]
-    
+    drying_id: Optional[int] = None
+
     class Config:
         from_attributes = True
 
@@ -110,7 +114,8 @@ class ParchmentDetailResponse(BaseModel):
     remaining_quantity: Decimal
     purchase_date: date
     origin_batch: Optional[str]
-    
+    drying_id: Optional[int] = None
+
     # Información del caficultor
     farmer: FarmerResponse
     

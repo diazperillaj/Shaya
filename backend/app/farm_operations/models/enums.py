@@ -102,3 +102,51 @@ class LaborActivityEnum(enum.Enum):
     shade_regulation = "shade_regulation"
     maintenance = "maintenance"
     other = "other"
+
+
+class WetProcessingStatusEnum(enum.Enum):
+    """Estado del beneficio: al completarse queda fijo su café lavado."""
+
+    in_progress = "in_progress"
+    completed = "completed"
+
+
+class FermentationMethodEnum(enum.Enum):
+    """Cómo se fermenta el café despulpado."""
+
+    tank = "tank"
+    dry = "dry"
+    water = "water"
+    other = "other"
+
+
+class DryingStatusEnum(enum.Enum):
+    """Estado del secado: al completarse queda el pergamino seco y su destino."""
+
+    in_progress = "in_progress"
+    completed = "completed"
+
+
+class DryingMethodEnum(enum.Enum):
+    """Dónde o cómo se seca el café."""
+
+    elba = "elba"
+    marquesina = "marquesina"
+    patio = "patio"
+    mechanical_silo = "mechanical_silo"
+    other = "other"
+
+
+class DryingDestinationEnum(enum.Enum):
+    """A dónde va el pergamino seco."""
+
+    inventory = "inventory"
+    direct_sale = "direct_sale"
+    stored = "stored"
+
+
+class QualityStageEnum(enum.Enum):
+    """Etapa de una evaluación de calidad: en cereza (cosecha) o en pergamino (secado)."""
+
+    cherry = "cherry"
+    parchment = "parchment"
