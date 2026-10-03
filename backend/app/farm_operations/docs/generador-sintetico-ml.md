@@ -3,7 +3,9 @@
 > Documento 4 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Basado en el modelo de datos y la API aprobados.
 > Estado: **✅ aprobado** (2026-09-16) — revisión metodológica externa incorporada.
-> Última actualización: 2026-09-16
+> Implementado el generador (§2, §3 y su parte de §8) en el bloque 5; el
+> pipeline de ML (§4–§7) corresponde al bloque 7.
+> Última actualización: 2026-10-03
 
 ---
 
@@ -51,9 +53,23 @@ Racional (decisión G1, ver §9):
    pruebas manuales de la app sin inventar datos a mano).
 
 Los datos sintéticos se generan bajo un **`Farmer` sintético marcado**
-(`observation = "SYNTHETIC_ML_DATA"`), de modo que:
+(«Caficultor sintético», cuya `Person` lleva `observation =
+"SYNTHETIC_ML_DATA"`), dueño de todas las fincas generadas, de modo que:
 - `--wipe` los borra completos sin tocar datos reales;
 - las queries de dashboard/producción reales pueden excluirlos si conviven.
+
+Cada finca sintética lo declara además en sus observaciones («Finca
+sintética para desarrollo y entrenamiento del modelo: no es una finca
+real»), visibles en su ficha.
+
+Los nombres de las fincas son nombres reales de predios tomados de datos
+abiertos (`catalogs.FARM_NAMES`, 167 nombres depurados): solo la columna del
+nombre del predio, sin ningún dato de sus dueños. Fuentes: «SPAE» de la
+Alcaldía de Pajarito, Boyacá (datos.gov.co, `qas9-5tya`, CC BY-SA 4.0) y
+«Caracterización de productores agropecuarios registrados en el SPEA» de la
+Alcaldía de Sevilla, Valle del Cauca (datos.gov.co, `4p2c-mk37`, CC BY 4.0).
+Ninguna finca repite nombre; el municipio sí se repite. Por eso el número de
+fincas no puede superar el de nombres del catálogo.
 
 ## 3. Diseño del generador
 
@@ -62,13 +78,20 @@ Los datos sintéticos se generan bajo un **`Farmer` sintético marcado**
 | Parámetro | Default | Descripción |
 |---|---|---|
 | `--farms` | 12 | Fincas sintéticas (altitudes 1.200–2.000 m). |
-| `--plots-per-farm` | 2–6 (aleatorio) | Lotes por finca, variedades mezcladas. |
-| `--years` | 5 | Años simulados hacia atrás → 1–2 ciclos/año por lote. |
-| `--seed` | 42 | Semilla global: **todo reproducible** (dataset idéntico con el mismo `seed` + `rules_version`). |
-| `--missing-level` | `realistic` | Simulación de datos faltantes (ver §3.6). |
+| `--plots-per-farm` | 2-6 | Lotes por finca: un número o un rango; variedades mezcladas. |
+| `--years` | 5 | Años simulados hacia atrás → un ciclo por año y lote (G13). |
+| `--seed` | 42 | Semilla global: **todo reproducible** (dataset idéntico con el mismo `seed` + `rules_version` + `--end-date`). |
+| `--end-date` | ayer | Último día simulado. Fija el dataset junto con la semilla (G14); debe ser anterior a hoy. |
+| `--missing-level` | `realistic` | Simulación de datos faltantes (`realistic` o `none`, ver §3.6). |
 | `--wipe` | off | Borra lo sintético antes de generar. |
+| `--only-wipe` | off | Solo borra lo sintético. |
+| `--output` | `scripts/farm_ml/output/` | Carpeta de la auditoría y el reporte de validación. |
 
-Resultado esperado: ≈ 600–1.500 secados cerrados (filas de entrenamiento).
+Resultado: ≈ 900–1.550 secados cerrados (filas de entrenamiento); con la
+semilla 42 (reglas 1.0.0), 903 secados cerrados de 908, ≈ 60.000 registros
+en total y ≈ 25 s de ejecución; la versión 1.1.0 solo cambió el catálogo de
+nombres y da cifras equivalentes. Cada finca aporta ≈ 90 secados cerrados en 5 años: para
+entrenar, `--farms 130` da ≈ 12.000 (el máximo es 167, uno por nombre).
 
 ### 3.2 Proceso generativo por lote-ciclo
 
@@ -113,6 +136,37 @@ cosechas → beneficio → secado, con mezclas vía pivotes):
 10. **Mezclas**: ~25 % de los beneficios combinan 2 cosechas de lotes distintos
     de la misma finca (ejercita las pivotes y la ponderación de features).
 
+Cómo quedó implementado (`world.py`):
+
+- **Un ciclo por año y lote**, que contiene su floración principal y su
+  cosecha de 1–3 pasadas (G13). La temporada depende del municipio: zona
+  centro con cosecha principal en octubre, zona sur en abril–mayo. Un
+  cafetal entra a producir con 1,8 años de edad efectiva; tras una zoca se
+  salta las temporadas hasta volver a producir. Los cafetales viejos de
+  fincas con manejo medio o descuidado se pueden renovar: el lote se cierra
+  y se siembra uno nuevo con `renewed_from_plot_id`.
+- **Recolección**: cada pasada tiene su cuadrilla; nadie recoge en dos lotes
+  el mismo día y, si los trabajadores de la finca no alcanzan, se contratan
+  recolectores de temporada. Cada persona recoge ~100 kg/día (máximo 200),
+  con variación por día (lluvia, fruto disponible); la mayoría al peso y
+  ~15 % por jornal. La familia aporta 0–8 % sin pesar, que entra al total de
+  la pasada.
+- **Beneficio diario**: la cereza de cada día se beneficia ese día (o a la
+  mañana siguiente, según el manejo); si dos lotes se recogen el mismo día,
+  la finca los mezcla con cierta probabilidad. La cereza llega al
+  beneficiadero a las 16:00: la demora al despulpado se mide desde ahí
+  (convención compartida con `features.py`).
+- **Secado por tandas**: el café lavado de 1–3 días seguidos llena una tanda
+  hasta la capacidad del método de la finca; un beneficio puede repartirse
+  entre dos tandas.
+- **Destino**: la mayoría se vende directo; ~8 % de lo antiguo y ~15 % de lo
+  reciente entra al inventario por el puente del bloque 4, y parte de lo
+  guardado en la finca pasa después al inventario. Sin producto de
+  pergamino en el inventario, ese café queda guardado en la finca.
+- **El presente**: el día final deja ciclos activos, pasadas abiertas,
+  beneficios y secados en curso, pagos pendientes y evaluaciones aún no
+  hechas, como una finca en operación.
+
 ### 3.3 Reglas agronómicas: funciones de respuesta y mecanismos por target
 
 Principios de diseño (incorporan la revisión metodológica externa):
@@ -156,7 +210,7 @@ Principios de diseño (incorporan la revisión metodológica externa):
 | % verdes | Curva creciente convexa sobre defectos y score | Inmaduros → astringencia y defecto físico. La magnitud relativa asignada es **decisión de simulación** documentada como tal. |
 | Demora cosecha→despulpado | Penalización progresiva y continua desde ~6 h, acelerando después de ~12 h (no un salto en 12 h) | Inicio de fermentación indeseada. |
 | Horas de fermentación | Ventana óptima **móvil**: centro ≈ 12–18 h a 20 °C, se acorta con temperatura ambiente mayor; corto → leve, largo → penalización fuerte | Sobrefermentación (vinagre). |
-| Secado | Función conjunta de método, días, temperatura y lluvia; muy rápido → **sobresecado** (humedad < 10 %: grano quebradizo, pérdida de peso y taza plana); muy lento + lluvia → riesgo de moho/fermento | Se usa el término "sobresecado" (no "cristalizado", jerga sin definición técnica). |
+| Secado | Función conjunta de método, días, temperatura y lluvia; muy rápido → **sobresecado** (humedad < 10 %: grano quebradizo, pérdida de peso y taza plana); muy lento + lluvia → riesgo de moho/fermento | Se usa el término "sobresecado" (no "cristalizado", jerga sin definición técnica). En la humedad final el efecto es asimétrico: el secado rápido sobreseca más de lo que el lento humedece. |
 
 #### Unidades canónicas
 
@@ -202,8 +256,10 @@ marginal. La validación (§3.7) verifica el % de muestras en cada zona.
 
 - Cada target tiene su ruido propio `ε ~ N(0, σ²)` con σ **documentada en
   `rules.py`** y justificada (la variabilidad sensorial de `score` no es la
-  de una medición de humedad): valores iniciales `σ_score = 1.5` puntos,
-  `σ_defects = 1.2` pp, `σ_yield = 2.0` kg, `σ_humidity = 0.3` pp.
+  de una medición de humedad): `σ_score = 1.5` puntos, `σ_defects = 0.6` pp,
+  `σ_yield = 2.0` kg, `σ_humidity = 0.3` pp. `σ_defects` bajó del valor
+  inicial de 1,2: con él, el piso físico (0 %) recortaba más del 0,1 % de los
+  valores.
 - **El ruido se calibra para que los valores fuera de rango físico sean
   rarísimos** (< 0,1 %); el clipping a límites físicos existe como última
   defensa pero no puede deformar la distribución (se reporta cuántos valores
@@ -224,13 +280,23 @@ Nivel `realistic` (por probabilidad de que el farmer NO registre):
 | Floración | 40 % | |
 | Riegos / labores culturales | 30 % | |
 | Fertilizaciones | 15 % | Es la labor que más se registra (cuesta plata). |
+| Aplicaciones fitosanitarias | 15 % | Igual que la fertilización: compra de insumo. |
 | Calidad en cereza | 25 % | |
-| Beneficio/secado (fechas, kg) | 5 % | Datos mínimos de trazabilidad, casi siempre presentes. |
+| Beneficio/secado (fechas, kg) | 5 % | Datos mínimos de trazabilidad, casi siempre presentes. Cada campo opcional (flotes, despulpado, fermentación, método, punto de lavado, temperatura) por separado. |
+| Calidad en pergamino | 3 % | El target: casi siempre se evalúa. |
+
+Estos porcentajes son los del caficultor promedio. Cada finca los
+multiplica por su hábito de registro, ligado a su nivel de manejo (buena
+0,6; media 1,0; descuidada 1,45): las fincas descuidadas registran menos y
+producen peor (G5). Por eso el % efectivo de un dataset depende de su
+mezcla de fincas, y la validación lo compara con lo configurado registro a
+registro.
 
 El faltante se aplica **sobre el registro, no sobre la simulación**: el mundo
 sintético siempre tiene clima y broca; lo que falta es su registro — igual
-que la realidad. `--missing-level none` genera el dataset completo (para
-medir cuánta precisión cuesta el faltante, §7.6).
+que la realidad. El sorteo de faltantes usa su propio generador aleatorio,
+así que `--missing-level none` genera **el mismo mundo** con todo registrado
+(para medir cuánta precisión cuesta el faltante, §7.6).
 
 ### 3.7 Validación del generador y artefacto de auditoría
 
@@ -255,6 +321,51 @@ Además escribe un **artefacto de auditoría** (parquet en
 latentes usadas (`q_s`, componentes por factor, nivel de manejo de la finca,
 ruidos sorteados). Permite auditar por qué un registro recibió su target.
 **Las latentes jamás entran como features** — en la realidad no existirían.
+
+Cómo quedó implementada (`validate.py`, `audit.py`):
+
+| Chequeo | Tipo | Detalle |
+|---|---|---|
+| Balance de masas | error | Cosecha cerrada ≥ Σ aportes; cereza ≥ flotes + lavado; Σ secado ≤ lavado (solo beneficios completados); pergamino ≤ lavado. |
+| Fechas encadenadas | error | Ciclos de un lote sin solaparse y numerados en orden; labores dentro de su ciclo; floración < cosecha; recolección dentro de su pasada; cosecha < despulpado < fermentación; el secado no empieza antes de que exista su café ni termina antes de lavarlo; evaluación en pergamino e ingreso al inventario después del secado. |
+| Rangos | error | Targets completos y dentro de su rango físico; humedad final 5–30 %; ≤ 250 kg y un solo lote por persona y día de recolección. |
+| Trazabilidad | error | La cereza trazada que calcula la aplicación (`services/traceability.py`) coincide con la del mundo simulado en cada secado: la ponderación por kg es la misma en ambos lados. |
+| Faltantes | error | % efectivo frente al configurado por grupo, con tolerancia binomial (4 σ, mínimo 3 puntos). |
+| Recortes | error | Menos del 0,1 % de los targets tocan un límite físico. |
+| Altitud–temperatura | error | Correlación de la temperatura registrada con la altitud entre −0,995 y −0,6. |
+| Masa por zona | advertencia | Broca (< 3 %, 3–5 %, > 5 %), desvío de fermentación (corta, en ventana, larga), humedad verdadera (< 10, 10–12, > 12 %) y demora al despulpado (< 6, 6–12, > 12 h), cada zona con su mínimo en `rules.ZONES`. |
+
+Con la semilla 42 (fecha final 2026-10-01, reglas 1.0.0) pasan todos los chequeos y las
+masas por zona son: broca 62 / 11 / 27 %, fermentación 6 / 70 / 24 %,
+humedad 10 / 68 / 22 % y demora 66 / 24 / 10 %. Targets: score 77,2 ± 8,1
+(p50 80,5), defectos 6,6 ± 4,1 %, yield_factor 94,5 ± 3,9 y humedad
+11,2 ± 1,0 %.
+
+El reporte se imprime y se guarda en JSON junto a la auditoría. La **huella
+del dataset** es un SHA-256 del contenido sintético de la base sin ids ni
+fechas de creación (cada llave foránea se reemplaza por la posición de la
+fila referida): dos corridas con los mismos parámetros dan la misma huella.
+
+### 3.8 Ejecución
+
+El generador solo corre fuera de producción (`ENV=production` lo rechaza),
+nunca mezcla datasets (si ya hay datos sintéticos exige `--wipe`) y su fecha
+final debe ser anterior a hoy. Necesita la imagen de desarrollo del backend
+(etapa `dev` del Dockerfile, con `requirements-dev.txt`): sin `pyarrow` se
+detiene antes de escribir nada. El compose de pruebas reconstruye esa imagen
+en cada uso (`pull_policy: build`), así que nunca queda una vieja. Para
+probarlo en la base efímera de pruebas:
+
+```
+docker compose -f docker-compose.test.yml run --rm tests \
+    sh -c "alembic upgrade head && python -m scripts.farm_ml.generate_synthetic"
+```
+
+En un entorno de desarrollo o de demostración, el mismo comando
+(`python -m scripts.farm_ml.generate_synthetic`) puebla su base. `--only-wipe`
+borra lo generado. Sin producto de pergamino (tipo `other`) en el inventario,
+los secados que irían al inventario quedan guardados en la finca y el
+generador lo avisa.
 
 ## 4. Extracción de features (`ml/features.py`)
 
@@ -368,9 +479,15 @@ plausibles?** (2, 3) — ambas se miden.
 ```
 backend/scripts/farm_ml/
     rules.py                 # Reglas parametrizadas (ver abajo). Versionado: RULES_VERSION.
-    generate_synthetic.py    # CLI: puebla la DB vía ORM (§3) + validación automática (§3.7)
-    train.py                 # CLI: extrae dataset con features.py, entrena, guarda vN
-    evaluate.py              # CLI: métricas, coherencia direccional, curva de faltantes → reporte .md
+    catalogs.py              # Lugares, nombres, insumos y series de precios del mundo sintético
+    world.py                 # Simulación pura y determinista del mundo (§3.2), sin base de datos
+    persist.py               # Escritura vía ORM con esquemas de la API y servicios de dominio
+    validate.py              # Validación automática (§3.7)
+    audit.py                 # Auditoría en parquet y huella del dataset
+    wipe.py                  # Alcance de lo sintético y wipe_synthetic()
+    generate_synthetic.py    # CLI: simula, escribe, valida y audita
+    train.py                 # CLI: extrae dataset con features.py, entrena, guarda vN (bloque 7)
+    evaluate.py              # CLI: métricas, coherencia direccional, curva de faltantes → reporte .md (bloque 7)
     output/                  # artefactos de auditoría (latentes por secado) — git-ignored
 
 backend/app/farm_operations/ml/
@@ -379,8 +496,18 @@ backend/app/farm_operations/ml/
     artifacts/               # quality_model_v1.joblib, ... (git-ignored salvo el usado)
 
 backend/tests/farm_ml/
-    test_features.py         # consistencia de extracción sobre fixture (§7.5)
+    test_rules.py            # forma y dirección de las funciones de respuesta
+    test_world.py            # determinismo, independencia de los faltantes, invariantes
+    test_generator.py        # generación mínima, huella reproducible, wipe, salvaguardas
+    test_features.py         # consistencia de extracción sobre fixture (§7.5, bloque 7)
 ```
+
+El generador escribe vía ORM, pero valida cada registro con el esquema
+Pydantic de su endpoint y toma las reglas de dominio de los servicios
+transversales: numeración de ciclos y pasadas (`services/numbering.py`, que
+también usa la API), balance de masas (`services/mass_balance.py`) y puente
+al inventario (`services/inventory_bridge.py`). Así los datos sintéticos
+pasan las mismas validaciones que los reales.
 
 **Estructura de cada regla en `rules.py`** — separa explícitamente la
 evidencia de la decisión de modelado:
@@ -390,8 +517,8 @@ RULES["broca_score"] = Rule(
     direction="bored_pct ↑ → score ↓, con efecto de umbral",     # respaldado
     source=("Cenicafé, daño por Hypothenemus hampei; la selección de "
             "flotes y la trilla remueven parte del grano brocado"),  # por la fuente
-    form="sigmoide(x0, k, piso)",                                # forma elegida
-    params={"x0": 4.0, "k": 0.8, "piso": -12.0},  # DECISIÓN DE SIMULACIÓN:
+    form="sigmoide normalizada (piso, x0, k)",                   # forma elegida
+    params={"x0": 4.0, "k": 1.2, "floor": -12.0},  # DECISIÓN DE SIMULACIÓN:
     note=("x0 NO es el umbral económico de acción del MIB (2 %, usado en "
           "broca_alert_pct). La fuente respalda que existe un efecto de "
           "umbral y su dirección, no la ubicación ni la pendiente."),
@@ -402,8 +529,12 @@ La fuente respalda la **dirección**; la **magnitud** es siempre una decisión
 de simulación documentada como tal. La tabla §3.3 se mantiene desde este
 archivo.
 
-Dependencias nuevas en `backend/requirements.txt`: `scikit-learn`, `pandas`,
-`pyarrow`, `joblib` (sin GPU, sin frameworks pesados).
+Dependencias: las de herramientas viven en `backend/requirements-dev.txt`
+y solo entran a la etapa `dev` del Dockerfile, nunca a la imagen de
+producción. El generador solo necesita `pyarrow` (la auditoría en parquet;
+el azar usa la librería estándar). `pandas` llega con el entrenamiento, y
+`scikit-learn` y `joblib`, que también usa la inferencia, van a
+`requirements.txt` en el bloque 7 (sin GPU, sin frameworks pesados).
 
 ## 9. Decisiones de diseño
 
@@ -421,6 +552,14 @@ Dependencias nuevas en `backend/requirements.txt`: `scikit-learn`, `pandas`,
 | G10 | Latentes del generador (`q_s`, manejo, ruidos) **persistidas en artefacto de auditoría** fuera de la DB; jamás como features | Descartarlas (imposible auditar targets) o guardarlas en la DB (riesgo de fuga hacia features). |
 | G11 | **Broca como sigmoide sobre `score`** (plana → aceleración → piso) y **casi lineal sobre `defects_pct`**, encadenada `infestación en campo → bored_pct → targets` | Curva monótona saturante única para ambos targets: ignora que la selección de flotes y la trilla absorben el daño a baja infestación, y contradice el principio de mecanismos propios por target (G8). La inflexión de calidad se mantiene **separada** del umbral económico de acción (2 %) para no fabricar una coincidencia que la literatura no respalda. |
 | G12 | **La forma de cada función y la distribución de su variable se deciden juntas**: las variables con umbral llevan cola calibrada por encima del punto de inflexión, verificada en la validación | Definir curvas con umbral sobre variables cuya masa vive toda en la zona plana: el umbral existiría en el generador pero sería inaprendible, y la validación de forma (§7.3) fallaría sin causa real. |
+| G13 | **Un ciclo por año y lote**, con su floración principal y su cosecha dentro | Dos ciclos al año (principal y mitaca): con ~32 semanas entre floración y cosecha, dos ciclos que contengan cada uno su floración se solaparían, y el sistema no admite ciclos solapados ni puede proyectar la cosecha con una floración de otro ciclo. La mitaca no se simula aparte. |
+| G14 | La fecha final (`--end-date`, por defecto ayer) **forma parte de la identidad del dataset** junto con la semilla y `RULES_VERSION` | Anclar la ventana a la fecha de ejecución: dos corridas en días distintos darían datasets distintos. La fecha final queda en la auditoría y en los nombres de los archivos. |
+| G15 | **Mundo y registro con generadores aleatorios separados**: cada finca tiene los suyos (perfil, clima, lotes, proceso, nómina) y el sorteo de faltantes usa uno propio | Un solo generador: cambiar el nivel de faltantes o una finca alteraría todo el resto, y la curva de faltantes (§7.6) no compararía el mismo mundo. |
+| G16 | `--wipe` **no borra insumos**: el generador reutiliza los del catálogo global si ya existen | Borrarlos: el catálogo es compartido (D7) y una finca real puede usar la misma urea. |
+| G17 | El pergamino sintético que entra al inventario se fecha el día de su ingreso | Dejar la fecha con que el servicio del inventario lo registra (la hora actual): miles de ingresos históricos aparecerían como de hoy. |
+| G18 | El generador **se niega a correr con `ENV=production`** y a mezclar datasets | Confiar en la disciplina del operador: un descuido mezclaría fincas ficticias con las reales. |
+| G19 | Un solo caficultor sintético dueño de todas las fincas | Un caficultor por finca: más personas que limpiar sin ganancia para el modelo ni para la demostración. |
+| G20 | **Nombres de finca únicos, tomados de datos abiertos** (solo el nombre del predio) | Nombres inventados con sufijo numérico («La Esperanza 25») cuando se acaban: poco verosímiles y confusos en la interfaz. |
 
 ## 10. Fuera de alcance (v1)
 

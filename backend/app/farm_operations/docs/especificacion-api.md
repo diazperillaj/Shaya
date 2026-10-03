@@ -6,7 +6,7 @@
 > empleados de §3.7 y §3.12 (bloque 1B), §3.4–3.5 (bloque 2), los jornales
 > de §3.7, §3.8 y §3.8.1 (bloque 3), y §3.9–3.11 con la trazabilidad de
 > §3.11.1 (bloque 4).
-> Última actualización: 2026-10-02
+> Última actualización: 2026-10-03
 
 ---
 
@@ -431,6 +431,7 @@ app/farm_operations/
         access.py            #   FarmAccess: alcance del usuario sobre las fincas
         dates.py             #   fecha de negocio (calendario de Colombia)
         cycle_records.py     #   labores de un ciclo: fechas extremas y resumen por tipo
+        numbering.py         #   numeración de ciclos y pasadas (la API y el generador)
         traceability.py      #   recorrer la cadena completa de un secado/parchment
         mass_balance.py      #   validaciones de kg entre etapas
         inventory_bridge.py  #   cierre de secado → Inventory + Parchment (transacción)

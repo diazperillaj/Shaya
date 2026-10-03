@@ -4,7 +4,7 @@
 > Materializa el [modelo de datos](modelo-datos.md) aprobado en Alembic.
 > Estado: **✅ aprobado** (2026-09-16). M1 a M5 implementadas (bloques 1B,
 > 2, 3 y 4); M6 descartada (§4).
-> Última actualización: 2026-10-02
+> Última actualización: 2026-10-03
 
 ---
 
@@ -196,7 +196,7 @@ migración: es conveniencia, no requisito para que la app funcione.
 
 | Con | Qué hay que tener en cuenta |
 |---|---|
-| Generador sintético (`--wipe`) | Con `RESTRICT` en toda la cadena, el borrado de datos sintéticos debe ir **en orden inverso de dependencia**: quality_evals → drying_inputs → dryings → wet_processing_inputs → wet_processings → harvest_works → harvests → labores → crop_cycles → plot_events → alert_configs → plots → employees → farms. El generador lo encapsula en una función `wipe_synthetic()`; nunca `TRUNCATE CASCADE`. |
+| Generador sintético (`--wipe`) | Con `RESTRICT` en toda la cadena, el borrado de datos sintéticos va **en orden inverso de dependencia** y en una sola transacción: quality_evals → movimientos, pergaminos e inventarios de los secados sintéticos → drying_humidity_checks → drying_inputs → dryings → wet_processing_inputs → wet_processings → harvest_works → day_labors → harvests → labores → crop_cycles → climate_records → soil_analyses → plot_events → alert_configs → plots (soltando antes `renewed_from_plot_id`) → employees → farms → cuentas de la persona sintética → farmer → person. Los insumos no se borran (catálogo global). Lo encapsula `wipe_synthetic()` (`scripts/farm_ml/wipe.py`); nunca `TRUNCATE CASCADE`. Si un pergamino sintético ya se usó en un proceso o una venta, el `RESTRICT` lo impide y no se borra nada. |
 | Servicio de inventario | Al cerrar un secado con destino inventario, `inventory_bridge.py` llama al servicio existente de creación de `Parchment` pasando `drying_id`; el schema Pydantic `ParchmentCreate` actual gana ese campo opcional. Es cambio de código, no de migración. |
 | Alertas (`DEFAULTS`) | No viven en la base de datos; `alert_configs` solo guarda overrides. Ninguna migración de defaults. |
 

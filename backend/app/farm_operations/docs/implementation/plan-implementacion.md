@@ -4,7 +4,7 @@
 > de planeación aprobados ([arquitectura.md](../arquitectura.md) §12) en
 > bloques de trabajo ejecutables.
 > Estado: **✅ aprobado** (2026-09-22).
-> Última actualización: 2026-10-02
+> Última actualización: 2026-10-03
 
 ---
 
@@ -441,8 +441,35 @@ artefacto entrenado (bloque 7) y no mezcla fincas ficticias con las reales.
 Para una demo pública se levanta un entorno aparte poblado con el generador
 (posible gracias a la migración base de 2.3).
 
+**Implementado además** (sin migraciones):
+- El generador separa la simulación (`world.py`, pura y determinista) de la
+  escritura (`persist.py`), la validación (`validate.py`), la auditoría
+  (`audit.py`) y el borrado (`wipe.py`); los catálogos de lugares, nombres,
+  insumos y precios viven en `catalogs.py`.
+- La numeración de ciclos y pasadas pasa a `services/numbering.py`, que usan
+  la API y el generador. Cada registro sintético se valida además con el
+  esquema Pydantic de su endpoint.
+- Un ciclo por año y lote (la mitaca no se simula aparte), `--end-date` como
+  parte de la identidad del dataset y faltantes con generador aleatorio
+  propio, de modo que `--missing-level none` simula el mismo mundo
+  (generador-sintetico-ml G13–G15).
+- Salvaguardas: no corre con `ENV=production`, no mezcla datasets sin
+  `--wipe` y su fecha final es anterior a hoy. `--only-wipe` borra lo
+  generado; los insumos no se borran (catálogo global).
+- Huella SHA-256 del dataset (sin ids) para comprobar la reproducibilidad, y
+  reporte de validación en JSON junto a la auditoría.
+- El Dockerfile del backend gana una etapa `dev` con `requirements-dev.txt`
+  (por ahora solo `pyarrow`); la imagen de producción sigue siendo la última
+  etapa y no cambia. Las pruebas usan la etapa `dev`, y el compose de
+  pruebas la reconstruye en cada uso (`pull_policy: build`) para que una
+  imagen vieja no tape un cambio de dependencias.
+
 **Pruebas:** una generación mínima (1 finca, 1 año) en la base de pruebas pasa
-la validación; `--wipe` deja cero filas sintéticas y no toca las reales.
+la validación; `--wipe` deja cero filas sintéticas y no toca las reales;
+misma semilla, misma huella (y otra semilla, otra huella); salvaguardas de
+producción, datos existentes y fecha final; forma y dirección de cada función
+de respuesta; el mundo es el mismo con y sin faltantes; invariantes de balance
+de masas y de recolección.
 
 **Terminado cuando:** dos corridas con la misma semilla producen el mismo
 dataset, la validación pasa, y las pantallas de los bloques 1–4 navegan las
@@ -588,7 +615,7 @@ Decisiones de la infraestructura:
 | 2 — Ciclos y labores | — (directo a `main`) | ✅ | Reapertura del último ciclo y labores en ciclos cerrados dentro de sus fechas (§3, bloque 2). |
 | 3 — Cosechas y jornales | — (directo a `main`) | ✅ | Pagos de recolección y jornales juntos en `payments`; reapertura de la última pasada (§3, bloque 3). |
 | 4 — Beneficio, secado y calidad | — (directo a `main`) | ✅ | Cosechas abiertas sin tope de beneficio; recurso `traceability`; reapertura de beneficio y secado (§3, bloque 4). |
-| 5 — Generador sintético | — | ⬜ | |
+| 5 — Generador sintético | — (directo a `main`) | ✅ | Un ciclo por año; mundo y registro separados; huella del dataset (§3, bloque 5). |
 | 6 — Dashboard y alertas | — | ⬜ | |
 | 7 — Proyección de calidad | — | ⬜ | |
 
@@ -603,6 +630,7 @@ Decisiones de la infraestructura:
 | especificacion-api.md §3.4–3.5, modelo-datos.md §3.5, plan-migraciones.md M2 | Reapertura del último ciclo, ciclos sin solaparse, labores dentro del ciclo (también en ciclos cerrados), CHECK `ck_crop_cycles_end_date_status`, clima y suelo como recursos propios (bloque 2). |
 | especificacion-api.md §3.7–3.8.1, modelo-datos.md §3.10–3.12, plan-migraciones.md M3 | Recurso `payments` en lugar de `/harvests/works/pay` y `/day-labors/{id}/pay`; reapertura de la última pasada; una cosecha abierta por ciclo; CHECKs de cierre de cosecha y de pago (bloque 3). |
 | especificacion-api.md §3.8–3.11.1, §4, §5, modelo-datos.md §3.13–3.17, §4, §6, plan-migraciones.md M4, M5 | Balance de masas con cosechas abiertas; reapertura y reemplazo de aportes en beneficio y secado; borrado de mediciones; recurso `traceability`; `inventory_data` sin `product_id`; CHECKs de beneficio y secado; M5 sin índice aparte (bloque 4). |
+| generador-sintetico-ml.md §2, §3, §8, §9; plan-migraciones.md §6; especificacion-api.md §5 | Un ciclo por año y lote; `--end-date`, `--only-wipe` y `--output`; faltantes por hábito de registro de la finca y grupos nuevos (fitosanitarios, calidad en pergamino); σ de defectos 0,6; validación y huella implementadas; estructura en módulos; orden real del borrado; `services/numbering.py` (bloque 5). |
 | plan-migraciones.md §1, §2, §4 | Migración base consolidada con el ID del head (2.3); registro central de modelos y relaciones solo desde el lado de cultivo (2.5); M6 descartada (bloque 1B). |
 | arquitectura.md C4, modelo-datos.md §8 | El farmer Shaya se registra desde la interfaz, sin dato semilla (bloque 1B). |
 | especificacion-api.md §2, §3, §5 | `FarmAccess` en lugar de `get_accessible_farm`; endpoints de activación y de configuración resuelta de finca; listado de cuentas; valor heredado en la config resuelta (bloque 1B). |
