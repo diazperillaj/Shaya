@@ -16,7 +16,7 @@ from app.farm_operations.api.v1.plots.schema import (
     PlotUpdate,
 )
 from app.farm_operations.api.v1.validation import clean_other_detail
-from app.farm_operations.models import ClimateRecord, CropCycle, Plot, PlotEvent, SoilAnalysis
+from app.farm_operations.models import ClimateRecord, CropCycle, DayLabor, Plot, PlotEvent, SoilAnalysis
 from app.farm_operations.models.enums import PlotEventTypeEnum, PlotStatusEnum
 from app.farm_operations.services.access import FarmAccess
 from app.farm_operations.services.dates import business_date, business_today, format_date
@@ -184,11 +184,11 @@ class PlotService:
             raise ConflictError("No se puede eliminar: el lote tiene historial de eventos")
         if self.db.query(CropCycle.id).filter(CropCycle.plot_id == plot.id).first():
             raise ConflictError("No se puede eliminar: el lote tiene ciclos productivos")
-        if (
-            self.db.query(SoilAnalysis.id).filter(SoilAnalysis.plot_id == plot.id).first()
-            or self.db.query(ClimateRecord.id).filter(ClimateRecord.plot_id == plot.id).first()
+        if any(
+            self.db.query(model.id).filter(model.plot_id == plot.id).first()
+            for model in (SoilAnalysis, ClimateRecord, DayLabor)
         ):
-            raise ConflictError("No se puede eliminar: el lote tiene análisis de suelo o registros de clima")
+            raise ConflictError("No se puede eliminar: el lote tiene análisis de suelo, clima o jornales registrados")
         if self._renewal_of(plot.id) is not None:
             raise ConflictError("No se puede eliminar: otro lote es su renovación")
 

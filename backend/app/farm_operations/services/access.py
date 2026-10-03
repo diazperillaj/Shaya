@@ -4,7 +4,7 @@ from sqlalchemy.orm import Query, Session
 
 from app.core.exceptions.domain import DomainError, NotFoundError, PermissionDeniedError
 from app.core.roles import UserRole
-from app.farm_operations.models import CropCycle, Employee, Farm, Plot
+from app.farm_operations.models import CropCycle, DayLabor, Employee, Farm, Harvest, HarvestWork, Plot
 from app.models.farmer import Farmer
 
 
@@ -110,6 +110,48 @@ class FarmAccess:
         if not self.is_admin:
             query = query.filter(Farm.farmer_id == self.farmer_id)
         return query
+
+    def get_harvest(self, harvest_id: int) -> Harvest:
+        harvest = self.cycle_records(Harvest).filter(Harvest.id == harvest_id).first()
+        if not harvest:
+            raise NotFoundError("Cosecha no encontrada")
+        return harvest
+
+    def harvest_works(self) -> Query:
+        """Recolección de las cosechas visibles para el usuario."""
+        query = (
+            self.db.query(HarvestWork)
+            .join(Harvest, HarvestWork.harvest_id == Harvest.id)
+            .join(CropCycle, Harvest.crop_cycle_id == CropCycle.id)
+            .join(Plot, CropCycle.plot_id == Plot.id)
+            .join(Farm, Plot.farm_id == Farm.id)
+        )
+        if not self.is_admin:
+            query = query.filter(Farm.farmer_id == self.farmer_id)
+        return query
+
+    def get_harvest_work(self, work_id: int) -> HarvestWork:
+        work = self.harvest_works().filter(HarvestWork.id == work_id).first()
+        if not work:
+            raise NotFoundError("Registro de recolección no encontrado")
+        return work
+
+    def day_labors(self) -> Query:
+        """Jornales de los empleados de las fincas visibles para el usuario."""
+        query = (
+            self.db.query(DayLabor)
+            .join(Employee, DayLabor.employee_id == Employee.id)
+            .join(Farm, Employee.farm_id == Farm.id)
+        )
+        if not self.is_admin:
+            query = query.filter(Farm.farmer_id == self.farmer_id)
+        return query
+
+    def get_day_labor(self, labor_id: int) -> DayLabor:
+        labor = self.day_labors().filter(DayLabor.id == labor_id).first()
+        if not labor:
+            raise NotFoundError("Jornal no encontrado")
+        return labor
 
     def plot_records(self, model) -> Query:
         """Registros de `model` que cuelgan de un lote visible (análisis de suelo)."""

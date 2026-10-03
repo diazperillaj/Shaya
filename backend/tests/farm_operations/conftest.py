@@ -13,7 +13,7 @@ import pytest
 from app.models.farmer import Farmer
 from app.models.person import Person
 from app.models.user import User
-from tests.farm_operations.payloads import API, CYCLE, FARM, PLOT, SUPPLY
+from tests.farm_operations.payloads import API, CYCLE, EMPLOYEE, FARM, PLOT, SUPPLY
 
 
 @pytest.fixture
@@ -76,3 +76,13 @@ def create_supply(client):
         return response.json()
 
     return _create_supply
+
+
+@pytest.fixture
+def create_employee(client):
+    def _create_employee(farm_id: int, **overrides) -> dict:
+        response = client.post(f"{API}/employees/create", json={**EMPLOYEE, "farm_id": farm_id, **overrides})
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    return _create_employee

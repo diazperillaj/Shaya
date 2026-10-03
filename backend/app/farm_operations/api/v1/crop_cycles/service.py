@@ -10,7 +10,7 @@ from app.farm_operations.api.v1.crop_cycles.schema import CycleCloseRequest, Cyc
 from app.farm_operations.models import CropCycle, Plot
 from app.farm_operations.models.enums import CycleStatusEnum, PlotStatusEnum
 from app.farm_operations.services.access import FarmAccess
-from app.farm_operations.services.cycle_records import record_date_bounds, records_summary
+from app.farm_operations.services.cycle_records import open_harvest, record_date_bounds, records_summary
 from app.farm_operations.services.dates import format_date
 
 
@@ -20,7 +20,8 @@ class CropCycleService:
 
     Un lote tiene a lo sumo un ciclo activo y sus ciclos no se solapan: cada
     uno empieza cuando terminó el anterior o después. El rango de fechas de
-    un ciclo siempre cubre sus labores.
+    un ciclo siempre cubre sus labores y sus cosechas, y se cierra cuando ya
+    no tiene cosechas abiertas.
     """
 
     def __init__(self, db: Session, access: FarmAccess):
@@ -100,6 +101,9 @@ class CropCycleService:
         cycle = self.access.get_cycle(cycle_id)
         if cycle.status == CycleStatusEnum.closed:
             raise ConflictError("El ciclo ya está cerrado")
+        harvest = open_harvest(self.db, cycle.id)
+        if harvest is not None:
+            raise ConflictError(f"Cierra primero la cosecha abierta (pasada {harvest.pass_number})")
         self._validate_range(cycle, cycle.start_date, payload.end_date)
 
         cycle.status = CycleStatusEnum.closed
@@ -127,7 +131,7 @@ class CropCycleService:
         cycle = self.access.get_cycle(cycle_id)
         first, _ = record_date_bounds(self.db, cycle.id)
         if first is not None:
-            raise ConflictError("No se puede eliminar: el ciclo tiene labores registradas")
+            raise ConflictError("No se puede eliminar: el ciclo tiene labores o cosechas registradas")
         self.db.delete(cycle)
         self.db.commit()
 
@@ -185,11 +189,11 @@ class CropCycleService:
         first, last = record_date_bounds(self.db, cycle.id)
         if first is not None and start > first:
             raise ConflictError(
-                f"Hay labores registradas desde el {format_date(first)}: el ciclo no puede empezar después"
+                f"Hay labores o cosechas desde el {format_date(first)}: el ciclo no puede empezar después"
             )
         if last is not None and end is not None and end < last:
             raise ConflictError(
-                f"Hay labores registradas hasta el {format_date(last)}: el ciclo no puede terminar antes"
+                f"Hay labores o cosechas hasta el {format_date(last)}: el ciclo no puede terminar antes"
             )
 
     @staticmethod

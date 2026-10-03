@@ -3,8 +3,9 @@ from typing import List, Optional
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.exceptions.domain import ConflictError
 from app.farm_operations.api.v1.employees.schema import EmployeeCreate, EmployeeUpdate
-from app.farm_operations.models import Employee
+from app.farm_operations.models import DayLabor, Employee, HarvestWork
 from app.farm_operations.services.access import FarmAccess
 
 
@@ -59,8 +60,11 @@ class EmployeeService:
         return employee
 
     def delete_employee(self, employee_id: int) -> None:
-        # Los pagos y jornales que lo referencien (bloque 3) lo bloquearán con RESTRICT
+        """Elimina un empleado sin historial; con recolección o jornales, se desactiva."""
         employee = self.access.get_employee(employee_id)
+        for model in (HarvestWork, DayLabor):
+            if self.db.query(model.id).filter(model.employee_id == employee.id).first():
+                raise ConflictError("No se puede eliminar: tiene recolección o jornales registrados. Desactívalo")
         self.db.delete(employee)
         self.db.commit()
 

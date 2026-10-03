@@ -75,3 +75,30 @@ class CulturalPracticeTypeEnum(enum.Enum):
     shade_regulation = "shade_regulation"
     amendment = "amendment"
     other = "other"
+
+
+class HarvestStatusEnum(enum.Enum):
+    """Estado de una sesión de cosecha (una pasada por el lote)."""
+
+    open = "open"
+    closed = "closed"
+
+
+class HarvestPaymentTypeEnum(enum.Enum):
+    """Cómo se paga la recolección de un día: al peso o por jornal."""
+
+    per_kg = "per_kg"
+    per_day = "per_day"
+
+
+class LaborActivityEnum(enum.Enum):
+    """Actividad de un jornal (trabajo pagado por día que no es recolección)."""
+
+    weeding = "weeding"
+    pruning = "pruning"
+    fertilization = "fertilization"
+    phytosanitary = "phytosanitary"
+    irrigation = "irrigation"
+    shade_regulation = "shade_regulation"
+    maintenance = "maintenance"
+    other = "other"
