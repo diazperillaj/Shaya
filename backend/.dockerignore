@@ -8,3 +8,4 @@ __pycache__/
 .pytest_cache/
 Dockerfile
 .dockerignore
+scripts/farm_ml/output/

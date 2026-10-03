@@ -12,6 +12,7 @@ from app.farm_operations.models.enums import CycleStatusEnum, PlotStatusEnum
 from app.farm_operations.services.access import FarmAccess
 from app.farm_operations.services.cycle_records import open_harvest, record_date_bounds, records_summary
 from app.farm_operations.services.dates import format_date
+from app.farm_operations.services.numbering import last_cycle, next_cycle_number
 
 
 class CropCycleService:
@@ -61,12 +62,12 @@ class CropCycleService:
         if active is not None:
             raise ConflictError(f"El lote ya tiene un ciclo activo (ciclo {active.cycle_number})")
 
-        last = self._last_cycle(plot.id)
+        last = last_cycle(self.db, plot.id)
         self._validate_start(plot, payload.start_date, previous=last)
 
         cycle = CropCycle(
             plot_id=plot.id,
-            cycle_number=(last.cycle_number if last else 0) + 1,
+            cycle_number=next_cycle_number(self.db, plot.id),
             start_date=payload.start_date,
             observations=payload.observations,
         )
@@ -118,7 +119,7 @@ class CropCycleService:
             raise ConflictError("El ciclo ya está activo")
         if cycle.plot.status == PlotStatusEnum.closed:
             raise ConflictError("El lote está cerrado: no se pueden reabrir sus ciclos")
-        if self._last_cycle(cycle.plot_id).id != cycle.id:
+        if last_cycle(self.db, cycle.plot_id).id != cycle.id:
             raise ConflictError("Solo se puede reabrir el último ciclo del lote")
 
         cycle.status = CycleStatusEnum.active
@@ -141,14 +142,6 @@ class CropCycleService:
         return (
             self.db.query(CropCycle)
             .filter(CropCycle.plot_id == plot_id, CropCycle.status == CycleStatusEnum.active)
-            .first()
-        )
-
-    def _last_cycle(self, plot_id: int) -> Optional[CropCycle]:
-        return (
-            self.db.query(CropCycle)
-            .filter(CropCycle.plot_id == plot_id)
-            .order_by(CropCycle.cycle_number.desc())
             .first()
         )
 

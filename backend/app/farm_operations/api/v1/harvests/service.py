@@ -19,6 +19,7 @@ from app.farm_operations.services.access import FarmAccess
 from app.farm_operations.services.cycle_records import open_harvest
 from app.farm_operations.services.dates import format_date
 from app.farm_operations.services.mass_balance import check_harvest_total, harvest_processed_kg
+from app.farm_operations.services.numbering import last_pass_number, next_pass_number
 
 CENT = Decimal("0.01")
 ZERO = Decimal(0)
@@ -91,12 +92,9 @@ class HarvestService:
                 f"La cosecha no puede empezar antes que el ciclo ({format_date(cycle.start_date)})"
             )
 
-        last_pass = (
-            self.db.query(func.max(Harvest.pass_number)).filter(Harvest.crop_cycle_id == cycle.id).scalar()
-        )
         harvest = Harvest(
             crop_cycle_id=cycle.id,
-            pass_number=(last_pass or 0) + 1,
+            pass_number=next_pass_number(self.db, cycle.id),
             start_date=payload.start_date,
             rate_per_kg=payload.rate_per_kg,
             rate_per_day=payload.rate_per_day,
@@ -162,12 +160,7 @@ class HarvestService:
             raise ConflictError("La cosecha ya está abierta")
         if harvest.crop_cycle.status != CycleStatusEnum.active:
             raise ConflictError("El ciclo está cerrado: no se pueden reabrir sus cosechas")
-        last_pass = (
-            self.db.query(func.max(Harvest.pass_number))
-            .filter(Harvest.crop_cycle_id == harvest.crop_cycle_id)
-            .scalar()
-        )
-        if harvest.pass_number != last_pass:
+        if harvest.pass_number != last_pass_number(self.db, harvest.crop_cycle_id):
             raise ConflictError("Solo se puede reabrir la última pasada del ciclo")
 
         harvest.status = HarvestStatusEnum.open

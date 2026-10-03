@@ -23,7 +23,12 @@ services:
       retries: 30
 
   tests:
-    build: ./backend
+    build:
+      context: ./backend
+      target: dev
+    # Se construye en cada uso (con caché, segundos): una imagen vieja no tapa
+    # los cambios del Dockerfile o de las dependencias
+    pull_policy: build
     working_dir: /app
     volumes:
       - ./backend:/app

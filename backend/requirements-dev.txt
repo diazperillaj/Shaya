@@ -1,0 +1,4 @@
+# Herramientas de desarrollo: generador de datos sintéticos y, más adelante,
+# entrenamiento del modelo. No entran a la imagen de producción (Dockerfile,
+# etapa `dev`).
+pyarrow==25.0.1
