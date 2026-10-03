@@ -380,12 +380,38 @@ su total.
   labores. En el inventario existente, el pergamino producido muestra su
   origen con enlace a esa vista.
 
+**Implementado además** (sin cambios de esquema fuera de M4 y M5):
+- El beneficio se hace el día de la recolección, con la cosecha abierta: una
+  cosecha abierta se beneficia sin tope, y al cerrarla (o editarla) su total
+  no baja de lo ya beneficiado. El total precargado al cerrar es el mayor
+  entre lo registrado y lo beneficiado. Por eso la reapertura de una pasada
+  no se bloquea por tener beneficios, y una cosecha con beneficios o
+  evaluaciones de calidad no se elimina.
+- Beneficio y secado se reabren para corregir un cierre por error: el
+  beneficio, si su café aún no está en un secado; el secado, si su pergamino
+  no está en el inventario. Los aportes de ambos se reemplazan con
+  `PUT /{id}/inputs`, y las mediciones de humedad se pueden borrar.
+- Un recurso `traceability` sirve la vista: hacia atrás desde un secado o
+  desde un pergamino del inventario, y hacia adelante desde una cosecha.
+- `inventory_data` no lleva `product_id`: el puente usa el producto de
+  pergamino del inventario (tipo `other`), igual que el formulario de
+  inventario existente. La altitud de la finca pasa al pergamino solo si cabe
+  en el rango que valida el inventario (800–2.500 m).
+- M5 no crea `idx_parchment_drying_id`: la restricción única ya tiene su
+  índice.
+- En pantalla, cereza y café lavado se escriben en kg o en arrobas; el cierre
+  del secado avisa la humedad fuera del rango de la finca, muestra el
+  rendimiento y el valor del lote en inventario antes de guardar; la columna
+  «Origen» del inventario distingue el café comprado del producido.
+
 **Pruebas** — el bloque que más las necesita: exceder el total de una
 cosecha → 409 sin cambios en la base; reparto de una cosecha entre varios
 beneficios; cierre de secado atómico (si falla la creación del `Parchment`,
 el secado no queda cerrado); `purchase_price` con el `full_price` asignado;
 composición porcentual de una mezcla; recorrido de trazabilidad en ambos
-sentidos; CHECK de etapa de calidad.
+sentidos; CHECK de etapa de calidad; total de una cosecha abierta al
+cerrarla; lavado ≤ cereza y pergamino ≤ lavado; un beneficio en secado no se
+reabre ni se borra; secado guardado que entra al inventario después.
 
 **Terminado cuando:** un pergamino producido se rastrea desde su venta hasta
 sus lotes, ciclos y labores, y todo error de balance o de cierre deja la base
@@ -561,7 +587,7 @@ Decisiones de la infraestructura:
 | 1B — Dominio base | — (directo a `main`) | ✅ | M6 descartada (§3, bloque 1B). |
 | 2 — Ciclos y labores | — (directo a `main`) | ✅ | Reapertura del último ciclo y labores en ciclos cerrados dentro de sus fechas (§3, bloque 2). |
 | 3 — Cosechas y jornales | — (directo a `main`) | ✅ | Pagos de recolección y jornales juntos en `payments`; reapertura de la última pasada (§3, bloque 3). |
-| 4 — Beneficio, secado y calidad | — | ⬜ | |
+| 4 — Beneficio, secado y calidad | — (directo a `main`) | ✅ | Cosechas abiertas sin tope de beneficio; recurso `traceability`; reapertura de beneficio y secado (§3, bloque 4). |
 | 5 — Generador sintético | — | ⬜ | |
 | 6 — Dashboard y alertas | — | ⬜ | |
 | 7 — Proyección de calidad | — | ⬜ | |
@@ -576,6 +602,7 @@ Decisiones de la infraestructura:
 | especificacion-api.md §3.5 | `bulk-create` de labores con reparto por área (bloque 2). |
 | especificacion-api.md §3.4–3.5, modelo-datos.md §3.5, plan-migraciones.md M2 | Reapertura del último ciclo, ciclos sin solaparse, labores dentro del ciclo (también en ciclos cerrados), CHECK `ck_crop_cycles_end_date_status`, clima y suelo como recursos propios (bloque 2). |
 | especificacion-api.md §3.7–3.8.1, modelo-datos.md §3.10–3.12, plan-migraciones.md M3 | Recurso `payments` en lugar de `/harvests/works/pay` y `/day-labors/{id}/pay`; reapertura de la última pasada; una cosecha abierta por ciclo; CHECKs de cierre de cosecha y de pago (bloque 3). |
+| especificacion-api.md §3.8–3.11.1, §4, §5, modelo-datos.md §3.13–3.17, §4, §6, plan-migraciones.md M4, M5 | Balance de masas con cosechas abiertas; reapertura y reemplazo de aportes en beneficio y secado; borrado de mediciones; recurso `traceability`; `inventory_data` sin `product_id`; CHECKs de beneficio y secado; M5 sin índice aparte (bloque 4). |
 | plan-migraciones.md §1, §2, §4 | Migración base consolidada con el ID del head (2.3); registro central de modelos y relaciones solo desde el lado de cultivo (2.5); M6 descartada (bloque 1B). |
 | arquitectura.md C4, modelo-datos.md §8 | El farmer Shaya se registra desde la interfaz, sin dato semilla (bloque 1B). |
 | especificacion-api.md §2, §3, §5 | `FarmAccess` en lugar de `get_accessible_farm`; endpoints de activación y de configuración resuelta de finca; listado de cuentas; valor heredado en la config resuelta (bloque 1B). |

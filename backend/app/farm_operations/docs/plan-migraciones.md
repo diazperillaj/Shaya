@@ -2,8 +2,8 @@
 
 > Documento 6 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Materializa el [modelo de datos](modelo-datos.md) aprobado en Alembic.
-> Estado: **✅ aprobado** (2026-09-16). M1, M2 y M3 implementadas (bloques
-> 1B, 2 y 3); M6 descartada (§4).
+> Estado: **✅ aprobado** (2026-09-16). M1 a M5 implementadas (bloques 1B,
+> 2, 3 y 4); M6 descartada (§4).
 > Última actualización: 2026-10-02
 
 ---
@@ -114,19 +114,34 @@ Crea (§3.10–3.12): `harvests`, `harvest_works`, `day_labors`.
 
 ### M4 — `farm wet processing, drying, quality evals`
 
+✅ Revisión `9a5de8974e57` (bloque 4).
+
 Crea (§3.13–3.17): `wet_processings`, `wet_processing_inputs`, `dryings`,
 `drying_inputs`, `drying_humidity_checks`, `quality_evals`.
 
 - Enums: `farmwetprocessingstatusenum`, `farmfermentationmethodenum`,
   `farmdryingstatusenum`, `farmdryingmethodenum`,
   `farmdryingdestinationenum`, `farmqualitystageenum`.
-- Pivotes con `CHECK > 0` en kg y únicos `(cabecera, origen)`; `ondelete`
-  CASCADE desde la cabecera, RESTRICT hacia el origen.
-- CHECK `ck_quality_evals_stage_ref` (etapa ↔ FK coherentes) y rangos 0–100.
-- CHECK `ck_wet_processings_fermentation` (`fermentation_end` exige
-  `fermentation_start`).
+- Pivotes con `CHECK > 0` en kg (`ck_wet_processing_inputs_kg`,
+  `ck_drying_inputs_kg`) y únicos `(cabecera, origen)`
+  (`uq_wet_processing_inputs_harvest`, `uq_drying_inputs_wet_processing`);
+  `ondelete` CASCADE desde la cabecera, RESTRICT hacia el origen.
+- CHECKs de calidad: `ck_quality_evals_stage_ref` (etapa ↔ FK coherentes) y
+  `ck_quality_evals_ranges` (0–100).
+- CHECKs del beneficio: `ck_wet_processings_fermentation` (`fermentation_end`
+  exige `fermentation_start` y no es anterior) y
+  `ck_wet_processings_completed` (completado ⇒ con `washed_kg`).
+- CHECKs del secado: `ck_dryings_dates` (fin ≥ inicio),
+  `ck_dryings_end_date_status` (completado ⇔ con fin) y
+  `ck_dryings_completed_fields` (completado ⇒ con pergamino seco, humedad y
+  destino); `ck_drying_humidity_checks_range` en las mediciones.
+- Índices: `farm_id` en beneficios y secados, el origen de cada pivote
+  (`harvest_id`, `wet_processing_id`), `drying_id` en las mediciones, y
+  `harvest_id` y `drying_id` en las evaluaciones.
 
 ### M5 — `link parchments to dryings`
+
+✅ Revisión `dd940c212d49` (bloque 4).
 
 Cambio a tabla existente (§4 del modelo de datos):
 
@@ -135,12 +150,12 @@ op.add_column('parchments', sa.Column('drying_id', sa.Integer(), nullable=True))
 op.create_foreign_key('fk_parchments_drying', 'parchments', 'dryings',
                       ['drying_id'], ['id'], ondelete='RESTRICT')
 op.create_unique_constraint('uq_parchments_drying', 'parchments', ['drying_id'])
-op.create_index('idx_parchment_drying_id', 'parchments', ['drying_id'])
 ```
 
-`origin_batch` **no se toca** (R4). Los registros existentes quedan con
-`drying_id = NULL` = café comprado. Downgrade: drop index, constraint, FK y
-columna, en ese orden.
+Sin `idx_parchment_drying_id` aparte: el índice que crea la restricción única
+ya sirve las búsquedas por secado. `origin_batch` **no se toca** (R4). Los
+registros existentes quedan con `drying_id = NULL` = café comprado.
+Downgrade: drop constraint, FK y columna, en ese orden.
 
 ### ~~M6 — `seed Shaya farmer`~~ (descartada)
 

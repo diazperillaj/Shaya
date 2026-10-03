@@ -3,8 +3,9 @@
 > Documento 3 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Basado en el modelo de datos aprobado ([modelo-datos.md](modelo-datos.md)).
 > Estado: **✅ aprobado** (2026-08-06). Implementados §3.1–3.3 y 3.6, los
-> empleados de §3.7 y §3.12 (bloque 1B), §3.4–3.5 (bloque 2), y los jornales
-> de §3.7, §3.8 y §3.8.1 (bloque 3).
+> empleados de §3.7 y §3.12 (bloque 1B), §3.4–3.5 (bloque 2), los jornales
+> de §3.7, §3.8 y §3.8.1 (bloque 3), y §3.9–3.11 con la trazabilidad de
+> §3.11.1 (bloque 4).
 > Última actualización: 2026-10-02
 
 ---
@@ -122,9 +123,9 @@ mínimo (`farm` = `require_farm_role` + scoping de finca).
 |---|---|---|---|
 | POST | `/crop-cycles/create` | farm | Abre ciclo en un lote `active` sin ciclo activo (409 si ya hay). `cycle_number` lo asigna el service. `start_date` (por defecto, hoy) no es anterior a la siembra ni al fin del ciclo anterior: los ciclos de un lote no se solapan. |
 | GET | `/crop-cycles/get` | farm | Filtros: `plot_id`, `farm_id`, `status`. |
-| GET | `/crop-cycles/get/{id}` | farm | Detalle + resumen por tipo de labor: cantidad, última fecha y costo total (las cosechas se suman en el bloque 3). |
+| GET | `/crop-cycles/get/{id}` | farm | Detalle + resumen por tipo de labor: cantidad, última fecha y costo total. Sus cosechas se consultan en `/harvests/get?crop_cycle_id=`. |
 | PUT | `/crop-cycles/update/{id}` | farm | Fechas y observaciones. `end_date` solo en ciclos cerrados. Las fechas siguen sin solaparse con los ciclos vecinos y cubren todas las labores del ciclo (409). |
-| POST | `/crop-cycles/{id}/close` | farm | Cierra el ciclo y asigna `end_date` (por defecto, hoy), que no deja labores por fuera. Exigirá cosechas cerradas desde el bloque 3. |
+| POST | `/crop-cycles/{id}/close` | farm | Cierra el ciclo y asigna `end_date` (por defecto, hoy), que no deja labores por fuera. Sin cosechas abiertas (409). |
 | POST | `/crop-cycles/{id}/reopen` | farm | Solo corrección de error: el último ciclo de un lote activo vuelve a `active` y pierde su `end_date`. |
 | DELETE | `/crop-cycles/delete/{id}` | farm | Solo sin labores (409). |
 
@@ -201,12 +202,12 @@ Un empleado con recolección o jornales no se elimina: se desactiva.
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
 | POST | `/harvests/create` | farm | Abre sesión en un ciclo `active`: `crop_cycle_id`, `start_date` (por defecto, hoy; no antes del ciclo), tarifas default opcionales (`rate_per_kg` y/o `rate_per_day`). `pass_number` lo asigna el service. Una sola cosecha abierta por ciclo (409). |
-| GET | `/harvests/get` | farm | Filtros: `crop_cycle_id`, `plot_id`, `farm_id`, `status`. Cada cosecha trae sus acumulados: `works_count`, `kg_registered`, `value_total`, `value_pending`. |
-| GET | `/harvests/get/{id}` | farm | Detalle + trabajos diarios + acumulados (la calidad cereza se suma en el bloque 4). |
-| PUT | `/harvests/update/{id}` | farm | Fechas, tarifas por defecto y observaciones; `end_date` y `total_cherry_kg` solo en cosechas cerradas. Las fechas caben en el ciclo y cubren la recolección (409). |
-| POST | `/harvests/{id}/close` | farm | Cierra la sesión: recibe `end_date` (por defecto, hoy; no antes de la última recolección) y `total_cherry_kg` (vacío = la Σ de los kg registrados; editable para incluir recolección familiar no paga o jornales sin pesaje). Sin kg registrados, el total es obligatorio. |
-| POST | `/harvests/{id}/reopen` | farm | Solo corrección de error: la última pasada de un ciclo activo vuelve a `open` y pierde fin y total. Exigirá no tener aportes a beneficios desde el bloque 4. |
-| DELETE | `/harvests/delete/{id}` | farm | Solo sin recolección registrada (409); exigirá no tener aportes a beneficios desde el bloque 4. |
+| GET | `/harvests/get` | farm | Filtros: `crop_cycle_id`, `plot_id`, `farm_id`, `status`. Cada cosecha trae sus acumulados: `works_count`, `kg_registered`, `value_total`, `value_pending` y `kg_processed` (cereza ya aportada a beneficios). |
+| GET | `/harvests/get/{id}` | farm | Detalle + acumulados. La calidad en cereza se consulta en `/quality-evals/get?harvest_id=`. |
+| PUT | `/harvests/update/{id}` | farm | Fechas, tarifas por defecto y observaciones; `end_date` y `total_cherry_kg` solo en cosechas cerradas. Las fechas caben en el ciclo y cubren la recolección (409); el total no baja de lo ya beneficiado (409). |
+| POST | `/harvests/{id}/close` | farm | Cierra la sesión: recibe `end_date` (por defecto, hoy; no antes de la última recolección) y `total_cherry_kg` (vacío = el mayor entre la Σ de los kg registrados y lo ya beneficiado; editable para incluir recolección familiar no paga o jornales sin pesaje). Sin kg registrados ni beneficiados, el total es obligatorio. El total no puede ser menor que lo ya beneficiado (409). |
+| POST | `/harvests/{id}/reopen` | farm | Solo corrección de error: la última pasada de un ciclo activo vuelve a `open` y pierde fin y total. Los aportes a beneficios no lo impiden: abierta, la cosecha no tiene tope y al cerrarla de nuevo su total vuelve a cubrir lo beneficiado. |
+| DELETE | `/harvests/delete/{id}` | farm | Solo sin recolección registrada, sin aportes a beneficios y sin evaluaciones de calidad (409). |
 | POST | `/harvests/{id}/works/create` | farm | Registro diario (cosecha `open`): `employee_id` (activo, de la finca de la cosecha), `work_date` (no antes de la cosecha), `payment_type` (`per_kg` default / `per_day`). Si `per_kg`: `kg_collected` + `rate_per_kg` (default: el de la sesión). Si `per_day`: `day_value` (default: `rate_per_day` de la sesión) + `kg_collected` opcional. Sin tarifa propia ni de la sesión → 400. `total_value` lo calcula el service (kg × tarifa redondeado al peso, o el jornal). |
 | GET | `/harvests/{id}/works/get` | farm | Filtros: `employee_id`, `paid`. |
 | PUT | `/harvests/works/update/{work_id}` | farm | Solo sin pagar y con cosecha `open` (409). |
@@ -232,35 +233,65 @@ Un id fuera del alcance del usuario responde 404 y no se paga nada.
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| POST | `/quality-evals/create` | farm | `stage` + (`harvest_id` xor `drying_id`) — el service valida coherencia (CHECK del modelo) y los campos de la etapa. |
-| GET | `/quality-evals/get` | farm | Filtros: `stage`, `harvest_id`, `drying_id`, rango de fechas. |
-| PUT | `/quality-evals/update/{id}` | farm | |
+| POST | `/quality-evals/create` | farm | `stage` + referencia: en cereza, `harvest_id`; en pergamino, `drying_id` (la otra referencia vacía, 422). Resultados de cereza: `ripe_pct`, `green_pct`, `overripe_pct`, `bored_pct`; de pergamino: `humidity_pct`, `defects_pct`, `yield_factor`, `score`, `bored_pct`. Un campo de la otra etapa, o ninguno, responde 422. |
+| GET | `/quality-evals/get` | farm | Filtros: `stage`, `harvest_id`, `drying_id`, `date_from`, `date_to`. |
+| PUT | `/quality-evals/update/{id}` | farm | Fecha, resultados y observaciones; la etapa y la referencia no cambian. Las mismas reglas de campos (400). |
 | DELETE | `/quality-evals/delete/{id}` | farm | |
+
+Porcentajes y puntaje van de 0 a 100. La fecha no puede ser futura.
 
 ### 3.10 `wet-processings` (beneficio)
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| POST | `/wet-processings/create` | farm | Crea el beneficio con sus aportes: `farm_id` + `inputs: [{harvest_id, cherry_kg}]` (todas las cosechas de la misma finca; balance de masas validado → 409). |
+| POST | `/wet-processings/create` | farm | Crea el beneficio con sus aportes: `farm_id` + `inputs: [{harvest_id, cherry_kg}]` (cosechas de la finca del beneficio, sin repetir; balance de masas → 409). Acepta de una vez las etapas ya ocurridas. |
 | GET | `/wet-processings/get` | farm | Filtros: `farm_id`, `status`. |
-| GET | `/wet-processings/get/{id}` | farm | Detalle + aportes + kg entrada (Σ pivote) + horas de fermentación calculadas. |
-| PUT | `/wet-processings/update/{id}` | farm | Registra las etapas a medida que ocurren (flotes, despulpado, fermentación, lavado). Solo `in_progress`. |
-| PUT | `/wet-processings/{id}/inputs` | farm | Reemplaza los aportes (solo `in_progress`, re-valida balance). |
-| POST | `/wet-processings/{id}/complete` | farm | Exige `washed_kg`; congela el registro. |
-| DELETE | `/wet-processings/delete/{id}` | farm | Solo sin aportes a secados (RESTRICT). |
+| GET | `/wet-processings/get/{id}` | farm | Detalle + aportes (lote, ciclo, pasada y estado de la cosecha) + `cherry_kg` (Σ aportes) + `fermentation_hours` + `washed_kg_dried` (lavado ya repartido en secados). |
+| PUT | `/wet-processings/update/{id}` | farm | Registra las etapas a medida que ocurren: flotes (kg y método), despulpado, fermentación (inicio, fin, método +`other_detail`, quién indicó el punto y con qué criterio), temperatura, lavadas y `washed_kg`. Solo `in_progress`. |
+| PUT | `/wet-processings/{id}/inputs` | farm | Reemplaza los aportes (solo `in_progress`; re-valida el balance sin contar los aportes que se reemplazan). |
+| POST | `/wet-processings/{id}/complete` | farm | `{washed_kg}` (vacío = el ya registrado; sin ninguno, 409). El lavado no supera la cereza que entró (409). Congela el registro. |
+| POST | `/wet-processings/{id}/reopen` | farm | Corrige un beneficio completado por error, solo si su café aún no está en un secado (409). |
+| DELETE | `/wet-processings/delete/{id}` | farm | Solo sin aportes a secados (409). Libera la cereza de sus cosechas. |
+
+Balance de masas (`services/mass_balance.py`):
+
+- El beneficio se hace el mismo día de la recolección, con la cosecha aún
+  abierta y sin total: una cosecha **abierta** se puede beneficiar sin tope.
+- Una cosecha **cerrada** tiene como tope su `total_cherry_kg`: la suma de
+  sus aportes no lo supera (409, con lo que queda disponible).
+- Al cerrar o editar una cosecha, su total no baja de lo ya beneficiado.
+- Un secado solo recibe café de beneficios `completed`, y la suma de sus
+  aportes no supera el `washed_kg` de cada beneficio.
+- El pergamino seco de un secado no supera el café lavado que entró.
 
 ### 3.11 `dryings` (secado, almacenamiento y salida a inventario)
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| POST | `/dryings/create` | farm | `farm_id`, `method` (+`other_detail`), `start_date` + `inputs: [{wet_processing_id, wet_kg}]` (beneficios `completed`; balance vs `washed_kg` → 409). |
+| POST | `/dryings/create` | farm | `farm_id`, `method` (+`other_detail`), `start_date` (por defecto, hoy) + `inputs: [{wet_processing_id, wet_kg}]` (beneficios `completed` de la misma finca, sin repetir; balance vs `washed_kg` → 409). |
 | GET | `/dryings/get` | farm | Filtros: `farm_id`, `status`, `destination`. |
-| GET | `/dryings/get/{id}` | farm | Detalle + aportes + composición trazada (% por lote) + rendimiento calculado (F2). |
-| PUT | `/dryings/update/{id}` | farm | Solo `in_progress`. |
-| POST | `/dryings/{id}/humidity-checks/create` | farm | Medición intermedia: `check_date`, `humidity_pct`. |
-| POST | `/dryings/{id}/complete` | farm | **Cierre** — ver contrato §4. Exige `final_humidity_pct`, `output_kg`, `destination` y datos de empaque. Si `destination=inventory`, crea `Inventory` + `Parchment` en la misma transacción. |
-| POST | `/dryings/{id}/to-inventory` | farm | Para secados cerrados con `destination=stored`: los envía a inventario después (mismo contrato de precios). |
-| DELETE | `/dryings/delete/{id}` | farm | Solo `in_progress` sin parchment (RESTRICT). |
+| GET | `/dryings/get/{id}` | farm | Detalle + aportes + mediciones + `wet_kg` + `days` + composición trazada por lote (con sus cosechas) + `cherry_kg_traced` + `yield_pct` (F2) + `humidity_range` (umbrales de la finca, arquitectura §7.2) + `parchment_id`. |
+| PUT | `/dryings/update/{id}` | farm | Método, inicio y observaciones. Solo `in_progress`; el inicio no pasa de la primera medición (409). |
+| PUT | `/dryings/{id}/inputs` | farm | Reemplaza los aportes (solo `in_progress`, re-valida balance). |
+| POST | `/dryings/{id}/humidity-checks/create` | farm | Medición intermedia: `check_date` (no antes del inicio, no futura), `humidity_pct`. Solo `in_progress`. |
+| DELETE | `/dryings/humidity-checks/delete/{check_id}` | farm | Borra una medición de un secado en curso. |
+| POST | `/dryings/{id}/complete` | farm | **Cierre** — ver contrato §4. |
+| POST | `/dryings/{id}/to-inventory` | farm | `{full_price, purchase_date}`. Para secados cerrados con `destination=stored`: los envía al inventario después, con el mismo contrato de precios. |
+| POST | `/dryings/{id}/reopen` | farm | Corrige un cierre hecho por error, si el pergamino no está en el inventario (409). Vuelve a `in_progress` y pierde fin y destino. |
+| DELETE | `/dryings/delete/{id}` | farm | Solo `in_progress` y sin evaluaciones de calidad (409). |
+
+### 3.11.1 `traceability`
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| GET | `/traceability/dryings/{id}` | farm | Hacia atrás: el secado, sus lotes (% de la cereza) con sus ciclos, cosechas y resumen de labores por tipo, y los beneficios que aportaron. |
+| GET | `/traceability/parchments/{id}` | farm | Lo mismo partiendo del pergamino del inventario. Un pergamino comprado (sin `drying_id`) responde 404. |
+| GET | `/traceability/harvests/{id}` | farm | Hacia adelante: a qué beneficios fue el café de una cosecha, y de ahí a qué secados y pergaminos. |
+
+La mezcla se reparte en proporción (`services/traceability.py`): la cereza
+que una cosecha aporta a un secado es su aporte al beneficio por la fracción
+del lavado de ese beneficio que entró al secado. El rendimiento (F2) es el
+pergamino seco sobre la cereza así trazada.
 
 ### 3.12 Cuentas de caficultor (E2/E3)
 
@@ -306,7 +337,6 @@ Request:
   "storage_place": "bodega finca",
   "destination": "inventory",
   "inventory_data": {
-    "product_id": 1,
     "full_price": 3200000,
     "purchase_date": "2026-08-06"
   }
@@ -314,30 +344,42 @@ Request:
 ```
 
 Comportamiento (transacción única, regla §6.4 del modelo):
-1. Valida estado `in_progress`, humedad y kg presentes. Humedad fuera de
-   10–12 % **no bloquea** — genera alerta (§7.2 arquitectura).
-2. Marca el secado `completed`.
-3. Si `destination = inventory`: crea `Inventory` + `Parchment` con
-   `drying_id`, `farmer_id` = farmer de la finca, `variety` del lote
-   dominante en la composición, `humidity` = final, `full_price` asignado por
-   el productor y `purchase_price` calculado por el servicio existente (C1).
-   `inventory_data` es obligatorio solo en este caso.
+1. Valida estado `in_progress`; fin no anterior al inicio ni a la última
+   medición de humedad; pergamino seco no mayor que el café lavado que entró
+   (409). Humedad fuera del rango de la finca **no bloquea**: el formulario
+   avisa y la alerta la calcula el dashboard (§7.2 arquitectura).
+2. Marca el secado `completed` con sus datos de almacenamiento.
+3. Si `destination = inventory` (`services/inventory_bridge.py`): crea
+   `Inventory` + `Parchment` con el servicio existente del inventario, con
+   `drying_id`, `farmer_id` = caficultor de la finca, `variety` del lote
+   dominante en la composición, `altitude` de la finca (si cae en el rango del
+   inventario), `humidity` = final, `full_price` asignado por el productor y
+   `purchase_price` calculado por la regla de tres existente (C1). El producto
+   es el pergamino configurado en el inventario (tipo `other`); si no existe,
+   409. `inventory_data` es obligatorio solo en este caso (422) y su fecha no
+   es anterior al fin del secado.
+4. Si el registro en inventario falla, se revierte todo: el secado sigue en
+   curso.
 
-Response:
+Response: el `DryingResponse` completo (§3.11), con el secado cerrado:
 
 ```json
 {
   "id": 14,
   "status": "completed",
-  "output_kg": 96.500,
-  "yield_pct": 18.9,
-  "traceability": [
-    {"plot_id": 3, "plot_name": "La Loma", "share_pct": 62.1},
-    {"plot_id": 5, "plot_name": "El Mirador", "share_pct": 37.9}
+  "output_kg": "96.500",
+  "wet_kg": "210.000",
+  "cherry_kg_traced": "510.600",
+  "yield_pct": "18.9",
+  "composition": [
+    {"plot_id": 3, "plot_name": "La Loma", "variety": "Castillo", "cherry_kg": "317.100", "share_pct": "62.1", "harvests": []},
+    {"plot_id": 5, "plot_name": "El Mirador", "variety": "Cenicafé 1", "cherry_kg": "193.500", "share_pct": "37.9", "harvests": []}
   ],
   "parchment_id": 88
 }
 ```
+
+(Extracto: se omiten los demás campos y las cosechas de cada lote.)
 
 ### Config de alertas resuelta — `GET /alert-configs/resolved/plot/{id}`
 
@@ -402,8 +444,8 @@ app/farm_operations/
             labors/          #   las seis labores: tipos, servicio y rutas genéricas
             soil_analyses/  climate_records/  supplies/  employees/
             harvests/  day_labors/  payments/
-            quality_evals/  wet_processings/
-            dryings/  farmer_accounts/  dashboard/  ml/
+            wet_processings/  dryings/  quality_evals/  traceability/
+            farmer_accounts/  dashboard/  ml/
     ml/                      # features.py, predictor.py, artifacts/
 ```
 

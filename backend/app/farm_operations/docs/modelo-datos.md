@@ -3,7 +3,8 @@
 > Documento 2 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Estado: **✅ aprobado** (2026-08-06). Implementadas las tablas §3.1–3.4,
 > 3.7 y 3.9 (migración M1, bloque 1B), §3.5, 3.6 y 3.8 (migración M2,
-> bloque 2) y §3.10–3.12 (migración M3, bloque 3).
+> bloque 2), §3.10–3.12 (migración M3, bloque 3), y §3.13–3.17 con el
+> cambio a `parchments` de §4 (migraciones M4 y M5, bloque 4).
 > Última actualización: 2026-10-02
 
 ---
@@ -467,9 +468,13 @@ Constraint:
 | created_at | DateTime(tz) | NOT NULL, default now() | |
 
 Constraints:
-- `CHECK ((stage = 'cherry' AND harvest_id IS NOT NULL AND drying_id IS NULL) OR (stage = 'parchment' AND drying_id IS NOT NULL AND harvest_id IS NULL))`.
-- `CHECK (score IS NULL OR (score >= 0 AND score <= 100))` y rangos 0–100 en
-  todos los porcentajes.
+- `ck_quality_evals_stage_ref`: `CHECK ((stage = 'cherry' AND harvest_id IS NOT NULL AND drying_id IS NULL) OR (stage = 'parchment' AND drying_id IS NOT NULL AND harvest_id IS NULL))`.
+- `ck_quality_evals_ranges`: rangos 0–100 en todos los porcentajes y en
+  `score`.
+
+Índices: `idx_quality_eval_harvest_id`, `idx_quality_eval_drying_id`.
+En el servicio: cada etapa solo admite sus campos y exige al menos un
+resultado.
 
 Extensión futura: tabla satélite `cupping_details` 1:1 si llega catación
 formal por atributos (arquitectura §5.1).
@@ -502,7 +507,13 @@ formal por atributos (arquitectura §5.1).
 
 kg de cereza que entran = `SUM(wet_processing_inputs.cherry_kg)` (calculado).
 
-Constraint: `CHECK (fermentation_end IS NULL OR fermentation_start IS NOT NULL)`.
+Constraints:
+- `ck_wet_processings_fermentation`: `CHECK (fermentation_end IS NULL OR (fermentation_start IS NOT NULL AND fermentation_end >= fermentation_start))`.
+- `ck_wet_processings_completed`: completado ⇒ con `washed_kg`.
+
+Índice: `idx_wet_processing_farm_id`. En el servicio: el lavado no supera la
+cereza que entró, y un beneficio completado no se edita (se reabre si su café
+aún no está en un secado).
 
 ### 3.15 `wet_processing_inputs` — Pivote cosechas → beneficio (D3)
 
@@ -513,9 +524,13 @@ Constraint: `CHECK (fermentation_end IS NULL OR fermentation_start IS NOT NULL)`
 | harvest_id | Integer | FK `harvests.id` RESTRICT, NOT NULL | |
 | cherry_kg | Numeric(10,3) | NOT NULL, CHECK > 0 | kg que esta cosecha aporta a este beneficio. |
 
-Unicidad: `(wet_processing_id, harvest_id)`.
-Validación de servicio: la suma de aportes de una cosecha entre todos sus
-beneficios no supera su `total_cherry_kg`.
+Unicidad: `uq_wet_processing_inputs_harvest (wet_processing_id, harvest_id)`.
+CHECK `ck_wet_processing_inputs_kg` (`cherry_kg > 0`). Índice:
+`idx_wp_input_harvest_id`.
+Validación de servicio: la suma de aportes de una cosecha **cerrada** entre
+todos sus beneficios no supera su `total_cherry_kg`. Una cosecha abierta aún
+no tiene total, y se beneficia el mismo día de la recolección: no tiene tope,
+y al cerrarla su total no puede ser menor que lo ya beneficiado.
 
 ### 3.16 `dryings` — Secado y almacenamiento (etapas 5–6 de §5.2)
 
@@ -542,13 +557,26 @@ beneficios no supera su `total_cherry_kg`.
 kg húmedos que entran = `SUM(drying_inputs.wet_kg)`.
 Rendimiento cereza → pergamino = `output_kg / Σ cereza trazada` (F2, calculado).
 
+Constraints:
+- `ck_dryings_dates`: `end_date >= start_date`.
+- `ck_dryings_end_date_status`: completado ⇔ con `end_date`.
+- `ck_dryings_completed_fields`: completado ⇒ con `output_kg`,
+  `final_humidity_pct` y `destination`.
+
+Índice: `idx_drying_farm_id`. En el servicio: el pergamino seco no supera el
+café lavado que entró, y el fin no es anterior a la última medición.
+
 **`drying_humidity_checks`** (mediciones intermedias opcionales)
 
 | Columna | Tipo | Descripción |
 |---|---|---|
+| id | Integer PK | |
 | drying_id | Integer FK `dryings.id` CASCADE NOT NULL | |
-| check_date | Date NOT NULL | |
-| humidity_pct | Numeric(5,2) NOT NULL | |
+| check_date | Date NOT NULL | No antes del inicio del secado (servicio). |
+| humidity_pct | Numeric(5,2) NOT NULL | CHECK `ck_drying_humidity_checks_range` (0–100). |
+| created_at | DateTime(tz) NOT NULL, default now() | |
+
+Índice: `idx_humidity_check_drying_id`.
 
 ### 3.17 `drying_inputs` — Pivote beneficios → secado (D3)
 
@@ -559,13 +587,17 @@ Rendimiento cereza → pergamino = `output_kg / Σ cereza trazada` (F2, calculad
 | wet_processing_id | Integer | FK `wet_processings.id` RESTRICT, NOT NULL | |
 | wet_kg | Numeric(10,3) | NOT NULL, CHECK > 0 | kg de café lavado aportados. |
 
-Unicidad: `(drying_id, wet_processing_id)`.
+Unicidad: `uq_drying_inputs_wet_processing (drying_id, wet_processing_id)`.
+CHECK `ck_drying_inputs_kg` (`wet_kg > 0`). Índice:
+`idx_drying_input_wet_processing_id`.
+Validación de servicio: solo beneficios `completed` de la misma finca, y la
+suma de aportes de un beneficio no supera su `washed_kg`.
 
 ## 4. Cambios a tablas existentes
 
 | Tabla | Cambio | Detalle |
 |---|---|---|
-| `parchments` | **Nueva columna** `drying_id Integer FK dryings.id RESTRICT NULL UNIQUE` | El eslabón de trazabilidad (C2). NULL = café comprado a terceros. UNIQUE: un secado genera máximo un registro de pergamino. |
+| `parchments` | **Nueva columna** `drying_id Integer FK dryings.id RESTRICT NULL UNIQUE` | El eslabón de trazabilidad (C2). NULL = café comprado a terceros. UNIQUE (`uq_parchments_drying`): un secado genera máximo un registro de pergamino; su índice también sirve las búsquedas por secado. FK `fk_parchments_drying`. |
 | `parchments` | `origin_batch` **se conserva** como `String(100)` | Sigue siendo el texto libre para café comprado (código de lote del caficultor) y para los datos históricos ya importados. La trazabilidad real va por `drying_id`. Ver §9 punto R4. |
 | `users` | Nuevo valor de rol: `farmer` | Sin cambio de schema (columna `String`). |
 | — | Sin más cambios | `purchase_price`/`full_price` intactos (C1): el productor asigna `full_price` y el servicio actual calcula `purchase_price`. |
@@ -606,8 +638,9 @@ cuando se elige `other`. `pest_monitorings` ya lo cubre con `other_pest`.
 2. **Un ciclo activo por lote** (índice parcial único).
 3. **Balance de masas (servicio, no constraint)**: al asociar cosechas a un
    beneficio, la suma de `cherry_kg` repartida no puede exceder el
-   `total_cherry_kg` de la cosecha; igual para `wet_kg` vs `washed_kg` del
-   beneficio.
+   `total_cherry_kg` de la cosecha cerrada (abierta, no tiene tope y al
+   cerrarse su total cubre lo beneficiado); igual para `wet_kg` vs
+   `washed_kg` del beneficio.
 4. **Cierre de secado con destino `inventory`** = transacción única que crea
    `Inventory` + `Parchment` (con `drying_id`, `farmer_id` de la finca,
    `full_price` asignado por el productor, `purchase_price` calculado por el
