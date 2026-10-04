@@ -4,8 +4,8 @@
 > Basado en el modelo de datos aprobado ([modelo-datos.md](modelo-datos.md)).
 > Estado: **✅ aprobado** (2026-08-06). Implementados §3.1–3.3 y 3.6, los
 > empleados de §3.7 y §3.12 (bloque 1B), §3.4–3.5 (bloque 2), los jornales
-> de §3.7, §3.8 y §3.8.1 (bloque 3), y §3.9–3.11 con la trazabilidad de
-> §3.11.1 (bloque 4).
+> de §3.7, §3.8 y §3.8.1 (bloque 3), §3.9–3.11 con la trazabilidad de
+> §3.11.1 (bloque 4), y §3.13 (bloque 6).
 > Última actualización: 2026-10-03
 
 ---
@@ -305,11 +305,20 @@ pergamino seco sobre la cereza así trazada.
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| GET | `/dashboard/summary` | farm | KPIs con scoping: fincas/lotes activos, área por variedad, kg cereza y pergamino del periodo (`?from=&to=`), rendimientos, café en proceso. |
-| GET | `/dashboard/alerts` | farm | Alertas y recordatorios activos calculados al momento (no se persisten): tipo, lote/finca, severidad, mensaje, valor vs umbral. |
-| GET | `/dashboard/production` | farm | Series por periodo para gráficas (kg por mes, por finca/lote/variedad). |
-| GET | `/dashboard/quality` | farm | Distribución de puntajes/defectos por finca/lote/variedad. |
-| GET | `/dashboard/periods` | farm | Temporadas de cosecha del scope (`farm_id` / `plot_id` opcionales), de la más reciente a la más antigua, con `from`/`to`/`harvests`/`cherry_kg`. Alimenta los botones rápidos "última(s) N cosecha(s)" del selector de periodo (ver dashboards-alertas §2.1). |
+| GET | `/dashboard/summary` | farm | KPIs con scoping: fincas/lotes activos, área por variedad, kg cereza y pergamino del periodo, rendimiento y su histórico, café en proceso, pergamino guardado (con los 10 secados guardados más antiguos), pagos pendientes, costo de recolección y puntaje promedio. |
+| GET | `/dashboard/alerts` | farm | Alertas y recordatorios activos calculados al momento (no se persisten): tipo, finca/lote, entidad, severidad, mensaje, valor vs umbral, desde cuándo. |
+| GET | `/dashboard/production` | farm | `BarChartData` del periodo: producción mensual, pergamino y rendimiento por unidad (con la referencia del año anterior), producción por variedad, costo de recolección por mes y café en proceso. |
+| GET | `/dashboard/quality` | farm | `BarChartData` del periodo: distribución de puntajes, puntaje por variedad, puntaje y defectos por unidad, evolución mensual, broca y roya por unidad (último muestreo) y humedad final con su rango. |
+| GET | `/dashboard/periods` | farm | Temporadas de cosecha del scope (`farm_id` / `plot_id` opcionales), de la más reciente a la más antigua, con `label`/`date_from`/`date_to`/`harvests`/`cherry_kg`/`open`. Alimenta los botones rápidos "última(s) N cosecha(s)" del selector de periodo (ver dashboards-alertas §2.1). |
+| GET | `/dashboard/cycles` | farm | Estado de los ciclos activos: días desde el inicio, última labor (tipo y fecha), estado de la cosecha, cosecha estimada por la floración y alertas del lote. |
+| GET | `/dashboard/farms` | farm | Una fila por finca del alcance: lotes activos, cereza, pergamino, rendimiento y puntaje del periodo, alertas por severidad, broca y roya con su umbral, pergamino guardado. El frontend la muestra al administrador como ranking y mapa de sanidad. |
+
+Parámetros comunes: `farm_id` (opcional; vacío = todas las fincas del
+alcance, fuera de él → 404) y el periodo `date_from` / `date_to` (por
+defecto, los últimos 12 meses; inicio posterior al fin → 400). Las
+alertas, el estado de los ciclos y los widgets de estado no dependen del
+periodo. Las gráficas por unidad indican en `unit` si van por lote (una
+finca) o por finca (varias).
 
 > El detalle de widgets y queries se especifica en el doc 5 (dashboards y
 > alertas). Aquí solo se fijan contratos y permisos.
@@ -410,12 +419,20 @@ junto a cada valor propio.
   "type": "broca_above_threshold",
   "severity": "high",
   "farm_id": 1,
+  "farm_name": "La Esperanza",
   "plot_id": 3,
-  "message": "Broca en 3.5 % (umbral 2 %) — último muestreo 2026-07-28",
+  "plot_name": "El Mirador",
+  "entity": {"plot_id": 3, "crop_cycle_id": 7},
+  "message": "Lote «El Mirador»: broca en 3,5 % (umbral 2 %), último muestreo del 28/07/2026",
   "value": 3.5,
-  "threshold": 2.0
+  "threshold": 2.0,
+  "since": "2026-07-28"
 }
 ```
+
+`entity` identifica lo que hay que revisar (`harvest_id`, `drying_id`,
+`wet_processing_id`, `plot_id` o `farm_id`) y el frontend lo convierte en
+el enlace de la alerta.
 
 ## 5. Estructura del módulo y capa de routers
 

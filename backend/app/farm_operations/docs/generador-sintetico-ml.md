@@ -3,7 +3,8 @@
 > Documento 4 de la hoja de ruta ([arquitectura.md](arquitectura.md) §12).
 > Basado en el modelo de datos y la API aprobados.
 > Estado: **✅ aprobado** (2026-09-16) — revisión metodológica externa incorporada.
-> Implementado el generador (§2, §3 y su parte de §8) en el bloque 5; el
+> Implementado el generador (§2, §3 y su parte de §8) en el bloque 5, con
+> las situaciones del presente que ejercitan las alertas en el bloque 6; el
 > pipeline de ML (§4–§7) corresponde al bloque 7.
 > Última actualización: 2026-10-03
 
@@ -160,12 +161,30 @@ Cómo quedó implementado (`world.py`):
   hasta la capacidad del método de la finca; un beneficio puede repartirse
   entre dos tandas.
 - **Destino**: la mayoría se vende directo; ~8 % de lo antiguo y ~15 % de lo
-  reciente entra al inventario por el puente del bloque 4, y parte de lo
-  guardado en la finca pasa después al inventario. Sin producto de
-  pergamino en el inventario, ese café queda guardado en la finca.
+  reciente entra al inventario por el puente del bloque 4. Lo guardado en la
+  finca no se queda para siempre: lo que lleva más de 60 días al final de la
+  simulación entró después al inventario o se vendió directo, así que solo
+  queda guardado el café reciente. Sin producto de pergamino en el
+  inventario, lo que iría al inventario queda guardado en la finca.
+- **Pérdidas en la cosecha**: cada pasada pierde entre 0,2 % y 3 % de la
+  cereza recogida antes del beneficio (lo que se cae, se descarta o se
+  vende como pasilla), y los aportes al beneficio se redondean al gramo
+  hacia abajo: así la suma nunca supera el total de la pasada.
 - **El presente**: el día final deja ciclos activos, pasadas abiertas,
   beneficios y secados en curso, pagos pendientes y evaluaciones aún no
-  hechas, como una finca en operación.
+  hechas, como una finca en operación. Las fincas con riego configuran su
+  recordatorio (`irrigation_reminder_days` = 12), que por defecto está
+  desactivado.
+- **Situaciones del presente** (`present.py`, G21): un dataset ordenado no
+  dispararía las alertas de riesgo, así que el generador planta, con su
+  propio generador aleatorio y como mucho una vez cada una, situaciones que
+  pasan en una finca real: una pasada que se olvidó cerrar (el ciclo
+  siguiente no se abre y sus labores quedan en el anterior), una finca fuera
+  de temporada que dejó de anotar hace dos meses, un beneficio fermentando
+  sin lavado registrado, un secado que terminó hace unos días pero sigue
+  abierto en el sistema, una evaluación pendiente en cereza y otra en
+  pergamino, y un secado con una pérdida del 20–28 % del pergamino. Cada una sale en el
+  reporte, y la validación pasa igual: son datos posibles, no errores.
 
 ### 3.3 Reglas agronómicas: funciones de respuesta y mecanismos por target
 
@@ -327,7 +346,7 @@ Cómo quedó implementada (`validate.py`, `audit.py`):
 | Chequeo | Tipo | Detalle |
 |---|---|---|
 | Balance de masas | error | Cosecha cerrada ≥ Σ aportes; cereza ≥ flotes + lavado; Σ secado ≤ lavado (solo beneficios completados); pergamino ≤ lavado. |
-| Fechas encadenadas | error | Ciclos de un lote sin solaparse y numerados en orden; labores dentro de su ciclo; floración < cosecha; recolección dentro de su pasada; cosecha < despulpado < fermentación; el secado no empieza antes de que exista su café ni termina antes de lavarlo; evaluación en pergamino e ingreso al inventario después del secado. |
+| Fechas encadenadas | error | Ciclos de un lote sin solaparse y numerados en orden; labores dentro de su ciclo; ninguna cosecha a menos de 150 días de una floración de su ciclo (una floración posterior es de la temporada siguiente, como en un ciclo que no se cerró); recolección dentro de su pasada; cosecha < despulpado < fermentación; el secado no empieza antes de que exista su café ni termina antes de lavarlo; evaluación en pergamino e ingreso al inventario después del secado. |
 | Rangos | error | Targets completos y dentro de su rango físico; humedad final 5–30 %; ≤ 250 kg y un solo lote por persona y día de recolección. |
 | Trazabilidad | error | La cereza trazada que calcula la aplicación (`services/traceability.py`) coincide con la del mundo simulado en cada secado: la ponderación por kg es la misma en ambos lados. |
 | Faltantes | error | % efectivo frente al configurado por grupo, con tolerancia binomial (4 σ, mínimo 3 puntos). |
@@ -335,11 +354,12 @@ Cómo quedó implementada (`validate.py`, `audit.py`):
 | Altitud–temperatura | error | Correlación de la temperatura registrada con la altitud entre −0,995 y −0,6. |
 | Masa por zona | advertencia | Broca (< 3 %, 3–5 %, > 5 %), desvío de fermentación (corta, en ventana, larga), humedad verdadera (< 10, 10–12, > 12 %) y demora al despulpado (< 6, 6–12, > 12 h), cada zona con su mínimo en `rules.ZONES`. |
 
-Con la semilla 42 (fecha final 2026-10-01, reglas 1.0.0) pasan todos los chequeos y las
-masas por zona son: broca 62 / 11 / 27 %, fermentación 6 / 70 / 24 %,
-humedad 10 / 68 / 22 % y demora 66 / 24 / 10 %. Targets: score 77,2 ± 8,1
-(p50 80,5), defectos 6,6 ± 4,1 %, yield_factor 94,5 ± 3,9 y humedad
-11,2 ± 1,0 %.
+Con la semilla 42 (fecha final 2026-10-02, reglas 1.2.0) pasan todos los
+chequeos y las masas por zona son: broca 63 / 16 / 20 %, fermentación
+6 / 75 / 20 %, humedad 18 / 69 / 13 % y demora 67 / 23 / 10 %. Targets:
+score 78,9 ± 7,7 (p50 82,2), defectos 5,6 ± 3,0 %, yield_factor 93,7 ± 3,1
+y humedad 10,9 ± 1,0 %. El dataset tiene 12 fincas, 41 lotes, 186 ciclos,
+343 pasadas, 1.381 beneficios y 1.006 secados.
 
 El reporte se imprime y se guarda en JSON junto a la auditoría. La **huella
 del dataset** es un SHA-256 del contenido sintético de la base sin ids ni
@@ -481,6 +501,7 @@ backend/scripts/farm_ml/
     rules.py                 # Reglas parametrizadas (ver abajo). Versionado: RULES_VERSION.
     catalogs.py              # Lugares, nombres, insumos y series de precios del mundo sintético
     world.py                 # Simulación pura y determinista del mundo (§3.2), sin base de datos
+    present.py               # Situaciones del presente que ejercitan las alertas (G21)
     persist.py               # Escritura vía ORM con esquemas de la API y servicios de dominio
     validate.py              # Validación automática (§3.7)
     audit.py                 # Auditoría en parquet y huella del dataset
@@ -560,6 +581,7 @@ el azar usa la librería estándar). `pandas` llega con el entrenamiento, y
 | G18 | El generador **se niega a correr con `ENV=production`** y a mezclar datasets | Confiar en la disciplina del operador: un descuido mezclaría fincas ficticias con las reales. |
 | G19 | Un solo caficultor sintético dueño de todas las fincas | Un caficultor por finca: más personas que limpiar sin ganancia para el modelo ni para la demostración. |
 | G20 | **Nombres de finca únicos, tomados de datos abiertos** (solo el nombre del predio) | Nombres inventados con sufijo numérico («La Esperanza 25») cuando se acaban: poco verosímiles y confusos en la interfaz. |
+| G21 | **Situaciones del presente plantadas a propósito** (`present.py`), con generador aleatorio propio, como mucho una de cada tipo y listadas en el reporte | Esperar a que el azar las produzca: un mundo bien manejado casi nunca deja un beneficio detenido o una pasada olvidada, y el dashboard no tendría cómo mostrar sus alertas de riesgo. Plantarlas en cada finca: el panel se llenaría de casos raros y dejaría de parecer una operación real. |
 
 ## 10. Fuera de alcance (v1)
 

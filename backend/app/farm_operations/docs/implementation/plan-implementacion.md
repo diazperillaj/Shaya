@@ -500,6 +500,36 @@ el periodo.
 dashboard responde en menos de 500 ms — por eso este bloque va después del
 generador.
 
+**Implementado además** (sin migraciones):
+- Dos endpoints más: `/dashboard/cycles` (estado de los ciclos) y
+  `/dashboard/farms` (ranking y mapa de sanidad en una tabla). El periodo se
+  pide como `date_from`/`date_to`, igual que los demás filtros del módulo.
+- Las gráficas por unidad van por lote con una finca y por finca con varias,
+  y reparten el pergamino entre lotes con la proporción de la trazabilidad
+  (`traced_cherry_select` en `services/traceability.py`).
+- Las alertas sobre hechos cerrados miran solo los últimos 30 días; la de
+  pagos pendientes es una por finca (dashboards-alertas §4).
+- Las temporadas en `services/seasons.py`: una pasada abierta cuenta hasta
+  su última recolección, para que una pasada olvidada no una dos
+  temporadas.
+- El dashboard vive en `src/features/farm_operations/dashboard/` y ocupa la
+  pestaña **Resumen** en `/cultivo`; la lista de fincas pasó a
+  `/cultivo/fincas`.
+- El generador simula **situaciones del presente** (`present.py`): una
+  pasada olvidada abierta, una finca sin registros, un beneficio detenido,
+  un secado cerrado tarde, evaluaciones pendientes y un secado con pérdida.
+  Sin ellas, un dataset ordenado no dispararía las alertas de riesgo. Lo
+  guardado en finca hace más de 60 días termina en inventario o en venta
+  directa, y las fincas con riego reciben su recordatorio
+  (generador-sintetico-ml G21).
+
+**Cobertura de alertas con datos sintéticos:** las alertas dependen de la
+época del año. En temporada de cosecha aparecen 15 de los 16 tipos en una
+misma fecha y los 16 entre dos fechas de cosecha (junio y octubre); fuera
+de temporada, 8 (no hay pasadas, beneficios ni secados en curso). La
+prueba de cada tipo con su caso que la dispara está en
+`tests/farm_operations/test_dashboard.py`.
+
 **Terminado cuando:** con datos sintéticos todos los widgets muestran datos
 coherentes, los botones rápidos eligen las temporadas correctas, y cada tipo
 de alerta aparece al menos una vez y enlaza a su entidad.
@@ -616,7 +646,7 @@ Decisiones de la infraestructura:
 | 3 — Cosechas y jornales | — (directo a `main`) | ✅ | Pagos de recolección y jornales juntos en `payments`; reapertura de la última pasada (§3, bloque 3). |
 | 4 — Beneficio, secado y calidad | — (directo a `main`) | ✅ | Cosechas abiertas sin tope de beneficio; recurso `traceability`; reapertura de beneficio y secado (§3, bloque 4). |
 | 5 — Generador sintético | — (directo a `main`) | ✅ | Un ciclo por año; mundo y registro separados; huella del dataset (§3, bloque 5). |
-| 6 — Dashboard y alertas | — | ⬜ | |
+| 6 — Dashboard y alertas | — (directo a `main`) | ✅ | Endpoints `cycles` y `farms`; alertas de hechos cerrados con ventana de 30 días; situaciones del presente en el generador (§3, bloque 6). |
 | 7 — Proyección de calidad | — | ⬜ | |
 
 ⬜ pendiente · 🟡 en curso · ✅ en `main`
@@ -635,6 +665,7 @@ Decisiones de la infraestructura:
 | arquitectura.md C4, modelo-datos.md §8 | El farmer Shaya se registra desde la interfaz, sin dato semilla (bloque 1B). |
 | especificacion-api.md §2, §3, §5 | `FarmAccess` en lugar de `get_accessible_farm`; endpoints de activación y de configuración resuelta de finca; listado de cuentas; valor heredado en la config resuelta (bloque 1B). |
 | dashboards-alertas.md §7 | Enlaces de alertas a rutas `/cultivo/...` (2.6); extracción de componentes de gráfica (2.8). |
+| dashboards-alertas.md §2–§7, especificacion-api.md §3.13, §4; generador-sintetico-ml.md §2, §3, §8, §9 | Endpoints `cycles` y `farms`, `date_from`/`date_to`, unidad lote o finca; ventana de 30 días y alerta de pagos por finca; temporadas con pasadas abiertas; dashboard dentro del módulo en `/cultivo`; situaciones del presente, regla de floración de 150 días y salida de lo guardado en el generador (bloque 6). |
 
 ## 9. Fuera de alcance
 
