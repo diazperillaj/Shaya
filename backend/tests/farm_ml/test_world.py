@@ -43,6 +43,23 @@ def test_farm_names_are_unique():
         farm_names(Params(**{**PARAMS.__dict__, "farms": len(catalogs.FARM_NAMES) + 1}))
 
 
+def test_present_situations_keep_the_world_consistent():
+    """Los deslices del presente (dashboards-alertas §4) se aplican sin romper las invariantes."""
+    world = simulate(Params(end_date=date(2026, 10, 2)))
+    applied = {scenario.split(":")[0] for scenario in world.scenarios}
+    assert {"pasada sin cerrar", "finca sin registros", "lavado sin registrar", "secado sin cerrar"} <= applied
+
+    forced = [r for farm in world.farms for r in farm.climate_records if r.forced]
+    assert forced and not any(r.recorded for r in forced)
+    open_passes = [h for f in world.farms for p in f.plots for c in p.cycles for h in c.harvests if h.end is None]
+    assert any((world.params.end_date - h.start).days > 30 for h in open_passes)
+    for farm in world.farms:
+        for plot in farm.plots:
+            assert sum(c.end is None for c in plot.cycles) <= 1
+        for drying in farm.dryings:
+            assert drying.inputs and all(w.status == "completed" for w, _ in drying.inputs)
+
+
 def test_same_seed_same_world(world):
     assert summary(simulate(PARAMS)) == summary(world)
 

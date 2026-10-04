@@ -18,7 +18,7 @@ mundo simulado (la base no guarda lo no registrado ni las latentes).
 import math
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func
@@ -45,6 +45,7 @@ from scripts.farm_ml.persist import Persisted
 from scripts.farm_ml.world import World
 
 ZERO = Decimal(0)
+MIN_FLOWERING_TO_HARVEST_DAYS = 150
 
 
 @dataclass
@@ -176,23 +177,28 @@ def check_dates(db: Session, report: Report, farm_ids: list, end: date) -> None:
     report.add("Labores dentro de las fechas de su ciclo", problems, "todas las labores")
 
     harvests = db.query(Harvest).filter(Harvest.crop_cycle_id.in_(list(ranges))).all()
-    flowering = dict(
-        db.query(CYCLE_LABORS["flowering-records"][0].crop_cycle_id, func.min(CYCLE_LABORS["flowering-records"][1]))
-        .filter(CYCLE_LABORS["flowering-records"][0].crop_cycle_id.in_(list(ranges)))
-        .group_by(CYCLE_LABORS["flowering-records"][0].crop_cycle_id).all()
-    )
+    flowering_model, flowering_column = CYCLE_LABORS["flowering-records"]
+    flowerings: dict[int, list] = defaultdict(list)
+    for cycle_id, day in (
+        db.query(flowering_model.crop_cycle_id, flowering_column)
+        .filter(flowering_model.crop_cycle_id.in_(list(ranges))).all()
+    ):
+        flowerings[cycle_id].append(day)
     problems = []
     for harvest in harvests:
         start, stop = ranges[harvest.crop_cycle_id]
         if not start <= harvest.start_date <= (harvest.end_date or end) <= stop:
             problems.append(f"cosecha {harvest.id} fuera del ciclo")
-        first_flowering = flowering.get(harvest.crop_cycle_id)
-        if first_flowering is not None and first_flowering >= harvest.start_date:
-            problems.append(f"cosecha {harvest.id} antes de la floración")
+        # El fruto tarda ~32 semanas: ninguna cosecha llega a menos de 150 días de una floración.
+        # Una floración posterior es de la temporada siguiente (p. ej., en un ciclo sin cerrar).
+        if any(timedelta(0) <= harvest.start_date - day < timedelta(days=MIN_FLOWERING_TO_HARVEST_DAYS)
+               for day in flowerings.get(harvest.crop_cycle_id, [])):
+            problems.append(f"cosecha {harvest.id} a menos de {MIN_FLOWERING_TO_HARVEST_DAYS} días de una floración")
         for work in harvest.works:
             if not harvest.start_date <= work.work_date <= (harvest.end_date or end):
                 problems.append(f"trabajo {work.id} fuera de su cosecha")
-    report.add("Floración < cosecha; cosechas y recolección dentro de su ciclo", problems, f"{len(harvests)} cosechas")
+    report.add("Floración ≥ 150 días antes de cada cosecha; cosechas y recolección dentro de su ciclo",
+               problems, f"{len(harvests)} cosechas")
 
     wets = db.query(WetProcessing).filter(WetProcessing.farm_id.in_(farm_ids)).all()
     problems = []

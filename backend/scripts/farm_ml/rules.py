@@ -27,7 +27,7 @@ tupla `RULES_VERSION + seed + fecha final` identifica un dataset.
 import math
 from dataclasses import dataclass, field
 
-RULES_VERSION = "1.1.0"
+RULES_VERSION = "1.2.0"
 
 
 @dataclass(frozen=True)

@@ -96,7 +96,7 @@ def generate(db: Session, params: Params, wipe: bool = False, output: Optional[P
         result.report_path = audit.write_report(world, {
             "rules_version": rules.RULES_VERSION, "seed": params.seed, "end_date": params.end_date,
             "missing_level": params.missing_level, "fingerprint": result.fingerprint,
-            "counts": persisted.counts, **report.as_dict(),
+            "counts": persisted.counts, "scenarios": world.scenarios, **report.as_dict(),
         }, output)
     result.seconds = time.monotonic() - started
     return result
@@ -145,6 +145,10 @@ def print_report(result: Result) -> None:
     for check in result.report.checks:
         mark = "OK " if check.ok else ("ERR" if check.severity == "error" else "ADV")
         print(f"  [{mark}] {check.name}: {check.detail}")
+    if result.world.scenarios:
+        print("\nSituaciones del presente:")
+        for scenario in result.world.scenarios:
+            print(f"  · {scenario}")
     if not result.world.params.inventory_available:
         print("\nAviso: el inventario no tiene producto de pergamino (tipo «other»): los secados que irían "
               "al inventario quedaron guardados en la finca.")

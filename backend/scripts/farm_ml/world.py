@@ -72,6 +72,7 @@ class Registered:
 
     group: str
     recorded: bool
+    forced: bool = False   # lo dejó sin registrar una situación del presente, no el % de faltantes
 
 
 @dataclass
@@ -329,31 +330,38 @@ class World:
     params: Params
     enso: dict
     farms: list = field(default_factory=list)
+    scenarios: list = field(default_factory=list)   # situaciones del presente aplicadas (present.py)
 
     def all_dryings(self):
         for farm in self.farms:
             yield from (drying for drying in farm.dryings)
 
     def registered(self):
-        """(finca, grupo, registrado) de cada registro sujeto a faltantes, para medir el % efectivo."""
+        """
+        (finca, grupo, registrado) de cada registro sujeto a faltantes, para
+        medir el % efectivo. Lo que dejó sin registrar una situación del
+        presente no cuenta: no sale del % configurado.
+        """
         for farm in self.farms:
             for record in farm.climate_records:
-                yield farm, record.group, record.recorded
+                if not record.forced:
+                    yield farm, record.group, record.recorded
             for plot in farm.plots:
                 for record in plot.soil:
                     yield farm, record.group, record.recorded
                 for cycle in plot.cycles:
                     for record in cycle.labors:
-                        yield farm, record.group, record.recorded
+                        if not record.forced:
+                            yield farm, record.group, record.recorded
                     for harvest in cycle.harvests:
-                        if harvest.cherry_eval is not None:
+                        if harvest.cherry_eval is not None and not harvest.cherry_eval.forced:
                             yield farm, "cherry_quality", harvest.cherry_eval.recorded
             for wet in farm.wets:
                 if wet.status == "completed":
                     for missing in wet.process_missing.values():
                         yield farm, "process", not missing
             for drying in farm.dryings:
-                if drying.quality is not None:
+                if drying.quality is not None and not drying.quality.forced:
                     yield farm, "parchment_quality", drying.quality.recorded
 
 
@@ -950,7 +958,7 @@ class FarmSimulator:
             )
             pass_kg = season_kg * share
             harvest.family_kg = pass_kg * rng.uniform(0.0, 0.08)
-            harvest.loss_fraction = rng.uniform(0.0, 0.03)
+            harvest.loss_fraction = rng.uniform(0.002, 0.03)   # merma mínima: los gramos redondeados nunca superan el total
             picked_target = pass_kg - harvest.family_kg
 
             # Composición verdadera de la cereza
@@ -998,7 +1006,7 @@ class FarmSimulator:
                 if day > self.end:
                     continue
                 kg = sum(w.kg_true for w in harvest.works if w.day == day) + family_share
-                harvest.daily_kg[day] = kg * (1.0 - harvest.loss_fraction)
+                harvest.daily_kg[day] = math.floor(kg * (1.0 - harvest.loss_fraction) * 1000) / 1000
             if closed:
                 harvest.total_kg = round(worked + harvest.family_kg, 3)
 
@@ -1228,10 +1236,14 @@ class FarmSimulator:
         if destination == "inventory":
             purchase = min(end + timedelta(days=purchase_delay), self.end)
             drying.inventory = (round(catalogs.carga_price(purchase) * price_factor, -3), purchase)
-        elif destination == "stored" and not recent and later_draw < 0.5 and self.params.inventory_available:
+        elif destination == "stored" and not recent:
+            # Lo guardado no se queda para siempre: entra al inventario o se vende directo
             purchase = end + timedelta(days=later_delay)
-            if purchase <= self.end:
-                drying.later_inventory = (round(catalogs.carga_price(purchase) * price_factor, -3), purchase)
+            if self.params.inventory_available and later_draw < 0.5:
+                if purchase <= self.end:
+                    drying.later_inventory = (round(catalogs.carga_price(purchase) * price_factor, -3), purchase)
+            else:
+                drying.destination = "direct_sale"
 
         targets = self.targets(drying, targets_noise)
         eval_day = end + timedelta(days=eval_offset)
@@ -1418,6 +1430,9 @@ class FarmSimulator:
                 config["fertilization_reminder_days"] = 100
                 config["broca_alert_pct"] = 1.5
             farm.alert_config = config or {"inactivity_alert_days": 30}
+        # Quien riega activa su recordatorio de riego (desactivado por defecto)
+        if farm.irrigates:
+            farm.alert_config = {**(farm.alert_config or {}), "irrigation_reminder_days": 12}
         for plot in farm.plots:
             if plot.variety == "Geisha" and rng.random() < 0.5:
                 plot.alert_config = {"broca_alert_pct": 1.0}
@@ -1437,9 +1452,12 @@ def farm_names(params: Params) -> list[str]:
 
 
 def simulate(params: Params) -> World:
+    from scripts.farm_ml.present import apply_present
+
     names = farm_names(params)
     enso = simulate_enso(params)
     world = World(params=params, enso=enso)
     for index, name in enumerate(names):
         world.farms.append(FarmSimulator(params, index, enso, name).run())
+    apply_present(world)
     return world
