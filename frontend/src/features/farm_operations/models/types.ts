@@ -5,6 +5,8 @@
  * número en los servicios; los campos opcionales vacíos son `null`.
  */
 
+import type { BarChartDataApi } from '../../../components/charts/chartData'
+
 export type PlotStatus = 'active' | 'closed'
 
 export type PlotEventType =
@@ -735,4 +737,123 @@ export interface DryingTrace {
     washed_kg: number | null
     wet_kg: number
   }[]
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────
+
+export type AlertSeverity = 'high' | 'medium' | 'info'
+
+export interface FarmAlert {
+  type: string
+  severity: AlertSeverity
+  farm_id: number
+  farm_name: string
+  plot_id: number | null
+  plot_name: string | null
+  /** A qué enlaza: lote y ciclo, cosecha, beneficio, secado o pagos de la finca */
+  entity: Partial<Record<'plot_id' | 'crop_cycle_id' | 'harvest_id' | 'wet_processing_id' | 'drying_id' | 'farm_id', number>>
+  message: string
+  value: number | null
+  threshold: number | null
+  since: string | null
+}
+
+export interface InProcess {
+  count: number
+  kg: number
+  oldest_days: number | null
+}
+
+export interface DashboardSummary {
+  period: { date_from: string; date_to: string }
+  farms_active: number
+  plots_active: number
+  area_by_variety: { variety: string; area_ha: number }[]
+  cycles_active: number
+  harvests_open: number
+  wet_in_progress: InProcess
+  drying_in_progress: InProcess
+  stored_parchment_kg: number
+  pending_payments: number
+  stored_dryings: {
+    drying_id: number
+    farm_id: number
+    farm_name: string
+    end_date: string
+    output_kg: number
+    days: number
+  }[]
+  cherry_kg: number
+  parchment_kg: number
+  yield_pct: number | null
+  yield_history_pct: number | null
+  harvest_cost: number
+  score_avg: number | null
+  evaluations: number
+}
+
+export type ChartUnit = 'farm' | 'plot'
+
+export interface ProductionCharts {
+  unit: ChartUnit
+  monthly: BarChartDataApi
+  by_unit: BarChartDataApi
+  yield_by_unit: BarChartDataApi
+  yield_reference_pct: number | null
+  by_variety: BarChartDataApi
+  picking_cost: BarChartDataApi
+  pipeline: BarChartDataApi
+}
+
+export interface QualityCharts {
+  unit: ChartUnit
+  score_distribution: BarChartDataApi
+  score_by_variety: BarChartDataApi
+  score_defects_by_unit: BarChartDataApi
+  score_evolution: BarChartDataApi
+  broca_by_unit: BarChartDataApi
+  roya_by_unit: BarChartDataApi
+  humidity_distribution: BarChartDataApi
+  humidity_range: [number | null, number | null]
+}
+
+export interface Season {
+  label: string
+  date_from: string
+  date_to: string
+  harvests: number
+  cherry_kg: number
+  open: boolean
+}
+
+export interface CycleState {
+  crop_cycle_id: number
+  cycle_number: number
+  plot_id: number
+  plot_name: string
+  farm_id: number
+  farm_name: string
+  start_date: string
+  days: number
+  last_labor: { kind: LaborKind; date: string } | null
+  harvest_status: 'waiting' | 'open' | 'harvested'
+  estimated_harvest: string | null
+  alerts: number
+}
+
+export interface FarmRanking {
+  farm_id: number
+  farm_name: string
+  plots_active: number
+  cherry_kg: number
+  parchment_kg: number
+  yield_pct: number | null
+  score_avg: number | null
+  alerts_high: number
+  alerts_medium: number
+  alerts_info: number
+  broca_pct: number | null
+  roya_pct: number | null
+  broca_threshold: number | null
+  stored_kg: number
 }

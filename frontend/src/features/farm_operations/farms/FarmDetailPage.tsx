@@ -44,7 +44,7 @@ function FarmDetail({ id }: { id: number }) {
   if (error) {
     return (
       <div className="flex flex-col gap-4">
-        <Link to="/cultivo" className="text-sm text-emerald-800 hover:underline">← Volver a las fincas</Link>
+        <Link to="/cultivo/fincas" className="text-sm text-emerald-800 hover:underline">← Volver a las fincas</Link>
         <ErrorMessage message={error} />
       </div>
     )
@@ -60,7 +60,7 @@ function FarmDetail({ id }: { id: number }) {
     <div className="flex flex-col gap-6">
       <PageHeader
         icon={MapPinned}
-        back={{ to: '/cultivo', label: 'Fincas' }}
+        back={{ to: '/cultivo/fincas', label: 'Fincas' }}
         title={
           <span className="flex flex-wrap items-center gap-2">
             {farm.name} {!farm.active && <Badge>Inactiva</Badge>}
@@ -159,7 +159,7 @@ function FarmDetail({ id }: { id: number }) {
             setDialog(null)
             reloadFarm()
           }}
-          onDeleted={() => navigate('/cultivo')}
+          onDeleted={() => navigate('/cultivo/fincas')}
         />
       )}
       {dialog === 'alerts' && (

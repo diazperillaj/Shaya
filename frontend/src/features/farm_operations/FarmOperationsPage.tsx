@@ -1,10 +1,11 @@
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import type { LucideIcon } from 'lucide-react'
-import { FlaskConical, KeyRound, MapPinned } from 'lucide-react'
+import { FlaskConical, KeyRound, LayoutDashboard, MapPinned } from 'lucide-react'
 import MainLayout from '../../components/layout/MainLayout'
 import { useAuth } from '../auth/AuthContext'
 import RequireRole from '../auth/RequireRole'
 import FarmerAccountsPage from './accounts/FarmerAccountsPage'
+import FarmDashboardPage from './dashboard/FarmDashboardPage'
 import FarmDetailPage from './farms/FarmDetailPage'
 import FarmsPage from './farms/FarmsPage'
 import HarvestPage from './harvests/HarvestPage'
@@ -28,10 +29,15 @@ interface Tab {
 const TABS: Tab[] = [
   {
     to: '/cultivo',
+    label: 'Resumen',
+    icon: LayoutDashboard,
+    matches: (path) => path === '/cultivo' || path === '/cultivo/',
+  },
+  {
+    to: '/cultivo/fincas',
     label: 'Fincas',
     icon: MapPinned,
     matches: (path) =>
-      path === '/cultivo' ||
       ['/cultivo/fincas', '/cultivo/lotes', '/cultivo/cosechas', '/cultivo/beneficios', '/cultivo/secados', '/cultivo/trazabilidad']
         .some((prefix) => path.startsWith(prefix)),
   },
@@ -86,7 +92,8 @@ export default function FarmOperationsPage() {
         </nav>
 
         <Routes>
-          <Route index element={<FarmsPage />} />
+          <Route index element={<FarmDashboardPage />} />
+          <Route path="fincas" element={<FarmsPage />} />
           <Route path="fincas/:farmId" element={<FarmDetailPage />} />
           <Route path="fincas/:farmId/pagos" element={<PaymentsPage />} />
           <Route path="fincas/:farmId/poscosecha" element={<PostharvestPage />} />

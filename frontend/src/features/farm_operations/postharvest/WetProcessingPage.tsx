@@ -56,7 +56,7 @@ function WetProcessingView({ id }: { id: number }) {
   if (error) {
     return (
       <div className="flex flex-col gap-4">
-        <Link to="/cultivo" className="text-sm text-emerald-800 hover:underline">← Volver a las fincas</Link>
+        <Link to="/cultivo/fincas" className="text-sm text-emerald-800 hover:underline">← Volver a las fincas</Link>
         <ErrorMessage message={error} />
       </div>
     )
