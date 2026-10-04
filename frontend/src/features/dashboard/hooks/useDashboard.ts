@@ -1,19 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchDashboardCharts, fetchDashboardKpis } from '../services/dashboard.api'
-import type { BarChartDataApi, DashboardCharts, DashboardKPIsApi, RechartsDataPoint } from '../models/types'
-
-// ─── Transform API chart format → Recharts format ────────────────────────────
-
-function toRecharts(chart: BarChartDataApi) {
-  const data: RechartsDataPoint[] = chart.labels.map((label, i) => {
-    const point: RechartsDataPoint = { name: label }
-    for (const series of chart.series) {
-      point[series.name] = series.data[i] ?? 0
-    }
-    return point
-  })
-  return { data, keys: chart.series.map((s) => s.name) }
-}
+import { toRecharts } from '../../../components/charts/chartData'
+import type { DashboardCharts, DashboardKPIsApi } from '../models/types'
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 

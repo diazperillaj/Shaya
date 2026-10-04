@@ -1,3 +1,7 @@
+import type { BarChartDataApi, RechartsChart } from '../../../components/charts/chartData'
+
+export type { BarChartDataApi, ChartSeriesApi, RechartsChart, RechartsDataPoint } from '../../../components/charts/chartData'
+
 // ─── Raw API shapes ───────────────────────────────────────────────────────────
 
 export interface DashboardKPIsApi {
@@ -20,16 +24,6 @@ export interface DashboardKPIsApi {
   net_all_time: number
 }
 
-export interface ChartSeriesApi {
-  name: string
-  data: number[]
-}
-
-export interface BarChartDataApi {
-  labels: string[]
-  series: ChartSeriesApi[]
-}
-
 export interface DashboardChartsApi {
   sales_by_month: BarChartDataApi
   top_products: BarChartDataApi
@@ -37,16 +31,6 @@ export interface DashboardChartsApi {
   income_vs_expenses: BarChartDataApi
   expenses_by_category: BarChartDataApi
   sales_by_payment_method: BarChartDataApi
-}
-
-// ─── Recharts-ready shape ─────────────────────────────────────────────────────
-// Each entry: { name: label, [seriesName]: value, ... }
-
-export type RechartsDataPoint = Record<string, string | number>
-
-export interface RechartsChart {
-  data: RechartsDataPoint[]
-  keys: string[]   // series names → used as <Bar dataKey="..." />
 }
 
 export interface DashboardCharts {

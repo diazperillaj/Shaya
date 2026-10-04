@@ -7,9 +7,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts'
 import {
   TrendingUp,
@@ -23,102 +20,18 @@ import {
   Receipt,
   Scale,
 } from 'lucide-react'
+import ChartCard from '../../components/charts/ChartCard'
+import CustomTooltip from '../../components/charts/CustomTooltip'
+import DonutChart from '../../components/charts/DonutChart'
+import GlobalChartDefs from '../../components/charts/GlobalChartDefs'
+import KpiCard from '../../components/charts/KpiCard'
+import { fmtCOP, GRAD_H, GRAD_V } from '../../components/charts/chartData'
 import { useDashboard } from './hooks/useDashboard'
-import type { DashboardKPIsApi, RechartsChart } from './models/types'
+import type { DashboardKPIsApi } from './models/types'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const fmtCOP = (n: number) =>
-  n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
-
 const fmtNum = (n: number) => n.toLocaleString('es-CO')
-
-// ─── Chart colors ─────────────────────────────────────────────────────────────
-
-// Gradient IDs for vertical bars (top → bottom) and horizontal bars (left → right)
-const GRAD_V = ['url(#gv0)', 'url(#gv1)', 'url(#gv2)', 'url(#gv3)']
-const GRAD_H = ['url(#gh0)', 'url(#gh1)', 'url(#gh2)', 'url(#gh3)']
-
-// Palette for pie/donut slices
-const PIE_COLORS = [
-  '#065f46', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0',
-  '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4',
-  '#047857', '#059669', '#0f766e',
-]
-
-// Rendered once outside Recharts — SVG gradient IDs are global in the browser
-function GlobalChartDefs() {
-  return (
-    <svg width="0" height="0" style={{ position: 'absolute', overflow: 'hidden' }} aria-hidden>
-      <defs>
-        <linearGradient id="gv0" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#10b981" stopOpacity={0.95} />
-          <stop offset="100%" stopColor="#065f46" stopOpacity={1} />
-        </linearGradient>
-        <linearGradient id="gv1" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#34d399" stopOpacity={0.95} />
-          <stop offset="100%" stopColor="#059669" stopOpacity={1} />
-        </linearGradient>
-        <linearGradient id="gv2" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#6ee7b7" stopOpacity={0.95} />
-          <stop offset="100%" stopColor="#34d399" stopOpacity={1} />
-        </linearGradient>
-        <linearGradient id="gv3" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#a7f3d0" stopOpacity={0.95} />
-          <stop offset="100%" stopColor="#6ee7b7" stopOpacity={1} />
-        </linearGradient>
-        <linearGradient id="gh1" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#34d399" stopOpacity={0.95} />
-          <stop offset="100%" stopColor="#059669" stopOpacity={1} />
-        </linearGradient>
-      </defs>
-    </svg>
-  )
-}
-
-// ─── Custom tooltip ───────────────────────────────────────────────────────────
-
-interface TooltipPayloadItem {
-  name: string
-  value: number
-  color: string
-}
-
-interface CustomTooltipProps {
-  active?: boolean
-  payload?: TooltipPayloadItem[]
-  label?: string
-  currency?: boolean
-}
-
-function CustomTooltip({ active, payload, label, currency = false }: CustomTooltipProps) {
-  if (!active || !payload || payload.length === 0) return null
-
-  const fmt = (v: number) =>
-    currency
-      ? fmtCOP(v)
-      : v.toLocaleString('es-CO')
-
-  return (
-    <div className="bg-gray-900 text-white rounded-2xl shadow-2xl px-4 py-3 min-w-[160px] border border-white/10">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
-      <div className="flex flex-col gap-1.5">
-        {payload.map((item) => (
-          <div key={item.name} className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-1.5">
-              <span
-                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: item.color }}
-              />
-              <span className="text-xs text-gray-300">{item.name}</span>
-            </div>
-            <span className="text-xs font-bold text-white">{fmt(item.value)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -258,68 +171,6 @@ export default function DashboardPage() {
   )
 }
 
-// ─── Donut chart (categorías / métodos de pago) ───────────────────────────────
-
-function DonutChart({ chart }: { chart: RechartsChart }) {
-  const valueKey = chart.keys[0]
-  const data = chart.data.map((d) => ({ name: String(d.name), value: Number(d[valueKey] ?? 0) }))
-  const total = data.reduce((sum, d) => sum + d.value, 0)
-
-  if (total <= 0) {
-    return (
-      <div className="flex items-center justify-center h-[260px] text-sm text-gray-400">
-        Sin datos aún
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex flex-col lg:flex-row items-center gap-4">
-      <ResponsiveContainer width="100%" height={260} className="lg:flex-1">
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="value"
-            nameKey="name"
-            innerRadius="55%"
-            outerRadius="85%"
-            paddingAngle={2}
-            strokeWidth={2}
-          >
-            {data.map((_, i) => (
-              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip
-            formatter={(value, name) => {
-              const v = Number(value ?? 0)
-              return [`${fmtCOP(v)} (${((v / total) * 100).toFixed(1)}%)`, String(name)]
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-
-      {/* Legend with values */}
-      <div className="flex flex-col gap-1.5 max-h-[240px] overflow-y-auto pr-1 min-w-[180px]">
-        {data.map((d, i) => (
-          <div key={d.name} className="flex items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span
-                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
-              />
-              <span className="text-gray-600 truncate">{d.name}</span>
-            </div>
-            <span className="font-semibold text-gray-800 whitespace-nowrap">
-              {fmtCOP(d.value)}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ─── KPI grid ─────────────────────────────────────────────────────────────────
 
 function KpiGrid({ kpis }: { kpis: DashboardKPIsApi }) {
@@ -420,57 +271,6 @@ function KpiGrid({ kpis }: { kpis: DashboardKPIsApi }) {
         value={marginMonth === null ? '—' : `${marginMonth.toFixed(1)}%`}
         sub="Utilidad / ventas del mes"
       />
-    </div>
-  )
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-interface KpiCardProps {
-  icon: React.ReactNode
-  label: string
-  value: string
-  sub: string
-  accent?: boolean
-}
-
-function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
-  return (
-    <div
-      className={`rounded-2xl p-4 border shadow-sm flex flex-col gap-2 ${
-        accent
-          ? 'bg-emerald-900 border-emerald-800 text-white'
-          : 'bg-white border-gray-100'
-      }`}
-    >
-      <div className={`flex items-center gap-2 ${accent ? 'text-emerald-300' : 'text-emerald-700'}`}>
-        {icon}
-        <span className={`text-xs font-semibold uppercase tracking-wide ${accent ? 'text-emerald-200' : 'text-gray-500'}`}>
-          {label}
-        </span>
-      </div>
-      <p className={`text-lg font-bold leading-tight ${accent ? 'text-white' : 'text-gray-900'}`}>
-        {value}
-      </p>
-      <p className={`text-xs ${accent ? 'text-emerald-300' : 'text-gray-400'}`}>{sub}</p>
-    </div>
-  )
-}
-
-interface ChartCardProps {
-  title: string
-  subtitle: string
-  children: React.ReactNode
-}
-
-function ChartCard({ title, subtitle, children }: ChartCardProps) {
-  return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5">
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
-        <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
-      </div>
-      {children}
     </div>
   )
 }
