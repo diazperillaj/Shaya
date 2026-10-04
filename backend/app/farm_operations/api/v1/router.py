@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from app.farm_operations.api.v1.alert_configs import router as alert_configs_router
 from app.farm_operations.api.v1.climate_records import router as climate_records_router
 from app.farm_operations.api.v1.crop_cycles import router as crop_cycles_router
+from app.farm_operations.api.v1.dashboard import router as dashboard_router
 from app.farm_operations.api.v1.day_labors import router as day_labors_router
 from app.farm_operations.api.v1.dependencies import require_farm_role
 from app.farm_operations.api.v1.dryings import router as dryings_router
@@ -51,3 +52,4 @@ farm_router.include_router(dryings_router.router, prefix="/dryings", tags=["farm
 farm_router.include_router(quality_evals_router.router, prefix="/quality-evals", tags=["farm-quality-evals"])
 farm_router.include_router(traceability_router.router, prefix="/traceability", tags=["farm-traceability"])
 farm_router.include_router(farmer_accounts_router.router, prefix="/farmer-accounts", tags=["farm-farmer-accounts"])
+farm_router.include_router(dashboard_router.router, prefix="/dashboard", tags=["farm-dashboard"])

@@ -11,12 +11,48 @@ from collections import defaultdict
 from decimal import Decimal
 from typing import Optional
 
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
-from app.farm_operations.models import Drying, DryingInput, Harvest, WetProcessingInput
+from app.farm_operations.models import (
+    CropCycle,
+    Drying,
+    DryingInput,
+    Harvest,
+    Plot,
+    WetProcessing,
+    WetProcessingInput,
+)
 
 ZERO = Decimal(0)
 HUNDRED = Decimal(100)
+
+
+def traced_cherry_select() -> Select:
+    """
+    La misma proporción que `traced_cherry_by_harvest`, en SQL y para muchos
+    secados a la vez: una fila por secado y cosecha de origen, con la cereza
+    trazada y el lote (y su variedad) de donde viene. La usan los
+    rendimientos y las gráficas del dashboard.
+    """
+    cherry = DryingInput.wet_kg / WetProcessing.washed_kg * WetProcessingInput.cherry_kg
+    return (
+        select(
+            DryingInput.drying_id.label("drying_id"),
+            WetProcessingInput.harvest_id.label("harvest_id"),
+            Plot.id.label("plot_id"),
+            Plot.name.label("plot_name"),
+            Plot.variety.label("variety"),
+            Plot.farm_id.label("farm_id"),
+            cherry.label("cherry_kg"),
+        )
+        .join(WetProcessing, DryingInput.wet_processing_id == WetProcessing.id)
+        .join(WetProcessingInput, WetProcessingInput.wet_processing_id == WetProcessing.id)
+        .join(Harvest, WetProcessingInput.harvest_id == Harvest.id)
+        .join(CropCycle, Harvest.crop_cycle_id == CropCycle.id)
+        .join(Plot, CropCycle.plot_id == Plot.id)
+        .where(WetProcessing.washed_kg > 0)
+    )
 
 
 def _share(part: Decimal, whole: Decimal) -> Decimal:
