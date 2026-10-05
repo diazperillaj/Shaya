@@ -150,14 +150,18 @@ class Persister:
 
     # ── Entrada ───────────────────────────────────────────────────────────
 
-    def run(self, progress=None) -> Persisted:
+    def run(self, log=None) -> Persisted:
+        """Escribe el mundo finca por finca; `log(mensaje)` recibe el avance."""
+        log = log or (lambda message: None)
         self.farmer = self.create_farmer()
         self.load_supplies()
-        for farm in self.world.farms:
+        total = len(self.world.farms)
+        for index, farm in enumerate(self.world.farms, start=1):
+            before = sum(self.out.counts.values())
             self.persist_farm(farm)
             self.db.commit()
-            if progress:
-                progress(farm)
+            written = sum(self.out.counts.values()) - before
+            log(f"[{index}/{total}] {farm.name}: {written:,} registros".replace(",", "."))
         return self.out
 
     def create_farmer(self) -> Farmer:

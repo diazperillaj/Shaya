@@ -54,6 +54,16 @@ def real_data(db_session, parchment_product):
     return {"farm": farm.id, "plot": plot.id, "cycle": cycle.id, "supply": urea.id, "parchment": parchment.id}
 
 
+def test_generation_reports_progress_of_every_stage(db_session, parchment_product):
+    messages = []
+    generate(db_session, MINIMAL, log=messages.append)
+
+    for stage in ("1/4 Simulando", "2/4 Escribiendo", "3/4 Validando", "4/4 Calculando la huella"):
+        assert any(m.startswith(stage) for m in messages), stage
+    assert any("[1/1]" in m and "secados cerrados" in m for m in messages)   # avance por finca
+    assert any("chequeos bien" in m for m in messages)
+
+
 def test_minimal_generation_passes_validation(db_session, parchment_product):
     result = generate(db_session, MINIMAL)
 

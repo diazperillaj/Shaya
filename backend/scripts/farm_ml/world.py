@@ -1451,13 +1451,21 @@ def farm_names(params: Params) -> list[str]:
     return stream(params.seed, "farm-names").sample(catalogs.FARM_NAMES, params.farms)
 
 
-def simulate(params: Params) -> World:
+def simulate(params: Params, log=None) -> World:
+    """Simula el mundo; `log(mensaje)` recibe el avance finca por finca."""
     from scripts.farm_ml.present import apply_present
 
+    log = log or (lambda message: None)
     names = farm_names(params)
     enso = simulate_enso(params)
     world = World(params=params, enso=enso)
     for index, name in enumerate(names):
-        world.farms.append(FarmSimulator(params, index, enso, name).run())
+        farm = FarmSimulator(params, index, enso, name).run()
+        world.farms.append(farm)
+        cycles = sum(len(plot.cycles) for plot in farm.plots)
+        closed = sum(1 for drying in farm.dryings if drying.end is not None)
+        log(f"[{index + 1}/{params.farms}] {farm.name} ({farm.municipality.name}): "
+            f"{len(farm.plots)} lotes, {cycles} ciclos, {len(farm.wets)} beneficios, {closed} secados cerrados")
+    log("Aplicando las situaciones del presente…")
     apply_present(world)
     return world

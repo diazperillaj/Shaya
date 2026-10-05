@@ -67,8 +67,12 @@ def ensure_audit_tools() -> None:
         ) from None
 
 
-def generate(db: Session, params: Params, wipe: bool = False, output: Optional[Path] = None, progress=None) -> Result:
-    """Genera, escribe, valida y audita un dataset. `output=None` no escribe archivos."""
+def generate(db: Session, params: Params, wipe: bool = False, output: Optional[Path] = None, log=None) -> Result:
+    """
+    Genera, escribe, valida y audita un dataset. `output=None` no escribe
+    archivos; `log(mensaje)` recibe el avance de cada etapa.
+    """
+    log = log or (lambda message: None)
     ensure_allowed()
     started = time.monotonic()
     if params.end_date >= business_today():
@@ -83,15 +87,27 @@ def generate(db: Session, params: Params, wipe: bool = False, output: Optional[P
     if synthetic_farmer(db) is not None:
         if not wipe:
             raise GeneratorError("Ya hay datos sintéticos en esta base: usa --wipe para reemplazarlos")
-        wipe_synthetic(db)
+        log("Borrando los datos sintéticos anteriores…")
+        deleted = wipe_synthetic(db)
+        log(f"  borradas {sum(deleted.values()):,} filas".replace(",", "."))
 
     inventory_available = db.query(Product.id).filter(Product.type == "other").first() is not None
     params = replace(params, inventory_available=inventory_available)
-    world = simulate(params)
-    persisted = Persister(db, world).run(progress)
-    report = validate(db, world, persisted)
+    if not inventory_available:
+        log("Aviso: el inventario no tiene producto de pergamino: lo que iría al inventario queda guardado en la finca")
+
+    log("1/4 Simulando el mundo (sin tocar la base)…")
+    world = simulate(params, log=lambda message: log(f"  {message}"))
+    log("2/4 Escribiendo en la base…")
+    persisted = Persister(db, world).run(log=lambda message: log(f"  {message}"))
+    log("3/4 Validando el dataset…")
+    report = validate(db, world, persisted, log=lambda message: log(f"  {message}"))
+    errors, warnings = len(report.errors), len(report.warnings)
+    log(f"  {len(report.checks) - errors - warnings} chequeos bien, {errors} errores, {warnings} advertencias")
+    log("4/4 Calculando la huella del dataset…")
     result = Result(world, persisted, report, audit.fingerprint(db))
     if output is not None:
+        log(f"  escribiendo la auditoría y el reporte en {output}…")
         result.audit_path = audit.write_audit(world, persisted, output)
         result.report_path = audit.write_report(world, {
             "rules_version": rules.RULES_VERSION, "seed": params.seed, "end_date": params.end_date,
@@ -159,10 +175,24 @@ def print_report(result: Result) -> None:
     print(f"Tiempo: {result.seconds:.0f} s")
 
 
+def console_log():
+    """Avance con el tiempo transcurrido, impreso al instante."""
+    started = time.monotonic()
+
+    def log(message: str) -> None:
+        elapsed = int(time.monotonic() - started)
+        print(f"[{elapsed // 60:02d}:{elapsed % 60:02d}] {message}", flush=True)
+
+    return log
+
+
 def main(argv: Optional[list] = None) -> int:
     from app.core.db.base import engine
     from app.core.db.session import SessionLocal
 
+    # Dentro de Docker la salida no es una terminal y Python la acumula hasta el
+    # final: línea por línea, el avance se ve mientras ocurre
+    sys.stdout.reconfigure(line_buffering=True)
     engine.echo = False   # decenas de miles de inserciones: sin eco de SQL en la consola
     args = parse_args(argv)
     try:
@@ -174,19 +204,21 @@ def main(argv: Optional[list] = None) -> int:
 
     db = SessionLocal()
     try:
+        log = console_log()
         if args.only_wipe:
+            log("Borrando los datos sintéticos…")
             deleted = wipe_synthetic(db)
-            print("Borrado: " + ", ".join(f"{name} {n}" for name, n in deleted.items() if n))
+            log("Borrado: " + (", ".join(f"{name} {n}" for name, n in deleted.items() if n) or "no había datos sintéticos"))
             return 0
         params = Params(
             end_date=args.end_date or business_today() - timedelta(days=1),
             farms=args.farms, plots_per_farm=args.plots_per_farm, years=args.years,
             seed=args.seed, missing_level=args.missing_level,
         )
-        print(f"Generando {params.farms} fincas, {params.years} años hasta {params.end_date} "
-              f"(semilla {params.seed}, reglas {rules.RULES_VERSION}, faltantes {params.missing_level})…")
-        result = generate(db, params, wipe=args.wipe, output=args.output,
-                          progress=lambda farm: print(f"  ✓ {farm.name} ({farm.municipality.name})"))
+        log(f"Generando {params.farms} fincas, {params.years} años hasta {params.end_date} "
+            f"(semilla {params.seed}, reglas {rules.RULES_VERSION}, faltantes {params.missing_level})")
+        result = generate(db, params, wipe=args.wipe, output=args.output, log=log)
+        log("Listo")
     except GeneratorError as error:
         print(f"✗ {error}", file=sys.stderr)
         return 2

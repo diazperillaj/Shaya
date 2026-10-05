@@ -87,18 +87,25 @@ class Report:
         }
 
 
-def validate(db: Session, world: World, persisted: Persisted) -> Report:
+def validate(db: Session, world: World, persisted: Persisted, log=None) -> Report:
+    """Corre todos los chequeos; `log(mensaje)` recibe cuál está corriendo."""
+    log = log or (lambda message: None)
     report = Report()
     farm_ids = [farm.id for farm in persisted.farms.values()]
     end = world.params.end_date
-    check_mass_balance(db, report, farm_ids)
-    check_dates(db, report, farm_ids, end)
-    check_ranges(db, report, farm_ids)
-    check_traceability(report, world, persisted)
-    check_missing(report, world)
-    check_clipping(report, world)
-    check_correlation(report, world)
-    check_zones(report, world)
+    steps = [
+        ("balance de masas", lambda: check_mass_balance(db, report, farm_ids)),
+        ("fechas encadenadas", lambda: check_dates(db, report, farm_ids, end)),
+        ("rangos físicos", lambda: check_ranges(db, report, farm_ids)),
+        ("trazabilidad de la aplicación frente al mundo", lambda: check_traceability(report, world, persisted, log)),
+        ("datos faltantes", lambda: check_missing(report, world)),
+        ("valores recortados", lambda: check_clipping(report, world)),
+        ("correlación altitud–temperatura", lambda: check_correlation(report, world)),
+        ("masa por zona", lambda: check_zones(report, world)),
+    ]
+    for number, (name, step) in enumerate(steps, start=1):
+        log(f"[{number}/{len(steps)}] {name}…")
+        step()
     return report
 
 
@@ -283,7 +290,7 @@ def check_ranges(db: Session, report: Report, farm_ids: list) -> None:
 # ── Trazabilidad: la aplicación frente al mundo ───────────────────────────
 
 
-def check_traceability(report: Report, world: World, persisted: Persisted) -> None:
+def check_traceability(report: Report, world: World, persisted: Persisted, log=lambda message: None) -> None:
     """La composición que calcula la aplicación coincide con la cereza que el mundo trazó."""
     problems, compared = [], 0
     for farm in world.farms:
@@ -296,6 +303,8 @@ def check_traceability(report: Report, world: World, persisted: Persisted) -> No
             compared += 1
             if abs(traced - expected) > max(0.05, expected * 1e-4):
                 problems.append(f"{sim.key}: aplicación {traced:.3f} kg, mundo {expected:.3f} kg")
+            if compared % 1000 == 0:
+                log(f"  {compared:,} secados comparados…".replace(",", "."))
     report.add("Trazabilidad de la aplicación = cereza trazada por el mundo", problems, f"{compared} secados cerrados")
 
 
