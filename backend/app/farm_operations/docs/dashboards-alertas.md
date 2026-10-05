@@ -4,9 +4,9 @@
 > Basado en el modelo de datos, la API y el diseño ML aprobados.
 > Estado: **✅ aprobado** (2026-09-16). Implementados los valores por defecto
 > y la resolución de umbrales por finca y lote (§4.4, bloque 1B), y el
-> dashboard y el cálculo de alertas (§2–§7, bloque 6). La proyección de
-> calidad (§3.4) llega con el modelo, en el bloque 7.
-> Última actualización: 2026-10-03
+> dashboard y el cálculo de alertas (§2–§7, bloque 6), y la proyección de
+> calidad (§3.4, bloque 7).
+> Última actualización: 2026-10-05
 
 ---
 
@@ -176,9 +176,13 @@ Además de lo anterior, restringido a sus fincas:
   alertas del lote. El administrador también la ve al elegir una finca.
 - **Recordatorios de labores**: la lista de alertas tipo *recordatorio*
   (§4.1) como checklist visual — no accionable, solo informativa.
-- **Proyección de calidad** (ML): por lote activo, las 4 variables +
-  `completeness` + descargo, con enlace al detalle (`/quality-projection`).
-  Llega con el modelo (bloque 7).
+- **Proyección de calidad** (ML, `/dashboard/quality-projections`): tabla
+  con una fila por ciclo activo —puntaje, defectos, factor de rendimiento y
+  % de datos registrados— y el descargo; cada lote enlaza a su ficha, donde
+  la tarjeta de proyección muestra además qué etapas ya ocurrieron. La
+  humedad no se proyecta (generador-sintetico-ml G26). Se ve donde se ve el estado
+  de los ciclos (el administrador, al elegir una finca) y se carga aparte:
+  si el modelo no está disponible, el resto del dashboard sigue.
 
 ### 3.5 Widgets propios del admin
 

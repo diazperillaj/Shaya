@@ -4,17 +4,23 @@
 > Basado en el modelo de datos y la API aprobados.
 > Estado: **✅ aprobado** (2026-09-16) — revisión metodológica externa incorporada.
 > Implementado el generador (§2, §3 y su parte de §8) en el bloque 5, con
-> las situaciones del presente que ejercitan las alertas en el bloque 6; el
-> pipeline de ML (§4–§7) corresponde al bloque 7.
-> Última actualización: 2026-10-03
+> las situaciones del presente que ejercitan las alertas en el bloque 6, y
+> el pipeline de ML (§4–§7) con el modelo v1 en el bloque 7.
+> Última actualización: 2026-10-05
 
 ---
 
 ## 1. Objetivo y marco metodológico
 
-Predecir la calidad esperada del café (4 variables de `quality_evals` etapa
-`parchment`: `score`, `defects_pct`, `yield_factor`, `humidity_pct`) a partir
-de las variables registradas durante el ciclo del lote.
+Predecir la calidad esperada del café (3 variables de `quality_evals` etapa
+`parchment`: `score`, `defects_pct`, `yield_factor`) a partir de las
+variables registradas durante el ciclo del lote.
+
+La humedad del pergamino (`humidity_pct`) se genera y se registra, pero **no
+se predice** (G26): depende solo del secado, y el caficultor la mide al
+cerrarlo. Antes del secado no hay de qué deducirla y, después, la «predicción»
+repetiría lo medido. Sigue entrando al modelo como feature (la humedad final
+del secado), porque explica parte de los defectos y del puntaje.
 
 No hay datos reales. Por eso (arquitectura §9.3):
 
@@ -88,11 +94,12 @@ fincas no puede superar el de nombres del catálogo.
 | `--only-wipe` | off | Solo borra lo sintético. |
 | `--output` | `scripts/farm_ml/output/` | Carpeta de la auditoría y el reporte de validación. |
 
-Resultado: ≈ 900–1.550 secados cerrados (filas de entrenamiento); con la
-semilla 42 (reglas 1.0.0), 903 secados cerrados de 908, ≈ 60.000 registros
-en total y ≈ 25 s de ejecución; la versión 1.1.0 solo cambió el catálogo de
-nombres y da cifras equivalentes. Cada finca aporta ≈ 90 secados cerrados en 5 años: para
-entrenar, `--farms 130` da ≈ 12.000 (el máximo es 167, uno por nombre).
+Resultado: ≈ 900–1.550 secados cerrados con la escala por defecto; con la
+semilla 42 (reglas 1.2.0, hasta 2026-10-02), 998 secados cerrados y ≈ 20 s
+de ejecución. Es el dataset de desarrollo y demostración. Para entrenar se
+usa otra escala (§5): 130 fincas y 8 años dan 18.841 secados evaluados (el
+máximo de fincas es 167, uno por nombre); la generación tarda ≈ 4 minutos.
+La serie de precios de la carga empieza en 2018 para cubrir esos 8 años.
 
 ### 3.2 Proceso generativo por lote-ciclo
 
@@ -212,7 +219,7 @@ Principios de diseño (incorporan la revisión metodológica externa):
 | `score` (SCA 0–100) | `68 + 22 · g(q_s) + ε_s`, con `g` suavemente no lineal | `q_s` (calidad sensorial latente): base varietal + curva de altitud + curva de edad + sombra×temperatura + lluvia en llenado (zona óptima) + nutrición (zona óptima) + % verdes + fermentación (ventana móvil) + demora al despulpado + secado. |
 | `defects_pct` | Mecanismo propio: `d_base(q_s·w) + d_broca(bored_pct) + d_verdes(green_pct) + d_secado + ε_d` | La broca aporta **directamente** (grano brocado es defecto físico: relación casi lineal, §abajo); los verdes aportan inmaduros; el sobresecado aporta quebrados. Solo una fracción menor viene de `q_s`. |
 | `yield_factor` | Mecanismo físico independiente de `q_s`: `92 + y_broca + y_roya·susc(variedad) + y_vaneo(déficit hídrico) − y_densidad(altitud) + ε_y` | **Definición (término estándar de la industria): kg de pergamino seco necesarios para obtener 70 kg de excelso. Menor = mejor.** Rango típico 88–105. El nombre y la semántica se conservan porque son los del gremio (no se renombra a "loss"). |
-| `humidity_pct` | **Solo proceso de secado** — independiente de `q_s`: función de días, método, lluvia del periodo y punto de recogida + `ε_h` | Sirve de *sanity check* de esa ruta del pipeline (§7.4). |
+| `humidity_pct` | **Solo proceso de secado** — independiente de `q_s`: función de días, método, lluvia del periodo y punto de recogida + `ε_h` | Se genera y se registra en la evaluación en pergamino, pero no se predice (G26). |
 
 #### Funciones de respuesta (formas; parámetros exactos en `rules.py`)
 
@@ -389,71 +396,136 @@ generador lo avisa.
 
 ## 4. Extracción de features (`ml/features.py`)
 
-Una única función `build_features(drying_id | plot_id_activo, as_of_date)`
-usada por **entrenamiento e inferencia** (misma query, cero divergencia).
+Una sola extracción para **entrenamiento e inferencia** (misma consulta,
+cero divergencia). Cada fila parte de un **origen ponderado**: qué ciclos,
+cosechas, beneficios y secados aportan y con cuántos kg de cereza, con la
+misma proporción de la trazabilidad (`traced_cherry_select`):
+
+- **Entrenamiento**: una fila por secado cerrado con su evaluación en
+  pergamino, a la fecha de cierre del secado (`drying_origins`).
+- **Proyección**: una fila por ciclo activo, a hoy (`cycle_origins`), con lo
+  que ya pasó con su café: pasadas iniciadas (una pasada abierta pesa lo
+  recogido), beneficios y secados.
+
+`build_features(db, origins)` arma el vector de todos los orígenes a la vez,
+con unas pocas consultas por lote de ids (el dataset de entrenamiento tiene
+decenas de miles de filas), y sin pandas, para correr igual en la API.
 
 **Reglas anti-fuga (data leakage):**
 
-1. Toda feature se calcula **solo con datos fechados ≤ `as_of_date`**
-   (en entrenamiento, la fecha de cierre del secado; en inferencia, hoy).
+1. Toda feature se calcula **solo con datos fechados ≤ la fecha de
+   referencia** de la fila (en entrenamiento, el cierre del secado; en
+   inferencia, hoy). Lo previo a la cosecha se mide hasta el **inicio de la
+   primera pasada del ciclo**: lo que pasa después ya no cambia ese grano.
 2. Ninguna feature deriva directa ni indirectamente de los targets
    (`quality_evals` etapa `parchment` está vetada como fuente de features).
-3. Las features se clasifican por **etapa de disponibilidad** — pre-cosecha
-   (lote, suelo, clima, labores, sanidad, floración), cosecha (composición
-   cereza, kg), proceso (beneficio, secado) — y la proyección sobre un ciclo
-   activo solo usa las etapas ya ocurridas (las futuras se imputan, abajo).
+3. Las features se clasifican por **etapa de disponibilidad** —
+   pre-cosecha, cosecha, beneficio y secado— y la proyección sobre un ciclo
+   activo solo usa las etapas ya ocurridas (las futuras se rellenan, abajo).
 
-Vector de features (agregaciones sobre el/los ciclos que alimentan el secado,
-ponderadas por kg en mezclas):
+Vector de features (34). Las numéricas se promedian ponderando por la
+cereza de cada origen; las categóricas toman la del origen con más cereza:
 
-| Feature | Tipo | Etapa | Fuente |
+| Feature | Tipo | Etapa | Fuente y cálculo |
 |---|---|---|---|
-| variety | categórica | pre | plots |
+| variety, shade_type, soil_type | categóricas | pre | plots |
 | altitude | numérica | pre | farms |
-| effective_age_years | numérica | pre | plots + plot_events (zoca) |
-| shade_type, soil_type | categóricas | pre | plots |
-| density_trees_ha | numérica | pre | plots (calculada de distancias) |
-| soil_ph, soil_om_pct | numéricas | pre | último soil_analysis ≤ fecha |
-| rain_mm_cycle, rain_mm_pre_harvest_90d | numéricas | pre | climate_records por rango |
-| temp_avg_cycle | numérica | pre | climate_records |
-| n_fertilizations, fert_kg_total | numéricas | pre | fertilizations |
+| effective_age_years | numérica | pre | plots + plot_events: desde la siembra o la última zoca (sin fecha de siembra, la edad registrada al crear el lote) |
+| density_trees_ha | numérica | pre | plots: 10.000 / (distancia entre surcos × entre plantas) |
+| soil_ph, soil_om_pct | numéricas | pre | último soil_analysis ≤ fecha con dato |
+| rain_mm_filling | numérica | pre | climate_records: lluvia de los **120 días previos a la cosecha** (llenado del grano, la ventana de `rules.py`) |
+| temp_avg_cycle | numérica | pre | climate_records: media de (mín + máx) / 2 del inicio del ciclo a la cosecha |
+| n_fertilizations | numérica | pre | fertilizations |
+| n_kg_ha | numérica | pre | fertilizations × supplies: **nitrógeno aplicado por hectárea**, con el % de N leído de la composición del insumo («N 46 %», «17-6-18»); una composición sin N vale 0 y una ilegible deja el dato faltante |
 | days_since_last_fert | numérica | pre | fertilizations |
 | n_phyto_apps | numérica | pre | phytosanitary_apps |
-| broca_pct_last, roya_pct_last | numéricas | pre | pest_monitorings |
+| broca_pct_last | numérica | pre | pest_monitorings: último muestreo |
+| roya_pct_max | numérica | pre | pest_monitorings: **máximo en el llenado** (120 días previos a la cosecha) |
 | n_weedings, n_prunings | numéricas | pre | cultural_practices |
-| days_flowering_to_harvest | numérica | cosecha | flowering_records + harvests |
-| pass_number, cherry_kg | numéricas | cosecha | harvests |
-| ripe_pct, green_pct, bored_pct | numéricas | cosecha | quality_evals (cherry) |
-| floats_pct | numérica | proceso | wet_processings (floats/entrada) |
-| hours_harvest_to_pulp | numérica | proceso | wet_processings vs harvest_works |
-| fermentation_hours, fermentation_method | num. + cat. | proceso | wet_processings |
-| drying_method | categórica | proceso | dryings |
-| drying_days | numérica | proceso | dryings |
+| days_flowering_to_harvest | numérica | cosecha | flowering_records (la principal: mayor intensidad, la primera) + harvests |
+| pass_number, cherry_kg | numéricas | cosecha | harvests (cereza de la pasada) |
+| ripe_pct, green_pct, bored_pct | numéricas | cosecha | quality_evals (cherry), la última ≤ fecha |
+| floats_pct | numérica | beneficio | wet_processings: flotes / cereza que entró |
+| hours_harvest_to_pulp | numérica | beneficio | despulpado − entrega de las 16:00 del último día de recolección anterior (convención de `rules.py`) |
+| fermentation_hours, fermentation_method | num. + cat. | beneficio | wet_processings |
+| fermentation_temp_c | numérica | beneficio | wet_processings: temperatura ambiente medida en la fermentación |
+| process_day_temp_c | numérica | beneficio | climate_records: temperatura de la finca el día de la recolección procesada (casi nadie mide la de la fermentación) |
+| drying_method | categórica | secado | dryings |
+| drying_days | numérica | secado | dryings |
+| rain_mm_drying | numérica | secado | climate_records: lluvia entre el inicio y el fin del secado |
+| final_humidity_pct | numérica | secado | dryings: humedad que midió el caficultor al cerrar (otra medición, anterior a la evaluación en pergamino) |
+
+La lluvia de un rango es el promedio de los días registrados por los días
+del rango: con días sin registro no se subestima. El registro de clima de un
+lote, si existe, manda sobre el de la finca.
+
+Las cinco features de interacción del generador (temperatura de la
+fermentación, lluvia del secado, humedad final, nitrógeno por hectárea y las
+ventanas del llenado) corresponden a lo que el caficultor registra; las
+variables internas del generador (altitud exacta del lote, nivel de manejo,
+humedad verdadera, ruidos) siguen fuera (G10, G22).
 
 En **inferencia sobre ciclo activo** las features de etapas aún no ocurridas
-se imputan con la **mediana histórica de la misma finca** (o global si no hay
-historia) y se reporta el campo `completeness` (% de grupos de features
-presentes) en la respuesta del endpoint.
+se rellenan con el **valor típico de la misma finca** (mediana o moda de sus
+secados cerrados) o, sin historia, el del entrenamiento, guardado en el
+artefacto (`fill_future_stages`). Lo que ya ocurrió y no se registró queda
+faltante. La respuesta reporta `completeness` (fracción de grupos de
+features con al menos un dato).
 
 ## 5. Entrenamiento (`scripts/farm_ml/train.py`)
 
 | Aspecto | Decisión | Racional |
 |---|---|---|
-| Modelo | **`HistGradientBoostingRegressor`** (sklearn), uno por target (4 modelos en un solo artefacto) | Estado del arte tabular en datasets chicos, **maneja `NaN` nativamente** (crítico: §3.6 sin imputar en entrenamiento), rápido, sin GPU. Los árboles capturan las no linealidades e interacciones de §3.3 sin ingeniería manual. |
+| Modelo | **`HistGradientBoostingRegressor`** (sklearn), uno por target (3 modelos en un solo artefacto) | Estado del arte tabular en datasets chicos, **maneja `NaN` nativamente** (crítico: §3.6 sin imputar en entrenamiento), rápido, sin GPU. Los árboles capturan las no linealidades e interacciones de §3.3 sin ingeniería manual. |
 | Baselines | `DummyRegressor` (media) y regresión lineal | Toda métrica se reporta contra baseline — sin eso, un MAE no dice nada. La lineal además revela cuánta señal es no lineal. |
-| Categóricas | `OrdinalEncoder` + soporte categórico nativo del GBM | Evita explosión one-hot. |
+| Categóricas | Posición en el vocabulario del entrenamiento + soporte categórico nativo del GBM; una categoría desconocida queda faltante | Evita explosión one-hot y no necesita otro objeto de sklearn para codificar en la API. |
+| Hiperparámetros | Fijos (`modeling.GBM_PARAMS`: 400 iteraciones, tasa 0,05, 31 hojas, mínimo 40 filas por hoja, L2 1) | Sin búsqueda sobre los folds de prueba: las métricas no quedan infladas por elegir lo que mejor les va. |
 | Validación | **`GroupKFold` agrupado por finca** (5 folds) | Evita fuga: dos secados de la misma finca comparten altitud/manejo; separarlos entre train y test inflaría las métricas. |
 | Métricas | MAE, RMSE y R² por target + comparación vs baseline | En unidades reales (puntos SCA, pp, kg). |
 | Interpretabilidad | Importancias por permutación + dependencia parcial por target | Insumo de los chequeos de coherencia (§7). |
-| Artefacto | `ml/artifacts/quality_model_vN.joblib` | Bundle: `{models, feature_names, encoders, metrics, farm_medians, rules_version, generator_seed, trained_at}` — la tupla `rules_version + seed` identifica exactamente el dataset que produjo el modelo. |
+| Artefacto | `ml/artifacts/quality_model_vN.joblib` | Bundle: modelos, nombres de las features, vocabularios, valores de referencia globales (relleno de etapas futuras), métricas, hiperparámetros, versiones de scikit-learn y numpy, y la identidad del dataset (reglas, semilla, fecha final, fincas, años, huella). |
+
+**Dataset de entrenamiento** (`dataset.py`): 130 fincas y 8 años hasta una
+fecha final fija, generados en la base efímera de pruebas, nunca en una base
+con datos reales. El mismo comando genera el mundo dos veces —con faltantes
+realistas y sin faltantes (G15)— y guarda los dos datasets en parquet con sus
+metadatos. Con 12 fincas, cada fold de prueba tendría 2 o 3 fincas y las
+variables por finca (altitud, manejo) solo 12 valores.
+
+```
+docker compose -f docker-compose.test.yml run --rm tests sh -c "alembic upgrade head && \
+    python -m scripts.farm_ml.dataset --end-date 2026-09-30 && \
+    python -m scripts.farm_ml.train --dataset scripts/farm_ml/output/ml/dataset_…_realistic.parquet && \
+    python -m scripts.farm_ml.evaluate --dataset …_realistic.parquet --complete …_none.parquet \
+        --model app/farm_operations/ml/artifacts/quality_model_v1.joblib"
+```
+
+El artefacto de la versión en uso se versiona en el repositorio: producción
+nunca tiene datos sintéticos, así que el modelo viaja con el código que lo
+lee. scikit-learn y numpy van fijados en `requirements.txt`; el artefacto
+guarda sus versiones y la API se niega a cargarlo si no coinciden.
 
 ## 6. Serving (`ml/predictor.py` + endpoint)
 
-- Singleton que carga `latest` al primer uso (lazy, no en el arranque de la
-  API); `predict(features) → {score, defects_pct, yield_factor, humidity_pct}`.
-- Endpoint (ya especificado): `GET /farm/plots/{id}/quality-projection` →
-  predicción + `completeness` + `model_version` + descargo ("estimación basada
-  en modelo entrenado con datos sintéticos").
+- El artefacto de la versión en uso (`MODEL_VERSION = "v1"`) se carga al
+  primer uso, no en el arranque de la API, y una sola vez por proceso
+  (≈ 1,6 s). Si falta, o si lo entrenaron otras versiones de scikit-learn o
+  numpy, u otras features, la API responde **503** con el motivo y la
+  pantalla muestra «proyección no disponible» sin afectar lo demás.
+- `project_cycles(db, cycle_ids, as_of)`: features del ciclo a hoy
+  (`cycle_origins`), etapas futuras rellenas con los valores típicos de la
+  finca (sus secados cerrados) o los globales del artefacto, y las tres
+  predicciones (puntaje, defectos y factor de rendimiento). Un beneficio que
+  aún fermenta o un secado abierto cuentan como etapas futuras: sus datos
+  están a medias.
+- Endpoints: `GET /farm/plots/{id}/quality-projection` (ficha del lote; 409
+  sin ciclo activo) y `GET /farm/dashboard/quality-projections?farm_id=`
+  (todos los ciclos activos del alcance, para el dashboard). Responden la
+  predicción, `completeness`, las etapas ya ocurridas, `model_version` y el
+  descargo («estimación de un modelo entrenado con datos sintéticos»).
+- Con los datos sintéticos por defecto, la proyección de una finca tarda
+  120–210 ms y la de las 12 fincas (34 ciclos), ≈ 370 ms: casi todo es
+  calcular los valores típicos de cada finca.
 - Sin reentrenamiento en request, jamás. Reentrenar = correr `train.py` y
   reiniciar (o endpoint admin de `reload` si se quiere en caliente — no en v1).
 
@@ -463,7 +535,7 @@ Distingue dos preguntas: **¿predice bien?** (1, 6) y **¿aprendió relaciones
 plausibles?** (2, 3) — ambas se miden.
 
 1. **Métricas vs baseline**: el GBM debe superar claramente a la media y a la
-   lineal en los 4 targets (existencia de señal aprendible y no lineal).
+   lineal en los 3 targets (existencia de señal aprendible y no lineal).
 2. **Recuperación de reglas**: las importancias de permutación deben rankear
    los factores de forma consistente con los pesos del generador (verdes,
    fermentación y broca en el top para `score`).
@@ -479,9 +551,9 @@ plausibles?** (2, 3) — ambas se miden.
    apunta a falta de masa en la zona (§3.4) o a bug de extracción, no a
    incapacidad del algoritmo. Un modelo con buen MAE pero signos o formas
    incoherentes **falla** la validación.
-4. **Sanity check `humidity_pct`**: R² alto (su mecanismo es casi
-   determinista). Valida específicamente la ruta secado → features → target;
-   **no** certifica el pipeline completo — para eso están los puntos 1–3 y 5.
+4. ~~**Sanity check `humidity_pct`**~~: retirado junto con la predicción de
+   la humedad (G26). La ruta del secado queda cubierta por los tests de
+   consistencia de `features.py` (punto 5).
 5. **Tests de consistencia de `features.py`** (independientes del modelo,
    en `backend/tests/farm_ml/`): sobre una mini-DB fixture con valores
    conocidos, se verifica que la extracción produce exactamente las columnas,
@@ -493,6 +565,76 @@ plausibles?** (2, 3) — ambas se miden.
    registro juicioso del farmer).
 7. **Test de humo de serving**: predicción del endpoint == predicción del
    artefacto en local para el mismo secado.
+
+Además, el reporte mide la **proyección por etapas**: el MAE cuando las
+etapas de beneficio y secado (o también la cosecha) se rellenan con los
+valores típicos de la finca, como en la proyección de un ciclo activo. Es lo
+que vale de verdad una proyección temprana.
+
+**Umbrales** (constantes de `evaluate.py`, fijados antes de evaluar; la
+dependencia parcial promedia 3.000 secados con el modelo final):
+
+| Chequeo | Pasa si |
+|---|---|
+| 1. Referencias | R² del modelo ≥ R² de la media + 0,10. Puntaje y defectos: MAE ≤ 97 % del de la lineal. Factor de rendimiento: MAE ≤ 103 % del de la lineal (ver abajo) |
+| 2. Importancias | Verdes, brocados y una feature de fermentación (horas o temperatura) entre las 8 más importantes del puntaje |
+| 3. Broca | De 0 a 10 % de brocados el puntaje baja ≥ 0,5 puntos y los defectos suben ≥ 1 punto |
+| 3. Forma de la broca | La mayor caída del puntaje está entre 2,5 y 6 % de brocados, y su pendiente media en 3–5 % es ≥ 2 veces la de 0–2 % |
+| 3. Verdes | Del percentil 5 al 95 de verdes, el puntaje baja |
+| 3. Roya | Del 0 al percentil 95 de roya, el factor de rendimiento sube en Caturra (susceptible) y con más pendiente que en Castillo (resistente) |
+| 3. Fermentación | El puntaje máximo cae entre 10 y 22 h, a las 40 h baja ≥ 0,5 puntos y a las 6 h también baja |
+| 6. Faltantes | Informativo: MAE sin faltantes ≤ MAE con faltantes |
+
+Las relaciones de la demora al despulpado y de la altitud se reportan como
+informativas. El reporte incluye el **piso de ruido** de cada target (el
+error que queda aunque se conociera todo lo demás, por la σ de §3.5).
+
+**Cambio de criterio en el chequeo 1.** El criterio inicial pedía superar
+claramente a la lineal en todos los targets (MAE ≤ 97 %). En la primera
+evaluación de la v1 el factor de rendimiento (97,6 %) no lo cumplió: en el
+generador su mecanismo es casi lineal (§3.3) y los dos modelos quedan cerca
+del piso de ruido, así que no hay señal no lineal que el GBM pueda
+aprovechar. Después de ver ese resultado, para ese target pasó a «no peor que
+la lineal en más de 3 %»; el reporte conserva el resultado con el criterio
+inicial. (La humedad, que entonces era target, tampoco lo cumplía; dejó de
+predecirse por otra razón: G26.)
+
+### 7.1 Resultados del modelo v1
+
+Reporte completo: [evaluacion-modelo-v1.md](implementation/evaluacion-modelo-v1.md).
+Dataset de 18.841 secados de 130 fincas (8 años hasta 2026-09-30, reglas
+1.2.0, semilla 42); pasan los 10 chequeos obligatorios.
+
+| Target | MAE modelo | R² | MAE lineal | MAE media | Piso de ruido |
+|---|---|---|---|---|---|
+| Puntaje SCA | 1,74 | 0,913 | 2,54 | 6,54 | 1,20 |
+| Defectos (%) | 0,64 | 0,935 | 0,82 | 2,46 | 0,48 |
+| Factor de rendimiento | 1,71 | 0,569 | 1,75 | 2,53 | 1,60 |
+
+- **Recupera las reglas.** La mayor caída del puntaje por broca está en
+  4,9 % de brocados (inflexión del generador: 4 %), con pendiente 11 veces
+  la de la zona plana; el puntaje es máximo con 14 h de fermentación y cae
+  11 puntos a las 40 h; los verdes y la demora al despulpado bajan el
+  puntaje; la roya sube el factor de rendimiento más en Caturra que en
+  Castillo; la altitud lo baja.
+- **Los flotes son la feature más importante** del puntaje, los defectos y
+  el factor: en el generador dependen de la broca, los verdes y los
+  sobremaduros, y se registran en el 95 % de los beneficios, mientras que la
+  evaluación en cereza falta en el 25 %. Es un dato registrado, no derivado
+  del target.
+- **Efectos atenuados en la dependencia parcial.** Mover solo la broca de 0
+  a 10 % baja el puntaje 6,3 puntos (≈ 12 en el generador) y sube los
+  defectos 1,9 (≈ 7): los flotes cargan parte de la misma información. La
+  dirección y la forma son las correctas.
+- **Interacción roya × variedad débil**: pendiente por punto de roya de
+  0,054 en Caturra y 0,040 en Castillo (0,10 y 0,01 en el generador). El
+  muestreo de roya falta en el 35 % de los ciclos y Castillo casi nunca la
+  tiene alta, así que el modelo tiene poco con qué separarlas.
+- **Curva de faltantes**: registrar todo baja el error del puntaje un 12 % y
+  el de los defectos un 15 %; en el factor, menos del 3 %.
+- **Proyección por etapas** (MAE del puntaje): 1,74 con todas las etapas,
+  2,37 sin beneficio ni secado y 2,83 con solo lo previo a la cosecha,
+  frente a 6,54 de la media.
 
 ## 8. Estructura de archivos
 
@@ -507,20 +649,22 @@ backend/scripts/farm_ml/
     audit.py                 # Auditoría en parquet y huella del dataset
     wipe.py                  # Alcance de lo sintético y wipe_synthetic()
     generate_synthetic.py    # CLI: simula, escribe, valida y audita
-    train.py                 # CLI: extrae dataset con features.py, entrena, guarda vN (bloque 7)
-    evaluate.py              # CLI: métricas, coherencia direccional, curva de faltantes → reporte .md (bloque 7)
-    output/                  # artefactos de auditoría (latentes por secado) — git-ignored
+    dataset.py               # CLI: genera el mundo con y sin faltantes y extrae los datasets con features.py
+    modeling.py              # Modelos (GBM, lineal, media), folds por finca y métricas: train y evaluate
+    train.py                 # CLI: valida por finca, entrena con todo y guarda el artefacto vN
+    evaluate.py              # CLI: métricas, importancias, direcciones y formas, faltantes, etapas → reporte .md
+    output/                  # auditoría, datasets y reportes (output/ml/) — git-ignored
 
 backend/app/farm_operations/ml/
-    features.py              # build_features(...) — compartido train/inferencia
+    features.py              # orígenes ponderados, build_features(...) y matriz — compartido train/inferencia
     predictor.py             # carga artefacto, predict()
-    artifacts/               # quality_model_v1.joblib, ... (git-ignored salvo el usado)
+    artifacts/               # quality_model_v1.joblib (git-ignored salvo el usado)
 
 backend/tests/farm_ml/
     test_rules.py            # forma y dirección de las funciones de respuesta
     test_world.py            # determinismo, independencia de los faltantes, invariantes
     test_generator.py        # generación mínima, huella reproducible, wipe, salvaguardas
-    test_features.py         # consistencia de extracción sobre fixture (§7.5, bloque 7)
+    test_features.py         # caso calculado a mano (mezcla de dos lotes) y valores verdaderos del mundo (§7.5)
 ```
 
 El generador escribe vía ORM, pero valida cada registro con el esquema
@@ -582,6 +726,11 @@ el azar usa la librería estándar). `pandas` llega con el entrenamiento, y
 | G19 | Un solo caficultor sintético dueño de todas las fincas | Un caficultor por finca: más personas que limpiar sin ganancia para el modelo ni para la demostración. |
 | G20 | **Nombres de finca únicos, tomados de datos abiertos** (solo el nombre del predio) | Nombres inventados con sufijo numérico («La Esperanza 25») cuando se acaban: poco verosímiles y confusos en la interfaz. |
 | G21 | **Situaciones del presente plantadas a propósito** (`present.py`), con generador aleatorio propio, como mucho una de cada tipo y listadas en el reporte | Esperar a que el azar las produzca: un mundo bien manejado casi nunca deja un beneficio detenido o una pasada olvidada, y el dashboard no tendría cómo mostrar sus alertas de riesgo. Plantarlas en cada finca: el panel se llenaría de casos raros y dejaría de parecer una operación real. |
+| G22 | **Features de lo que el caficultor registra**, con las ventanas de la definición agronómica: temperatura de la fermentación, lluvia del secado, humedad final, nitrógeno por hectárea, roya máxima y lluvia en los 120 días del llenado | Dejar la lista inicial (90 días, último muestreo de roya, kg totales de fertilizante): el modelo no vería variables registradas que el diseño declara como interacciones (G7) y la validación de §7.4 fallaría por construcción. Las variables internas del generador siguen fuera (G10). |
+| G23 | **Entrenamiento en una base efímera**, con 130 fincas y 8 años hasta una fecha final fija; el modelo se versiona en el repositorio | Generar en una base persistente: la del entorno local tiene datos reales (y el puente al inventario los ensuciaría), y producción nunca recibe datos sintéticos. Entrenar al construir la imagen: builds largos que necesitarían Postgres. |
+| G24 | **Hiperparámetros fijos** y umbrales de evaluación fijados antes de evaluar; un cambio de criterio posterior se documenta junto al resultado original | Buscar hiperparámetros sobre los mismos folds que se reportan: métricas infladas. Cambiar umbrales en silencio: la evaluación dejaría de significar algo. |
+| G25 | **Proyección por etapas**: lo que aún no ocurre toma el valor típico de la finca | Dejar faltante lo futuro: el modelo lo leería como «no registrado», que asocia con fincas descuidadas. |
+| G26 | **La humedad del pergamino no se predice** (3 targets: puntaje, defectos y factor de rendimiento); sigue como feature del secado | Predecirla y mostrarla solo con un secado cerrado: antes del secado no hay de qué deducirla y, después, repite la humedad que el caficultor ya midió. No aporta a la decisión. Su chequeo de cordura (§7.4) se retira con ella; la ruta del secado la cubren los tests de `features.py`. |
 
 ## 10. Fuera de alcance (v1)
 

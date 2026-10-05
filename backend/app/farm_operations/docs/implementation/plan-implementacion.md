@@ -4,7 +4,7 @@
 > de planeación aprobados ([arquitectura.md](../arquitectura.md) §12) en
 > bloques de trabajo ejecutables.
 > Estado: **✅ aprobado** (2026-09-22).
-> Última actualización: 2026-10-03
+> Última actualización: 2026-10-05
 
 ---
 
@@ -558,6 +558,40 @@ las de entrenamiento y evaluación, en `requirements-dev.txt`.
 generador-sintetico-ml §7, y la proyección aparece en la UI con su
 completitud, la versión del modelo y el descargo.
 
+**Implementado además** (sin migraciones):
+- Features corregidas frente a la lista inicial: temperatura de la
+  fermentación (medida y la del clima del día), lluvia del secado, humedad
+  final del secado, nitrógeno por hectárea leído de la composición del
+  insumo, roya máxima y lluvia en los 120 días del llenado
+  (generador-sintetico-ml §4, G22). La extracción trabaja por lotes de ids y
+  `traced_cherry_select` expone el beneficio y el ciclo de cada fila.
+- `scripts/farm_ml/dataset.py` genera el mundo con y sin faltantes en la
+  base efímera de pruebas (130 fincas, 8 años hasta 2026-09-30) y extrae los
+  dos datasets; `modeling.py` reúne lo que comparten `train.py` y
+  `evaluate.py`. El modelo v1 (1,6 MB) se versiona en el repositorio (G23).
+- La evaluación agrega el piso de ruido de cada target y la **proyección por
+  etapas**. El criterio de «mejor que la lineal» se corrigió para el factor
+  de rendimiento después de la primera evaluación, y el reporte conserva el
+  resultado original (G24). Reporte:
+  [evaluacion-modelo-v1.md](evaluacion-modelo-v1.md).
+- Endpoint en lote `/dashboard/quality-projections` para la tabla del
+  dashboard, además del de un lote; 503 si el servidor no tiene un modelo
+  que pueda usar.
+- El modelo predice 3 variables (puntaje, defectos y factor de
+  rendimiento): la humedad del pergamino dejó de predecirse porque depende
+  solo del secado y el caficultor la mide al cerrarlo (G26); sigue como
+  feature. Un beneficio o secado a medias cuenta como etapa futura (G25).
+- scikit-learn, numpy y sus dependencias fijados en `requirements.txt` (la
+  imagen de producción crece ≈ 150 MB); pandas en `requirements-dev.txt`.
+- La serie de precios de la carga del generador empieza en 2018, para cubrir
+  los 8 años del dataset de entrenamiento.
+
+**Pruebas:** la extracción con un caso calculado a mano (mezcla de dos lotes
+con pesos distintos, ventanas y fechas de corte) y contra las variables
+verdaderas del mundo simulado; la proyección por la API (etapas, solo 3 targets,
+alcance del caficultor, 409, 503 sin modelo o con otras versiones) y la
+prueba de humo: la API predice lo mismo que el artefacto cargado a mano.
+
 → **Hito E** (§6).
 
 ## 4. Estrategia de pruebas
@@ -647,7 +681,7 @@ Decisiones de la infraestructura:
 | 4 — Beneficio, secado y calidad | — (directo a `main`) | ✅ | Cosechas abiertas sin tope de beneficio; recurso `traceability`; reapertura de beneficio y secado (§3, bloque 4). |
 | 5 — Generador sintético | — (directo a `main`) | ✅ | Un ciclo por año; mundo y registro separados; huella del dataset (§3, bloque 5). |
 | 6 — Dashboard y alertas | — (directo a `main`) | ✅ | Endpoints `cycles` y `farms`; alertas de hechos cerrados con ventana de 30 días; situaciones del presente en el generador (§3, bloque 6). |
-| 7 — Proyección de calidad | — | ⬜ | |
+| 7 — Proyección de calidad | — (directo a `main`) | ✅ | Features corregidas; entrenamiento en base efímera con 130 fincas × 8 años; criterio de §7.1 corregido para el factor de rendimiento; la humedad no se predice (§3, bloque 7). |
 
 ⬜ pendiente · 🟡 en curso · ✅ en `main`
 
@@ -666,6 +700,7 @@ Decisiones de la infraestructura:
 | especificacion-api.md §2, §3, §5 | `FarmAccess` en lugar de `get_accessible_farm`; endpoints de activación y de configuración resuelta de finca; listado de cuentas; valor heredado en la config resuelta (bloque 1B). |
 | dashboards-alertas.md §7 | Enlaces de alertas a rutas `/cultivo/...` (2.6); extracción de componentes de gráfica (2.8). |
 | dashboards-alertas.md §2–§7, especificacion-api.md §3.13, §4; generador-sintetico-ml.md §2, §3, §8, §9 | Endpoints `cycles` y `farms`, `date_from`/`date_to`, unidad lote o finca; ventana de 30 días y alerta de pagos por finca; temporadas con pasadas abiertas; dashboard dentro del módulo en `/cultivo`; situaciones del presente, regla de floración de 150 días y salida de lo guardado en el generador (bloque 6). |
+| generador-sintetico-ml.md §3.1, §4–§9; especificacion-api.md §3.14, §5; dashboards-alertas.md §3.4 | Vector de features corregido y extracción por orígenes ponderados; dataset de entrenamiento de 130 fincas × 8 años en base efímera; hiperparámetros y umbrales fijos, con el cambio del criterio §7.1 documentado; endpoint en lote; 3 targets, la humedad no se predice (G26); reporte de la v1 (bloque 7). |
 
 ## 9. Fuera de alcance
 

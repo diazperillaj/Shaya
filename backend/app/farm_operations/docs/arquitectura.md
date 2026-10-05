@@ -3,7 +3,7 @@
 > Documento maestro del módulo de cultivo y trazabilidad.
 > Estado: **en implementación** — avance por bloque en el
 > [plan de implementación](implementation/plan-implementacion.md) §7.
-> Última actualización: 2026-10-01
+> Última actualización: 2026-10-05
 
 ---
 
@@ -356,7 +356,9 @@ Decisión: la calidad se mide con **múltiples variables**, no una sola:
 - Puntaje total 0–100 (estilo SCA).
 - % de defectos / % almendra sana.
 - Factor de rendimiento en trilla (kg pergamino para 70 kg de excelso).
-- Humedad final.
+- Humedad final (se registra en la evaluación, pero el modelo no la predice:
+  depende solo del secado y el caficultor la mide al cerrarlo;
+  generador-sintetico-ml G26).
 - (Extensible: notas por atributo — fragancia, acidez, cuerpo — vía tabla
   satélite si se llega a catar formalmente, ver §5.1.)
 
@@ -402,17 +404,23 @@ No hay datos reales disponibles todavía. El plan:
 
 ```
 backend/scripts/farm_ml/
-    generate_synthetic.py    # genera dataset ficticio parametrizado
-    train.py                 # entrena y serializa → app/farm_operations/ml/artifacts/vN.joblib
+    generate_synthetic.py    # genera el mundo sintético en la base
+    dataset.py               # datasets de entrenamiento (con y sin faltantes)
+    train.py                 # entrena y serializa → app/farm_operations/ml/artifacts/quality_model_vN.joblib
+    evaluate.py              # reporte de validación del modelo
 
 app/farm_operations/ml/
-    features.py              # extracción de features desde la DB (query por ciclo/lote)
-    predictor.py             # carga artefacto, expone predict()
-    artifacts/               # modelos versionados
+    features.py              # extracción de features desde la DB, la misma para entrenar y proyectar
+    predictor.py             # carga el artefacto y proyecta los ciclos activos
+    artifacts/               # el modelo en uso, versionado
 ```
 
-Endpoint tentativo: `GET /api/v1/farm/plots/{id}/quality-projection` —
-inferencia en milisegundos, sin entrenamiento en request.
+Endpoints: `GET /api/v1/farm/plots/{id}/quality-projection` y
+`GET /api/v1/farm/dashboard/quality-projections` — inferencia sin
+entrenamiento en request. El detalle está en
+[generador-sintetico-ml.md](generador-sintetico-ml.md) §4–§8, y el
+resultado del modelo v1 en
+[evaluacion-modelo-v1.md](implementation/evaluacion-modelo-v1.md).
 
 ## 10. Estructura de código prevista
 

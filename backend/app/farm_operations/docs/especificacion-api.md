@@ -5,8 +5,8 @@
 > Estado: **✅ aprobado** (2026-08-06). Implementados §3.1–3.3 y 3.6, los
 > empleados de §3.7 y §3.12 (bloque 1B), §3.4–3.5 (bloque 2), los jornales
 > de §3.7, §3.8 y §3.8.1 (bloque 3), §3.9–3.11 con la trazabilidad de
-> §3.11.1 (bloque 4), y §3.13 (bloque 6).
-> Última actualización: 2026-10-03
+> §3.11.1 (bloque 4), §3.13 (bloque 6) y §3.14 (bloque 7).
+> Última actualización: 2026-10-05
 
 ---
 
@@ -327,7 +327,15 @@ finca) o por finca (varias).
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| GET | `/plots/{id}/quality-projection` | farm | Proyección de calidad del ciclo activo del lote: features actuales → `{score, defects_pct, yield_factor, humidity_pct}` + metadatos (versión del modelo, completitud de datos). 409 si el lote no tiene ciclo activo. |
+| GET | `/plots/{id}/quality-projection` | farm | Proyección de calidad del ciclo activo del lote: features a hoy → `{score, defects_pct, yield_factor}` + metadatos (etapas ya ocurridas, completitud de datos, versión del modelo y descargo). 409 si el lote no tiene ciclo activo. |
+| GET | `/dashboard/quality-projections` | farm | La misma proyección para todos los ciclos activos del alcance (`farm_id` opcional), por finca y lote. Alimenta la tabla del dashboard sin una llamada por lote. |
+
+Las etapas que aún no ocurren (cosecha, beneficio, secado) se proyectan con
+los valores típicos de la finca. La humedad del pergamino no se proyecta:
+depende solo del secado y el caficultor la mide al cerrarlo
+(generador-sintetico-ml G26). Si el servidor no tiene un modelo que pueda
+usar —falta el artefacto o lo entrenaron otras versiones de scikit-learn,
+numpy o de las features— responde **503** con el motivo.
 
 ## 4. Contratos clave (ejemplos)
 
@@ -463,8 +471,8 @@ app/farm_operations/
             soil_analyses/  climate_records/  supplies/  employees/
             harvests/  day_labors/  payments/
             wet_processings/  dryings/  quality_evals/  traceability/
-            farmer_accounts/  dashboard/  ml/
-    ml/                      # features.py, predictor.py, artifacts/
+            farmer_accounts/  dashboard/  quality_projection/
+    ml/                      # features.py (compartido con el entrenamiento), predictor.py, artifacts/
 ```
 
 Reparto de responsabilidades:
