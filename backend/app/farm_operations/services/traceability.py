@@ -33,13 +33,15 @@ def traced_cherry_select() -> Select:
     La misma proporción que `traced_cherry_by_harvest`, en SQL y para muchos
     secados a la vez: una fila por secado y cosecha de origen, con la cereza
     trazada y el lote (y su variedad) de donde viene. La usan los
-    rendimientos y las gráficas del dashboard.
+    rendimientos, las gráficas del dashboard y las features del modelo.
     """
     cherry = DryingInput.wet_kg / WetProcessing.washed_kg * WetProcessingInput.cherry_kg
     return (
         select(
             DryingInput.drying_id.label("drying_id"),
+            WetProcessing.id.label("wet_processing_id"),
             WetProcessingInput.harvest_id.label("harvest_id"),
+            CropCycle.id.label("crop_cycle_id"),
             Plot.id.label("plot_id"),
             Plot.name.label("plot_name"),
             Plot.variety.label("variety"),

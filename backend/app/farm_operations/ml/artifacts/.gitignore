@@ -1,0 +1,5 @@
+# Solo se versiona el modelo que usa la aplicación; los demás entrenamientos
+# se quedan en la máquina que los produjo.
+*
+!.gitignore
+!quality_model_v1.joblib

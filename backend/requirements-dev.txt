@@ -1,4 +1,6 @@
-# Herramientas de desarrollo: generador de datos sintéticos y, más adelante,
-# entrenamiento del modelo. No entran a la imagen de producción (Dockerfile,
-# etapa `dev`).
+# Herramientas de desarrollo: generador de datos sintéticos y entrenamiento
+# del modelo. No entran a la imagen de producción (Dockerfile, etapa `dev`);
+# la inferencia (scikit-learn, numpy) está en requirements.txt.
+pandas==3.0.6
 pyarrow==25.0.1
+python-dateutil==2.9.0.post0

@@ -133,8 +133,8 @@ SUPPLIES = {
 
 # Precio de referencia de la carga de pergamino seco (125 kg), COP, por año.
 # Serie simulada con la forma de los últimos años; no es un histórico oficial.
-CARGA_PRICE = {2020: 1_550_000, 2021: 1_750_000, 2022: 2_150_000, 2023: 1_700_000,
-               2024: 2_250_000, 2025: 2_850_000, 2026: 2_650_000, 2027: 2_700_000}
+CARGA_PRICE = {2018: 1_300_000, 2019: 1_400_000, 2020: 1_550_000, 2021: 1_750_000, 2022: 2_150_000,
+               2023: 1_700_000, 2024: 2_250_000, 2025: 2_850_000, 2026: 2_650_000, 2027: 2_700_000}
 
 # Tarifa de recolección por kg de cereza y valor del jornal, año base 2021
 PICKING_RATE_2021 = 650.0
