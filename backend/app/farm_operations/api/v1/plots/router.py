@@ -16,6 +16,8 @@ from app.farm_operations.api.v1.plots.schema import (
     RenewalDefaults,
 )
 from app.farm_operations.api.v1.plots.service import PlotService
+from app.farm_operations.api.v1.quality_projection.schema import QualityProjectionResponse
+from app.farm_operations.api.v1.quality_projection.service import ProjectionService
 from app.farm_operations.models.enums import PlotStatusEnum
 from app.farm_operations.services.access import FarmAccess
 
@@ -91,3 +93,13 @@ def create_plot_event(plot_id: int, payload: PlotEventCreate, service: PlotServi
 def get_plot_events(plot_id: int, service: PlotService = Depends(get_service)):
     """Historial de eventos del lote, del más reciente al más antiguo."""
     return service.get_events(plot_id)
+
+
+@router.get("/{plot_id}/quality-projection", response_model=QualityProjectionResponse)
+def get_quality_projection(
+    plot_id: int,
+    db: Session = Depends(get_db),
+    access: FarmAccess = Depends(get_farm_access),
+):
+    """Proyección de calidad del ciclo activo del lote (409 sin ciclo activo; 503 sin modelo)."""
+    return ProjectionService(db, access).for_plot(plot_id)

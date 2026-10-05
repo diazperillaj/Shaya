@@ -16,6 +16,8 @@ from app.farm_operations.api.v1.dashboard.schema import (
 )
 from app.farm_operations.api.v1.dashboard.service import DashboardService
 from app.farm_operations.api.v1.dependencies import get_farm_access
+from app.farm_operations.api.v1.quality_projection.schema import QualityProjectionResponse
+from app.farm_operations.api.v1.quality_projection.service import ProjectionService
 from app.farm_operations.services.access import FarmAccess
 
 router = APIRouter()
@@ -93,3 +95,13 @@ def get_farms(
 ):
     """Ranking de fincas: producción, rendimiento, puntaje, alertas y sanidad."""
     return service.farms(date_from, date_to)
+
+
+@router.get("/quality-projections", response_model=List[QualityProjectionResponse])
+def get_quality_projections(
+    farm_id: Optional[int] = FARM,
+    db: Session = Depends(get_db),
+    access: FarmAccess = Depends(get_farm_access),
+):
+    """Proyección de calidad de los ciclos activos del alcance, por finca y lote."""
+    return ProjectionService(db, access).for_farms(farm_id)
