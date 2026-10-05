@@ -4,6 +4,7 @@ import type {
   PlotEvent,
   PlotEventPayload,
   PlotFields,
+  QualityProjection,
   RenewalDefaults,
 } from '../models/types'
 import { request, toNumber } from './http'
@@ -83,3 +84,6 @@ export const createPlotEvent = async (id: number, payload: PlotEventPayload): Pr
     method: 'POST',
     body: payload,
   })
+
+export const fetchQualityProjection = (id: number): Promise<QualityProjection> =>
+  request(`/plots/${id}/quality-projection`, 'Error obteniendo la proyección de calidad')

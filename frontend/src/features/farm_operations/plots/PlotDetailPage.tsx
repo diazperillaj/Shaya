@@ -9,6 +9,7 @@ import { useLoader } from '../components/useLoader'
 import { fmtDate, fmtMoney, fmtNumber, treesPerHectare } from '../format'
 import { PLOT_EVENT_LABELS } from '../models/labels'
 import type { Plot, RenewalDefaults } from '../models/types'
+import QualityProjectionCard from '../projection/QualityProjectionCard'
 import { fetchPlot, fetchPlotEvents, fetchRenewalDefaults } from '../services/plots.api'
 import PlotEventDialog from './PlotEventDialog'
 import PlotFormDialog from './PlotFormDialog'
@@ -105,6 +106,7 @@ function PlotDetail({ id }: { id: number }) {
       {actionError && <ErrorMessage message={actionError} />}
       <RenewalNotice plot={plot} />
       <CyclePanel plot={plot} onPlotChanged={reloadPlot} />
+      {plot.active_cycle && <QualityProjectionCard key={plot.active_cycle.id} plotId={plot.id} />}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Siembra">

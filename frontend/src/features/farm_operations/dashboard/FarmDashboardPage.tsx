@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { Button, ErrorMessage, Loading, PageHeader } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { todayIso } from '../format'
+import ProjectionsTable from '../projection/ProjectionsTable'
 import {
   fetchCycleStates,
   fetchDashboardAlerts,
@@ -12,6 +13,7 @@ import {
   fetchFarmRanking,
   fetchProductionCharts,
   fetchQualityCharts,
+  fetchQualityProjections,
   fetchSeasons,
 } from '../services/dashboard.api'
 import { fetchFarms } from '../services/farms.api'
@@ -68,6 +70,10 @@ export default function FarmDashboardPage() {
   )
   const showCycles = !isAdmin || farmId !== null
   const cycles = useLoader(useCallback(() => (showCycles ? fetchCycleStates(farmId) : Promise.resolve([])), [showCycles, farmId]))
+  // Por separado: si el modelo no está disponible, el resto del dashboard sigue
+  const projections = useLoader(
+    useCallback(() => (showCycles ? fetchQualityProjections(farmId) : Promise.resolve([])), [showCycles, farmId]),
+  )
   const showRanking = isAdmin && farmId === null
   const ranking = useLoader(
     useCallback(() => (showRanking ? fetchFarmRanking(scope.from, scope.to) : Promise.resolve([])), [showRanking, scope]),
@@ -80,6 +86,7 @@ export default function FarmDashboardPage() {
     state.reload()
     charts.reload()
     cycles.reload()
+    projections.reload()
     ranking.reload()
   }
 
@@ -132,6 +139,8 @@ export default function FarmDashboardPage() {
       )}
 
       {showCycles && cycles.data && <CyclesTable cycles={cycles.data} showFarm={showFarm} />}
+      {showCycles && projections.error && <ErrorMessage message={projections.error} />}
+      {showCycles && projections.data && <ProjectionsTable projections={projections.data} showFarm={showFarm} />}
       {showRanking && ranking.data && <FarmRankingTable rows={ranking.data} onSelect={setFarmId} />}
       {isAdmin && summary && <StoredCoffee summary={summary} />}
 

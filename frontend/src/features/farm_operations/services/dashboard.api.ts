@@ -5,6 +5,7 @@ import type {
   FarmRanking,
   ProductionCharts,
   QualityCharts,
+  QualityProjection,
   Season,
 } from '../models/types'
 import { request } from './http'
@@ -39,3 +40,6 @@ export const fetchCycleStates = (farmId: number | null): Promise<CycleState[]> =
 
 export const fetchFarmRanking = (from: string, to: string): Promise<FarmRanking[]> =>
   request('/dashboard/farms', 'Error obteniendo las fincas', { query: { date_from: from, date_to: to } })
+
+export const fetchQualityProjections = (farmId: number | null): Promise<QualityProjection[]> =>
+  request('/dashboard/quality-projections', 'Error obteniendo la proyección de calidad', { query: { farm_id: farmId } })

@@ -857,3 +857,27 @@ export interface FarmRanking {
   broca_threshold: number | null
   stored_kg: number
 }
+
+// ── Proyección de calidad (generador-sintetico-ml §6) ─────────────────────
+
+export type ProjectionStage = 'pre' | 'harvest' | 'wet' | 'drying'
+
+/** Calidad esperada del ciclo activo de un lote, según el modelo */
+export interface QualityProjection {
+  crop_cycle_id: number
+  cycle_number: number
+  plot_id: number
+  plot_name: string
+  farm_id: number
+  farm_name: string
+  as_of: string
+  score: number
+  defects_pct: number
+  yield_factor: number
+  /** Fracción (0–1) de grupos de datos con al menos un registro */
+  completeness: number
+  /** Etapas que ya ocurrieron; las demás se proyectan con los valores típicos de la finca */
+  stages: ProjectionStage[]
+  model_version: string
+  disclaimer: string
+}
