@@ -77,3 +77,20 @@ docker compose up -d db
 docker compose exec -T db psql -U <DB_USER> -d <DB_NAME> < backup.sql
 docker compose up -d
 ```
+
+## Entorno de demostración
+
+La app completa con datos simulados (fincas, cosechas, alertas y proyección
+de calidad), en un stack aparte con su propia base: nunca toca producción.
+Necesita en el `.env` una clave propia, `DEMO_SECRET_KEY`
+(por ejemplo, `openssl rand -hex 32`).
+
+```bash
+docker compose -f docker-compose.demo.yml up -d --build
+docker compose -f docker-compose.demo.yml exec backend python -m scripts.create_admin --username admin
+docker compose -f docker-compose.demo.yml exec backend python -m scripts.farm_ml.generate_synthetic
+```
+
+Se abre en http://127.0.0.1:8090 (`DEMO_PORT` lo cambia). Regenerar los
+datos: el último comando con `--wipe`. Borrar la demo:
+`docker compose -f docker-compose.demo.yml down -v`.

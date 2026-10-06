@@ -1,0 +1,111 @@
+# Entorno de demostración: la app completa con datos simulados, aparte de
+# producción. Tiene su propia base (volumen demo-pgdata) y su propio puerto;
+# nunca toca la base real.
+#
+#   docker compose -f docker-compose.demo.yml up -d --build
+#   docker compose -f docker-compose.demo.yml exec backend python -m scripts.create_admin --username admin
+#   docker compose -f docker-compose.demo.yml exec backend python -m scripts.farm_ml.generate_synthetic
+#
+# Se abre en http://127.0.0.1:8090 (con 127.0.0.1 y no localhost, para que su
+# sesión no se cruce con la de producción local en localhost:8080).
+# Borrarla por completo: docker compose -f docker-compose.demo.yml down -v
+#
+# Lee el mismo .env (credenciales de base, chatbot y LLM) y además necesita
+# DEMO_SECRET_KEY: una clave propia, distinta de la de producción.
+name: shaya-demo
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - demo-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Roles de solo lectura y del historial del asistente (idempotente)
+  roles:
+    image: postgres:16-alpine
+    restart: "no"
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./chatbot/scripts/init_db_roles.sql:/roles.sql:ro
+    command: >
+      psql -h db -U ${DB_USER} -d ${DB_NAME} -v ON_ERROR_STOP=1
+      -v ro_pass=${CHATBOT_RO_PASSWORD} -v app_pass=${CHATBOT_APP_PASSWORD} -f /roles.sql
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      # Imagen de desarrollo: trae las herramientas del generador de datos simulados
+      target: dev
+    restart: unless-stopped
+    environment:
+      ENV: demo
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SECRET_KEY: "${DEMO_SECRET_KEY:?Agrega DEMO_SECRET_KEY al .env (por ejemplo, openssl rand -hex 32)}"
+      FRONTEND_URL: http://127.0.0.1:${DEMO_PORT:-8090}
+      COOKIE_SECURE: "false"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+
+  chatbot:
+    build: ./chatbot
+    restart: unless-stopped
+    environment:
+      ENV: demo
+      BUSINESS_DB_HOST: db
+      BUSINESS_DB_PORT: 5432
+      BUSINESS_DB_NAME: ${DB_NAME}
+      BUSINESS_DB_USER: chatbot_ro
+      BUSINESS_DB_PASSWORD: ${CHATBOT_RO_PASSWORD}
+      CHAT_DB_USER: chatbot_app
+      CHAT_DB_PASSWORD: ${CHATBOT_APP_PASSWORD}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: "${DEMO_SECRET_KEY:?Agrega DEMO_SECRET_KEY al .env}"
+      FRONTEND_URL: http://127.0.0.1:${DEMO_PORT:-8090}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.groq.com/openai/v1}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_MODEL: ${LLM_MODEL:-openai/gpt-oss-120b}
+      LLM_MODEL_LIGHT: ${LLM_MODEL_LIGHT:-llama-3.1-8b-instant}
+      TZ: America/Bogota
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8005"
+    depends_on:
+      roles:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${DEMO_PORT:-8090}:80"
+    depends_on:
+      - backend
+      - chatbot
+
+volumes:
+  demo-pgdata:
