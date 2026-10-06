@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useEscapeKey } from '../../../hooks/useEscapeKey'
 import { X, Check, Trash2, Receipt } from 'lucide-react'
 import type {
   ExpenseCategory,
@@ -18,7 +19,7 @@ interface ExpenseFormModalProps {
 }
 
 const inputCls =
-  'w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-700 bg-white'
+  'w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25 bg-white'
 
 export default function ExpenseFormModal({
   onClose,
@@ -29,6 +30,7 @@ export default function ExpenseFormModal({
   initial,
   isEdit = false,
 }: ExpenseFormModalProps) {
+  useEscapeKey(onClose)
   const [expenseDate, setExpenseDate] = useState(initial?.expense_date ?? '')
   const [amount, setAmount] = useState<number>(initial?.amount ?? 0)
   const [categoryId, setCategoryId] = useState<string>(
@@ -83,17 +85,17 @@ export default function ExpenseFormModal({
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fadeIn">
+      <div role="dialog" aria-modal="true" className="bg-white rounded-2xl shadow-2xl w-full max-w-md text-left animate-slideUp dark:ring-1 dark:ring-white/10">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 rounded-t-2xl px-6 py-5 flex items-center justify-between">
+        <div className="bg-emerald-900 dark:bg-emerald-950 rounded-t-2xl px-6 py-5 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white flex items-center gap-3">
             <Receipt className="w-5 h-5" />
             {isEdit ? 'Editar gasto' : 'Nuevo gasto'}
           </h2>
           <button
             onClick={onClose}
-            className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition-all duration-200"
+            className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition duration-150 ease-out"
           >
             <X className="w-5 h-5" />
           </button>
@@ -176,21 +178,21 @@ export default function ExpenseFormModal({
             <button
               onClick={handleDelete}
               disabled={saving}
-              className="flex items-center gap-2 bg-red-700 hover:bg-red-800 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all"
+              className="flex items-center gap-2 bg-red-700 hover:bg-red-800 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition duration-150 ease-out"
             >
               <Trash2 className="w-4 h-4" /> Eliminar
             </button>
           )}
           <button
             onClick={onClose}
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-sm font-medium transition-all"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-sm font-medium transition duration-150 ease-out"
           >
             <X className="w-4 h-4" /> Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all"
+            className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition duration-150 ease-out"
           >
             <Check className="w-4 h-4" /> {saving ? 'Guardando…' : 'Guardar'}
           </button>

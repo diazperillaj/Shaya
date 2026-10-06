@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useEscapeKey } from '../../../hooks/useEscapeKey'
 import { X, Check, Plus, Trash2, ArrowDownToLine, ArrowUpFromLine, Repeat } from 'lucide-react'
 import type { RoastedMovementCreate, RoastedMovementDetailCreate } from '../models/types'
 import { fetchRoastedCoffees } from '../../roasted_coffee/services/roasted_coffee.api'
@@ -48,6 +49,7 @@ const newEntryRow = (key: number): EntryRow => ({
 })
 
 export default function MovementFormModal({ onClose, onSave }: Props) {
+  useEscapeKey(onClose)
   const now = new Date()
   const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
     .toISOString()
@@ -196,7 +198,7 @@ export default function MovementFormModal({ onClose, onSave }: Props) {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
-  const inputCls = 'text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-700 bg-white'
+  const inputCls = 'text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25 bg-white'
 
   const lotSelect = (
     value: number,
@@ -215,12 +217,12 @@ export default function MovementFormModal({ onClose, onSave }: Props) {
   )
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fadeIn">
+      <div role="dialog" aria-modal="true" className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col text-left animate-slideUp dark:ring-1 dark:ring-white/10">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 rounded-t-2xl px-6 py-5 flex items-center justify-between flex-shrink-0">
+        <div className="bg-emerald-900 dark:bg-emerald-950 rounded-t-2xl px-6 py-5 flex items-center justify-between flex-shrink-0">
           <h2 className="text-lg font-semibold text-white">Nuevo movimiento</h2>
-          <button onClick={onClose} className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition-all">
+          <button onClick={onClose} className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition duration-150 ease-out">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -237,7 +239,7 @@ export default function MovementFormModal({ onClose, onSave }: Props) {
                 <button
                   key={k.value}
                   onClick={() => { setKind(k.value); setError(null) }}
-                  className={`flex flex-col items-center gap-1 px-3 py-3 rounded-xl border text-sm font-medium transition-all ${
+                  className={`flex flex-col items-center gap-1 px-3 py-3 rounded-xl border text-sm font-medium transition duration-150 ease-out ${
                     active
                       ? 'bg-emerald-900 border-emerald-900 text-white shadow-md'
                       : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -282,13 +284,13 @@ export default function MovementFormModal({ onClose, onSave }: Props) {
                   <button
                     onClick={() => setExitRows((p) => p.filter((r) => r.key !== row.key))}
                     disabled={exitRows.length === 1}
-                    className="p-2.5 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 transition-all disabled:opacity-30"
+                    className="p-2.5 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 transition duration-150 ease-out disabled:opacity-30"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               ))}
-              <button onClick={addExitRow} className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium px-2 py-1.5 rounded-lg hover:bg-emerald-50 transition-all w-fit">
+              <button onClick={addExitRow} className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium px-2 py-1.5 rounded-lg hover:bg-emerald-50 transition duration-150 ease-out w-fit">
                 <Plus className="w-4 h-4" /> Agregar lote
               </button>
             </div>
@@ -328,7 +330,7 @@ export default function MovementFormModal({ onClose, onSave }: Props) {
                         <button
                           key={m}
                           onClick={() => updateEntryRow(row.key, { mode: m })}
-                          className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                          className={`px-3 py-1 rounded-md text-xs font-medium transition duration-150 ease-out ${
                             row.mode === m ? 'bg-emerald-900 text-white' : 'text-gray-500 hover:bg-gray-50'
                           }`}
                         >
@@ -339,7 +341,7 @@ export default function MovementFormModal({ onClose, onSave }: Props) {
                     <button
                       onClick={() => setEntryRows((p) => p.filter((r) => r.key !== row.key))}
                       disabled={entryRows.length === 1}
-                      className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all disabled:opacity-30"
+                      className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition duration-150 ease-out disabled:opacity-30"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -408,7 +410,7 @@ export default function MovementFormModal({ onClose, onSave }: Props) {
                   </div>
                 </div>
               ))}
-              <button onClick={addEntryRow} className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium px-2 py-1.5 rounded-lg hover:bg-emerald-50 transition-all w-fit">
+              <button onClick={addEntryRow} className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium px-2 py-1.5 rounded-lg hover:bg-emerald-50 transition duration-150 ease-out w-fit">
                 <Plus className="w-4 h-4" /> Agregar entrada
               </button>
             </div>
@@ -423,14 +425,14 @@ export default function MovementFormModal({ onClose, onSave }: Props) {
         <div className="px-6 py-4 bg-gray-50 rounded-b-2xl border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
           <button
             onClick={onClose}
-            className="bg-white hover:bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-medium border border-gray-200 flex items-center gap-2 transition-all"
+            className="bg-white hover:bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-medium border border-gray-200 flex items-center gap-2 transition duration-150 ease-out"
           >
             <X className="w-4 h-4" /> Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl font-medium shadow-md flex items-center gap-2 transition-all disabled:opacity-60"
+            className="bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl font-medium shadow-md flex items-center gap-2 transition duration-150 ease-out disabled:opacity-60"
           >
             <Check className="w-4 h-4" /> {saving ? 'Guardando…' : 'Guardar'}
           </button>

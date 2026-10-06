@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useEscapeKey } from '../../../hooks/useEscapeKey'
 import { X, Check, Trash2, ShoppingBag } from 'lucide-react'
 import type { FairInventory, FairProduct, FairSale, CreateFairSalePayload } from '../models/types'
 import type { PaymentMethod } from '../../expenses/models/types'
@@ -29,6 +30,7 @@ const decode = (raw: string): Selection => {
 }
 
 export default function FairSaleModal({ onClose, onSave, onDelete, inventory, fairProducts, paymentMethods, initial, isEdit }: Props) {
+  useEscapeKey(onClose)
   const initialSelection = (): string => {
     if (initial?.fairProductId) return encode('prod', initial.fairProductId)
     if (initial?.fairInventoryId) return encode('inv', initial.fairInventoryId)
@@ -98,14 +100,14 @@ export default function FairSaleModal({ onClose, onSave, onDelete, inventory, fa
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 rounded-t-2xl px-6 py-5 flex items-center justify-between">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fadeIn">
+      <div role="dialog" aria-modal="true" className="bg-white rounded-2xl shadow-2xl w-full max-w-sm text-left animate-slideUp dark:ring-1 dark:ring-white/10">
+        <div className="bg-emerald-900 dark:bg-emerald-950 rounded-t-2xl px-6 py-5 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             <ShoppingBag className="w-5 h-5" />
             {isEdit ? 'Editar venta' : 'Venta rápida'}
           </h2>
-          <button onClick={onClose} className="text-white/80 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-all">
+          <button onClick={onClose} className="text-white/80 hover:text-white p-2 rounded-lg hover:bg-white/10 transition duration-150 ease-out">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -118,7 +120,7 @@ export default function FairSaleModal({ onClose, onSave, onDelete, inventory, fa
             <select
               value={selection}
               onChange={(e) => handleSelectionChange(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
             >
               {inventory.length > 0 && (
                 <optgroup label="Inventario (café)">
@@ -147,7 +149,7 @@ export default function FairSaleModal({ onClose, onSave, onDelete, inventory, fa
               <input
                 type="number" min={1} max={selectedInv?.remainingQuantity} value={qty}
                 onChange={(e) => setQty(Number(e.target.value))}
-                className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700 text-center text-lg font-bold"
+                className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25 text-center text-lg font-bold"
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -155,7 +157,7 @@ export default function FairSaleModal({ onClose, onSave, onDelete, inventory, fa
               <input
                 type="number" min={1} value={unitValue}
                 onChange={(e) => setUnitValue(Number(e.target.value))}
-                className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
               />
             </div>
           </div>
@@ -165,7 +167,7 @@ export default function FairSaleModal({ onClose, onSave, onDelete, inventory, fa
             <select
               value={paymentMethodId || ''}
               onChange={(e) => setPaymentMethodId(Number(e.target.value))}
-              className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
             >
               <option value="" disabled>Selecciona el método</option>
               {paymentMethods.map((m) => (
@@ -185,7 +187,7 @@ export default function FairSaleModal({ onClose, onSave, onDelete, inventory, fa
             <label className="text-sm font-semibold text-gray-700">Observaciones</label>
             <input
               value={observations} onChange={(e) => setObservations(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
               placeholder="Opcional…"
             />
           </div>
@@ -194,16 +196,16 @@ export default function FairSaleModal({ onClose, onSave, onDelete, inventory, fa
         <div className="px-6 py-4 bg-gray-50 rounded-b-2xl border-t border-gray-100 flex justify-end gap-3">
           {isEdit && onDelete && (
             <button onClick={handleDelete} disabled={saving}
-              className="flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-50">
+              className="flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition duration-150 ease-out disabled:opacity-50">
               <Trash2 className="w-4 h-4" /> Eliminar
             </button>
           )}
           <button onClick={onClose}
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-sm font-medium transition-all">
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-sm font-medium transition duration-150 ease-out">
             <X className="w-4 h-4" /> Cancelar
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50">
+            className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition duration-150 ease-out disabled:opacity-50">
             <Check className="w-4 h-4" /> {saving ? 'Registrando…' : 'Registrar'}
           </button>
         </div>

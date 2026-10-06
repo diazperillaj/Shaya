@@ -135,19 +135,19 @@ export default function ExpensesPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setManagingCategories(true)}
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-medium shadow-sm transition-all"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-medium shadow-sm transition duration-150 ease-out"
           >
             <Tags className="w-4 h-4" /> Categorías
           </button>
           <button
             onClick={() => setManagingMethods(true)}
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-medium shadow-sm transition-all"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-medium shadow-sm transition duration-150 ease-out"
           >
             <Wallet className="w-4 h-4" /> Métodos de pago
           </button>
           <button
             onClick={() => setAdding(true)}
-            className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition-all"
+            className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition duration-150 ease-out"
           >
             <CirclePlus className="w-4 h-4" /> Nuevo gasto
           </button>
@@ -165,7 +165,7 @@ export default function ExpensesPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar…"
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
               />
             </div>
           </div>
@@ -175,7 +175,7 @@ export default function ExpensesPage() {
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700 bg-white"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25 bg-white"
             >
               <option value="">Todas</option>
               {categories.map((c) => (
@@ -190,7 +190,7 @@ export default function ExpensesPage() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
             />
           </div>
 
@@ -200,13 +200,13 @@ export default function ExpensesPage() {
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
             />
           </div>
 
           <button
             onClick={clearFilters}
-            className="h-11 flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 rounded-xl text-sm font-medium border border-gray-200 transition-all"
+            className="h-11 flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 rounded-xl text-sm font-medium border border-gray-200 transition duration-150 ease-out"
           >
             <X className="w-4 h-4" /> Limpiar
           </button>

@@ -95,7 +95,7 @@ export default function ConversationList({
               <button
                 onClick={(e) => handleDelete(e, conv)}
                 aria-label="Eliminar conversación"
-                className="opacity-0 group-hover:opacity-100 shrink-0 p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                className="opacity-0 group-hover:opacity-100 shrink-0 p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition duration-150 ease-out"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

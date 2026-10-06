@@ -169,14 +169,14 @@ export default function InventoryProcessedPage({
         </div>
         <div className="flex items-center gap-2">
           <button
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-sm font-medium shadow-sm hover:shadow-md transition-all"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-sm font-medium shadow-sm hover:shadow-md transition duration-150 ease-out"
             onClick={() => setActiveMenuItem(7)}
           >
             <Replace className="w-4 h-4" />
             Inventario pergamino
           </button>
           {user?.role === 'admin' && (
-            <button onClick={() => setAddingProceso(true)} className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition-all">
+            <button onClick={() => setAddingProceso(true)} className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition duration-150 ease-out">
               <CirclePlus className="w-4 h-4" /> Nuevo proceso
             </button>
           )}
@@ -189,7 +189,7 @@ export default function InventoryProcessedPage({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar proceso…"
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700 bg-white"
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25 bg-white"
         />
       </div>
 

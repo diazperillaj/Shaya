@@ -93,9 +93,9 @@ export default function SuggestionCards({ previousMenuItem, onPick }: Props) {
           <button
             key={question}
             onClick={() => onPick(question)}
-            className="group flex items-start gap-2 text-left bg-white border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/50 rounded-2xl px-4 py-3 text-sm text-gray-700 transition-all duration-200 shadow-sm hover:shadow"
+            className="group flex items-start gap-2 text-left bg-white border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/50 rounded-2xl px-4 py-3 text-sm text-gray-700 transition duration-150 ease-out shadow-sm hover:shadow"
           >
-            <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 group-hover:scale-110 transition-transform" />
+            <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 group- transition-transform" />
             {question}
           </button>
         ))}

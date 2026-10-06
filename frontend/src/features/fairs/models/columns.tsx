@@ -64,19 +64,19 @@ export const makeFairColumns = (
       <div className="flex items-center justify-center gap-2">
         <button
           onClick={() => onEdit(row.original)}
-          className="bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-1 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+          className="bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-1 rounded-lg text-sm font-medium shadow-md hover:shadow-lg active:scale-[0.97] transition duration-150 ease-out"
         >
           Editar
         </button>
         <button
           onClick={() => onDetail(row.original)}
-          className="flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-4 py-1 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200"
+          className="flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-4 py-1 rounded-lg text-sm font-medium shadow-sm hover:shadow-md active:scale-[0.97] transition duration-150 ease-out"
         >
           <Eye className="w-3.5 h-3.5" /> Ver
         </button>
         <button
           onClick={() => onReport(row.original)}
-          className="flex items-center gap-1 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 px-4 py-1 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200"
+          className="flex items-center gap-1 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 px-4 py-1 rounded-lg text-sm font-medium shadow-sm hover:shadow-md active:scale-[0.97] transition duration-150 ease-out"
         >
           <BarChart2 className="w-3.5 h-3.5" /> Reporte
         </button>

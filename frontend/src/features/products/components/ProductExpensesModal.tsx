@@ -1,5 +1,6 @@
 // src/features/products/components/ProductExpensesModal.tsx
 import { useEffect, useState } from 'react'
+import { useEscapeKey } from '../../../hooks/useEscapeKey'
 import { X, Coins, CirclePlus, Info } from 'lucide-react'
 
 import DataTable from '../../../components/ui/DataTable'
@@ -33,6 +34,7 @@ export default function ProductExpensesModal({
   product,
   onClose,
 }: ProductExpensesModalProps) {
+  useEscapeKey(onClose)
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
 
@@ -97,18 +99,18 @@ export default function ProductExpensesModal({
   const totalPerBag = expenses.reduce((sum, e) => sum + e.amount, 0)
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fadeIn">
+      <div role="dialog" aria-modal="true" className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col text-left animate-slideUp dark:ring-1 dark:ring-white/10">
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 rounded-t-2xl px-6 py-5 flex items-center justify-between flex-shrink-0">
+        <div className="bg-emerald-900 dark:bg-emerald-950 rounded-t-2xl px-6 py-5 flex items-center justify-between flex-shrink-0">
           <h2 className="text-lg font-semibold text-white flex items-center gap-3">
             <Coins className="w-5 h-5 flex-shrink-0" />
             Costos de producción — {product.name}
           </h2>
           <button
             onClick={onClose}
-            className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition-all duration-200"
+            className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition duration-150 ease-out"
           >
             <X className="w-5 h-5" />
           </button>
@@ -139,7 +141,7 @@ export default function ProductExpensesModal({
             </p>
             <button
               onClick={() => setAddingExpense(true)}
-              className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-2 rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition-all"
+              className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-2 rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition duration-150 ease-out"
             >
               <CirclePlus className="w-4 h-4" /> Agregar costo
             </button>
@@ -167,7 +169,7 @@ export default function ProductExpensesModal({
         <div className="px-6 py-4 bg-gray-50 rounded-b-2xl border-t border-gray-100 flex-shrink-0 flex justify-end">
           <button
             onClick={onClose}
-            className="flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200 border border-gray-200"
+            className="flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md active:scale-[0.97] transition duration-150 ease-out border border-gray-200"
           >
             <X className="w-4 h-4" />
             Cerrar

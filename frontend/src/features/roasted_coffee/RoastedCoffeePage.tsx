@@ -42,7 +42,7 @@ export default function RoastedCoffeePage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar maquilado…"
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700 bg-white"
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25 bg-white"
         />
       </div>
 

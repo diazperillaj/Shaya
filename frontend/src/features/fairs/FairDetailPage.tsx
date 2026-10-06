@@ -189,7 +189,7 @@ export default function FairDetailPage({ fair, products, fairProducts, isAdmin, 
 
         {isOpen && isAdmin && (
           <button onClick={handleClose} disabled={closing}
-            className="flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-50">
+            className="flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition duration-150 ease-out disabled:opacity-50">
             <Lock className="w-4 h-4" /> {closing ? 'Cerrando…' : 'Cerrar feria'}
           </button>
         )}
@@ -232,7 +232,7 @@ export default function FairDetailPage({ fair, products, fairProducts, isAdmin, 
                 <div className="flex justify-between items-center">
                   <p className="text-sm text-gray-500">{fair.fairSales.length} venta{fair.fairSales.length !== 1 ? 's' : ''} registrada{fair.fairSales.length !== 1 ? 's' : ''}</p>
                   <button onClick={() => setAddingSale(true)}
-                    className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                    className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-2 rounded-xl text-sm font-medium transition duration-150 ease-out">
                     <CirclePlus className="w-4 h-4" /> Registrar venta
                   </button>
                 </div>
@@ -288,7 +288,7 @@ export default function FairDetailPage({ fair, products, fairProducts, isAdmin, 
                 <div className="flex justify-between items-center">
                   <p className="text-sm text-gray-500">{fair.expenses.length} gasto{fair.expenses.length !== 1 ? 's' : ''} registrado{fair.expenses.length !== 1 ? 's' : ''}</p>
                   <button onClick={() => setAddingExp(true)}
-                    className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                    className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-2 rounded-xl text-sm font-medium transition duration-150 ease-out">
                     <CirclePlus className="w-4 h-4" /> Registrar gasto
                   </button>
                 </div>
@@ -343,7 +343,7 @@ export default function FairDetailPage({ fair, products, fairProducts, isAdmin, 
                 <div className="flex justify-between items-center">
                   <p className="text-sm text-gray-500">{fair.inventory.length} lote{fair.inventory.length !== 1 ? 's' : ''} asignado{fair.inventory.length !== 1 ? 's' : ''}</p>
                   <button onClick={() => setAddingInv(true)}
-                    className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                    className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-2 rounded-xl text-sm font-medium transition duration-150 ease-out">
                     <CirclePlus className="w-4 h-4" /> Asignar inventario
                   </button>
                 </div>

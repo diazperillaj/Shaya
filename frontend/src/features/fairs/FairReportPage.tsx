@@ -50,13 +50,13 @@ interface TooltipItem { name: string; value: number; color?: string; fill?: stri
 function CustomTooltip({ active, payload, label, currency = false }: any) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-gray-900 text-white rounded-2xl shadow-2xl px-4 py-3 min-w-[160px] border border-white/10">
+    <div className="bg-gray-900 text-white rounded-2xl shadow-2xl px-4 py-3 min-w-[160px] border border-white/10 dark:border-gray-300">
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
       {payload.map((item: TooltipItem) => (
         <div key={item.name} className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-1.5">
             <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.fill ?? item.color }} />
-            <span className="text-xs text-gray-300">{item.name}</span>
+            <span className="text-xs text-gray-300 dark:text-gray-600">{item.name}</span>
           </div>
           <span className="text-xs font-bold text-white">
             {currency ? fmtCOP(item.value) : item.value.toLocaleString('es-CO')}
@@ -177,7 +177,7 @@ export default function FairReportPage({ fairId, fairName, onBack }: Props) {
           </div>
         </div>
         <button onClick={load}
-          className="flex items-center gap-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-xl shadow-sm transition-all">
+          className="flex items-center gap-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-xl shadow-sm transition duration-150 ease-out">
           <RefreshCw className="w-4 h-4" /> Actualizar
         </button>
       </div>

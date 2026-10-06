@@ -80,17 +80,25 @@ export const InventoryColumns: ColumnDef<Inventory>[] = [
   {
     accessorKey: 'date',
     header: 'Fecha de compra',
+    cell: ({ getValue }) => createElement('span', { className: 'whitespace-nowrap' }, getValue() as string),
   },
 
   {
     accessorKey: 'drying_id',
     header: 'Origen',
+    // El valor es el id del secado, pero la celda muestra texto
+    meta: { align: 'left' },
     cell: ({ row }) => createElement(OriginCell, { parchmentId: row.original.id, dryingId: row.original.drying_id }),
   },
 
   {
     accessorKey: 'observation',
     header: 'Observaciones',
+    // Dos líneas como máximo: el texto completo aparece al pasar el mouse
+    cell: ({ getValue }) => {
+      const text = (getValue() as string | null) ?? ''
+      return createElement('span', { className: 'line-clamp-2 min-w-[12rem] max-w-[18rem]', title: text }, text)
+    },
   },
 
   {

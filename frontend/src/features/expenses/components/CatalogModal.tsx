@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useEscapeKey } from '../../../hooks/useEscapeKey'
 import { X, Plus, Pencil, Trash2, Check, Tags } from 'lucide-react'
 
 interface CatalogItem {
@@ -35,6 +36,7 @@ export default function CatalogModal({
   valueLabel,
   formatValue,
 }: CatalogModalProps) {
+  useEscapeKey(onClose)
   const hasValue = valueLabel !== undefined
   const [newName, setNewName] = useState('')
   const [newValue, setNewValue] = useState('')
@@ -103,17 +105,17 @@ export default function CatalogModal({
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fadeIn">
+      <div role="dialog" aria-modal="true" className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[85vh] text-left animate-slideUp dark:ring-1 dark:ring-white/10">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 rounded-t-2xl px-6 py-5 flex items-center justify-between flex-shrink-0">
+        <div className="bg-emerald-900 dark:bg-emerald-950 rounded-t-2xl px-6 py-5 flex items-center justify-between flex-shrink-0">
           <h2 className="text-lg font-semibold text-white flex items-center gap-3">
             <Tags className="w-5 h-5" />
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition-all duration-200"
+            className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition duration-150 ease-out"
           >
             <X className="w-5 h-5" />
           </button>
@@ -134,7 +136,7 @@ export default function CatalogModal({
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
               placeholder="Nuevo nombre…"
-              className="flex-1 min-w-0 text-sm border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              className="flex-1 min-w-0 text-sm border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
             />
             {hasValue && (
               <input
@@ -144,13 +146,13 @@ export default function CatalogModal({
                 onChange={(e) => setNewValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                 placeholder={valueLabel}
-                className="w-28 text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                className="w-28 text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
               />
             )}
             <button
               onClick={handleCreate}
               disabled={busy}
-              className="flex items-center gap-1.5 bg-emerald-900 hover:bg-emerald-950 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-md transition-all"
+              className="flex items-center gap-1.5 bg-emerald-900 hover:bg-emerald-950 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-md transition duration-150 ease-out"
             >
               <Plus className="w-4 h-4" /> Agregar
             </button>
@@ -170,7 +172,7 @@ export default function CatalogModal({
                       onChange={(e) => setEditingName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
                       autoFocus
-                      className="flex-1 min-w-0 text-sm border border-emerald-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                      className="flex-1 min-w-0 text-sm border border-emerald-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
                     />
                     {hasValue && (
                       <input
@@ -180,7 +182,7 @@ export default function CatalogModal({
                         onChange={(e) => setEditingValue(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
                         placeholder={valueLabel}
-                        className="w-24 text-sm border border-emerald-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                        className="w-24 text-sm border border-emerald-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
                       />
                     )}
                     <button
@@ -233,7 +235,7 @@ export default function CatalogModal({
         <div className="px-6 py-4 bg-gray-50 rounded-b-2xl border-t border-gray-100 flex justify-end flex-shrink-0">
           <button
             onClick={onClose}
-            className="bg-white hover:bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-medium shadow-sm border border-gray-200 transition-all"
+            className="bg-white hover:bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-medium shadow-sm border border-gray-200 transition duration-150 ease-out"
           >
             Cerrar
           </button>

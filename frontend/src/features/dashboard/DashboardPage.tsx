@@ -71,7 +71,7 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-semibold">Dashboard</h1>
         <button
           onClick={refresh}
-          className="flex items-center gap-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+          className="flex items-center gap-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition duration-150 ease-out"
         >
           <RefreshCw className="w-4 h-4" />
           Actualizar

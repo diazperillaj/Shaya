@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useEscapeKey } from '../../../hooks/useEscapeKey'
 import { X, ShoppingCart, Plus, Trash2, Save, PackagePlus } from 'lucide-react'
 import type {
   Sale,
@@ -67,6 +68,7 @@ export default function SaleFormModal({
   isEdit = false,
   isAdmin = false,
 }: SaleFormModalProps) {
+  useEscapeKey(onClose)
   // ── Header state ────────────────────────────────────────────────────────────
   const [customerId, setCustomerId] = useState('')
   const [userId, setUserId] = useState('')
@@ -197,17 +199,17 @@ export default function SaleFormModal({
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fadeIn">
+      <div role="dialog" aria-modal="true" className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col text-left animate-slideUp dark:ring-1 dark:ring-white/10">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 rounded-t-2xl px-6 py-5 flex items-center justify-between flex-shrink-0">
+        <div className="bg-emerald-900 dark:bg-emerald-950 rounded-t-2xl px-6 py-5 flex items-center justify-between flex-shrink-0">
           <h2 className="text-lg font-semibold text-white flex items-center gap-3">
             <ShoppingCart className="w-5 h-5 flex-shrink-0" />
             {isEdit ? 'Editar venta' : 'Nueva venta'}
           </h2>
           <button
             onClick={onClose}
-            className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition-all duration-200"
+            className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition duration-150 ease-out"
           >
             <X className="w-5 h-5" />
           </button>
@@ -341,7 +343,7 @@ export default function SaleFormModal({
 
             <button
               onClick={addDetail}
-              className="flex items-center m-5 gap-1.5 text-sm bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-2 rounded-xl font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200"
+              className="flex items-center m-5 gap-1.5 text-sm bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-2 rounded-xl font-medium shadow-sm hover:shadow-md active:scale-[0.97] transition duration-150 ease-out"
             >
               <Plus className="w-4 h-4" />
               Agregar producto
@@ -362,7 +364,7 @@ export default function SaleFormModal({
               <button
                 onClick={handleDelete}
                 disabled={deleting || saving}
-                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200"
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md active:scale-[0.97] transition duration-150 ease-out"
               >
                 <Trash2 className="w-4 h-4" />
                 {deleting ? 'Borrando...' : 'Borrar'}
@@ -370,7 +372,7 @@ export default function SaleFormModal({
             )}
             <button
               onClick={onClose}
-              className="flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200 border border-gray-200"
+              className="flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md active:scale-[0.97] transition duration-150 ease-out border border-gray-200"
             >
               <X className="w-4 h-4" />
               Cancelar
@@ -380,7 +382,7 @@ export default function SaleFormModal({
           <button
             onClick={handleSave}
             disabled={saving || deleting}
-            className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 disabled:opacity-60 text-white px-6 py-2.5 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+            className="flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 disabled:opacity-60 text-white px-6 py-2.5 rounded-xl font-medium shadow-md hover:shadow-lg active:scale-[0.97] transition duration-150 ease-out"
           >
             {saving ? (
               <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
@@ -442,7 +444,7 @@ function DetailLine({
         {canRemove && (
           <button
             onClick={onRemove}
-            className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg px-2 py-1 transition-all duration-200"
+            className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg px-2 py-1 transition duration-150 ease-out"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Eliminar
@@ -618,7 +620,7 @@ function Badge({
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
 const inputCls =
-  'w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-900 focus:border-transparent transition-all duration-200 hover:border-emerald-900 bg-white'
+  'w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-900 focus:border-transparent transition duration-150 ease-out hover:border-emerald-900 bg-white'
 
 const readonlyCls =
   'w-full text-sm border border-gray-100 rounded-xl px-3 py-2.5 bg-gray-50 text-gray-500 font-medium'
