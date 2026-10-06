@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Menu } from "lucide-react";
 import { logout } from "../../features/auth/service";
 import { useAuth } from "../../features/auth/AuthContext";
 import { hasRole } from "../../features/auth/roles";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { menuItems, type MenuItem } from "../../config/menuConfig";
+import ThemeToggle from "../../theme/ThemeToggle";
 
 /**
  * Tipo de la función encargada de cambiar
@@ -32,6 +33,9 @@ interface SidebarProps {
    * inicio con ella abierta.
    */
   setActiveMenuItem?: SetActiveMenuItem;
+
+  /** Vista del inicio que está abierta (para marcarla en el menú) */
+  activeMenuItem?: number;
 }
 
 /**
@@ -40,31 +44,30 @@ interface SidebarProps {
  * Renderiza el menú lateral de navegación de la aplicación,
  * incluyendo:
  * - Logo y branding
- * - Menú de navegación principal
- * - Botón para colapsar/expandir
- * - Acción de cierre de sesión
+ * - Menú de navegación principal, con la sección actual marcada
+ * - Modo claro / oscuro, cierre de sesión y botón para colapsar
  *
  * El sidebar controla únicamente su estado visual
  * (abierto/cerrado) y delega la navegación al componente padre.
  */
-function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
+function Sidebar({ children, setActiveMenuItem, activeMenuItem }: SidebarProps) {
   /**
    * Indica si el sidebar se encuentra expandido.
    * En el celular arranca cerrado para no tapar el contenido.
    */
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => !isSmallScreen());
 
-  /**
-   * Definición de los ítems del menú principal.
-   * Cada ítem representa una sección de la aplicación.
-   */
-
   /** Hook de navegación de React Router */
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   /** Usuario autenticado: el menú muestra solo las secciones de su rol */
   const { user } = useAuth();
   const visibleItems = menuItems.filter((item) => hasRole(user?.role, item.roles));
+
+  /** La sección actual: por su ruta propia, o la vista abierta en el inicio */
+  const isActive = (item: MenuItem): boolean =>
+    item.path ? pathname.startsWith(item.path) : pathname === "/" && item.id === activeMenuItem;
 
   /**
    * Abre la sección elegida en el menú.
@@ -111,11 +114,11 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="flex h-[100dvh] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[rgb(var(--page))] dark:to-[rgb(var(--page))]">
       {/* Backdrop (solo móvil, con sidebar abierto): al tocar, cierra */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          className="fixed inset-0 bg-black/40 z-30 md:hidden animate-fadeIn"
           onClick={toggleSidebar}
           aria-hidden
         />
@@ -126,10 +129,10 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
       {!isSidebarOpen && (
         <button
           onClick={toggleSidebar}
-          className="fixed bottom-4 left-4 z-50 md:hidden p-2 rounded-lg bg-emerald-900 text-white shadow-lg hover:bg-emerald-800 transition-all duration-200"
+          className="fixed bottom-4 left-4 z-50 md:hidden flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-900 text-white shadow-lg transition-[transform,background-color] duration-150 ease-out hover:bg-emerald-800 active:scale-[0.96]"
           aria-label="Abrir menú"
         >
-          <ChevronRight className="w-4 h-4" />
+          <Menu className="w-5 h-5" />
         </button>
       )}
 
@@ -137,23 +140,23 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
           Móvil: fixed (overlay, no empuja el contenido); cerrado se oculta
           deslizándose fuera de pantalla.
           Escritorio: relative en el flujo, alterna ancho w-72 / w-20. */}
-      <div
-        className={`fixed md:relative z-40 h-screen flex flex-col bg-gradient-to-b from-emerald-900 via-emerald-800 to-emerald-900 text-white transition-all duration-300 ease-in-out shadow-2xl ${isSidebarOpen ? "w-72 translate-x-0" : "w-20 -translate-x-full md:translate-x-0"}`}
+      <aside
+        className={`fixed md:relative z-40 h-[100dvh] flex flex-col bg-gradient-to-b from-emerald-900 via-emerald-800 to-emerald-900 dark:from-[#0c2a21] dark:via-[#0f3328] dark:to-[#0c2a21] dark:border-r dark:border-white/5 text-white transition-[width,transform] duration-300 ease-out shadow-2xl md:shadow-xl ${isSidebarOpen ? "w-72 translate-x-0" : "w-20 -translate-x-full md:translate-x-0"}`}
       >
         {/* Logo/Header */}
-        <div className="px-6 py-8 border-b border-emerald-700/50">
+        <div className="px-5 py-7 border-b border-white/10">
           <div
-            className={`flex items-center gap-3 transition-all duration-300 ${isSidebarOpen ? "justify-start" : "justify-center"}`}
+            className={`flex items-center gap-3 ${isSidebarOpen ? "justify-start" : "justify-center"}`}
           >
-            <div className="w-10 h-10 rounded-xl shadow-lg transform hover:scale-110 transition-transform duration-200 flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl flex-shrink-0">
               <img src="/logo.png" alt="Shaya Café" className="w-full h-full object-contain" />
             </div>
             {isSidebarOpen && (
-              <div className="overflow-hidden">
-                <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white to-emerald-100 bg-clip-text text-transparent">
+              <div className="overflow-hidden text-left">
+                <h1 className="text-xl font-bold tracking-tight text-white">
                   Shaya Café
                 </h1>
-                <p className="text-xs text-emerald-300 mt-0.5">
+                <p className="text-xs text-emerald-200/80 mt-0.5">
                   Sistema de gestión
                 </p>
               </div>
@@ -162,52 +165,65 @@ function Sidebar({ children, setActiveMenuItem }: SidebarProps) {
         </div>
 
         {/* Menu Items */}
-        <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-1 scrollbar-thin scrollbar-thumb-emerald-700 scrollbar-track-transparent">
-          {visibleItems.map((item, index) => {
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 [scrollbar-color:rgb(255_255_255/0.2)_transparent]" aria-label="Secciones">
+          {visibleItems.map((item) => {
             const Icon = item.icon;
+            const active = isActive(item);
             return (
-              <div
+              <button
+                type="button"
                 key={item.name}
-                className={`group relative flex items-center gap-4 px-4 py-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:bg-emerald-800/60 hover:shadow-lg hover:translate-x-1 ${isSidebarOpen ? "" : "justify-center"}`}
-                style={{ animationDelay: `${index * 50}ms` }}
                 onClick={() => handleSelect(item)}
+                aria-current={active ? "page" : undefined}
+                aria-label={isSidebarOpen ? undefined : item.name}
+                title={isSidebarOpen ? undefined : item.name}
+                className={`group flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-white/70 ${isSidebarOpen ? "" : "justify-center"} ${
+                  active
+                    ? "bg-white/15 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]"
+                    : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                }`}
               >
-                <div className="flex items-center justify-center w-5 h-5 text-emerald-200 group-hover:text-white group-hover:scale-110 transition-all duration-200">
-                  {<Icon className="w-5 h-5" />}
-                </div>
-
+                <Icon
+                  className={`w-5 h-5 flex-shrink-0 transition-colors duration-150 ${active ? "text-white" : "text-emerald-200 group-hover:text-white"}`}
+                />
                 {isSidebarOpen && (
-                  <span className="text-sm font-medium text-emerald-50 group-hover:text-white transition-colors duration-200">
+                  <span className={`text-sm ${active ? "font-semibold" : "font-medium"}`}>
                     {item.name}
                   </span>
                 )}
-              </div>
+              </button>
             );
           })}
         </nav>
 
-        {/* Toggle Button */}
-        <div className="px-4 py-4 border-t border-emerald-700/50">
+        {/* Pie: tema, sesión y colapsar */}
+        <div className="px-3 py-3 border-t border-white/10 space-y-1">
+          <ThemeToggle showLabel={isSidebarOpen} />
           <button
-            onClick={toggleSidebar}
-            className="w-full flex items-center justify-center p-3 rounded-xl bg-emerald-800/50 hover:bg-emerald-700/60 transition-all duration-200 group shadow-lg hover:shadow-xl"
-            aria-label={isSidebarOpen ? "Cerrar sidebar" : "Abrir sidebar"}
+            type="button"
+            onClick={handleLogout}
+            aria-label={isSidebarOpen ? undefined : "Cerrar sesión"}
+            title={isSidebarOpen ? undefined : "Cerrar sesión"}
+            className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-emerald-100 transition-[transform,background-color,color] duration-150 ease-out hover:bg-white/10 hover:text-white active:scale-[0.98] ${isSidebarOpen ? "" : "justify-center"}`}
           >
-            {isSidebarOpen ? (
-              <ChevronLeft className="w-5 h-5 text-emerald-200 group-hover:text-white transition-colors duration-200" />
-            ) : (
-              <ChevronRight className="w-5 h-5 text-emerald-200 group-hover:text-white transition-colors duration-200" />
-            )}
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            {isSidebarOpen && <span>Cerrar sesión</span>}
           </button>
-          <p className="cursor-pointer text-xs text-emerald-300 mt-2">
-            <a onClick={handleLogout}>Cerrar sesión</a>
-          </p>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="flex w-full items-center justify-center rounded-xl p-2.5 text-emerald-200 transition-[transform,background-color,color] duration-150 ease-out hover:bg-white/10 hover:text-white active:scale-[0.98]"
+            aria-label={isSidebarOpen ? "Contraer el menú" : "Expandir el menú"}
+            title={isSidebarOpen ? "Contraer el menú" : "Expandir el menú"}
+          >
+            {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+          </button>
         </div>
-      </div>
+      </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 p-8 overflow-auto">{children}</main>
+        <main className="flex-1 px-4 py-6 md:p-8 overflow-auto">{children}</main>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { User, Lock, Eye, EyeOff } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { login } from "./service"
 import { useAuth } from "./AuthContext"
+import ThemeToggle from "../../theme/ThemeToggle"
 
 /**
  * Página de autenticación.
@@ -61,11 +62,14 @@ export default function AuthPage() {
   }
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 backdrop-blur-sm p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slideUp">
+    <div className="relative min-h-[100dvh] flex items-center justify-center bg-gray-50 dark:bg-transparent p-4 animate-fadeIn">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle variant="floating" />
+      </div>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slideUp dark:ring-1 dark:ring-white/10">
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 rounded-t-2xl px-6 py-6 flex items-center justify-center">
+        <div className="bg-emerald-900 dark:bg-emerald-950 rounded-t-2xl px-6 py-6 flex items-center justify-center">
           <h1 className="text-2xl font-semibold text-white flex items-center gap-3">
             Shaya Café
           </h1>
@@ -128,7 +132,7 @@ export default function AuthPage() {
           {/* Botón */}
           <button
             type="submit"
-            className="m-auto w-1/2 mt-4 bg-emerald-900 hover:bg-emerald-950 text-white py-3 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+            className="m-auto w-1/2 mt-4 bg-emerald-900 hover:bg-emerald-950 text-white py-3 rounded-xl font-medium shadow-md hover:shadow-lg active:scale-[0.97] transition duration-150 ease-out"
           >
             Iniciar sesión
           </button>

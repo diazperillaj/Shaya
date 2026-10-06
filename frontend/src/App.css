@@ -2,9 +2,99 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    background-color: rgb(var(--page));
+  }
+
+  body {
+    margin: 0;
+    color: rgb(var(--text-gray-900));
+    font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: rgb(var(--bg-emerald-200));
+    color: rgb(var(--text-emerald-900));
+  }
+
+  /* Foco visible solo con teclado, del color de la marca */
+  :focus-visible {
+    outline: 2px solid rgb(var(--border-emerald-600));
+    outline-offset: 2px;
+  }
+
+  /* Barras de desplazamiento delgadas, del tono de la superficie */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--border-gray-300)) transparent;
+  }
+
+  input,
+  select,
+  textarea {
+    caret-color: rgb(var(--text-emerald-700));
+  }
+
+  /* Campos sin fondo propio: la superficie del tema (no el gris del navegador en oscuro).
+     :where() no suma especificidad, así cualquier clase bg-* de la pantalla manda */
+  :where(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), select, textarea) {
+    background-color: rgb(var(--bg-white));
+  }
+
+  /* Las cifras de tablas y tarjetas se alinean columna por columna */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
 #root {
   margin: 0;
   padding: 0;
   text-align: center;
-  font-family: 'Roboto', sans-serif;
+}
+
+/* Mientras cambia el tema, nada transiciona: el cambio es de golpe y parejo */
+.theme-switching,
+.theme-switching * {
+  transition: none !important;
+}
+
+/* Gráficas (Recharts): la cuadrícula y los ejes siguen el tema */
+.dark .recharts-cartesian-grid line {
+  stroke: rgb(var(--border-gray-200));
+}
+
+.dark .recharts-cartesian-axis-tick text,
+.dark .recharts-legend-item-text {
+  fill: rgb(var(--text-gray-500));
+  color: rgb(var(--text-gray-600)) !important;
+}
+
+.dark .recharts-tooltip-cursor {
+  fill: rgb(255 255 255 / 0.04);
 }

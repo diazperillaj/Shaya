@@ -7,7 +7,7 @@ import {
   getSortedRowModel,
   flexRender
 } from '@tanstack/react-table'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { Column, ColumnDef, Row } from '@tanstack/react-table'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
 
 interface DataTableProps<T> {
@@ -23,6 +23,20 @@ interface DataTableProps<T> {
   /** Mensaje mostrado cuando no hay registros */
   emptyMessage?: string
 }
+
+type Align = 'left' | 'right' | 'center'
+
+const ALIGN_CLASS: Record<Align, string> = {
+  left: 'text-left',
+  right: 'text-right',
+  center: 'text-center',
+}
+
+const ROW_BUTTON =
+  'px-3 py-1 rounded-lg text-sm font-medium transition-[transform,background-color,box-shadow] duration-150 ease-out active:scale-[0.97]'
+
+const PAGE_BUTTON =
+  'flex h-9 w-10 items-center justify-center rounded-lg bg-emerald-900 text-white shadow-sm transition-[transform,background-color,opacity] duration-150 ease-out hover:bg-emerald-800 active:scale-[0.96] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-900 disabled:active:scale-100'
 
 export default function DataTable<T>({
   data,
@@ -60,54 +74,86 @@ export default function DataTable<T>({
     getSortedRowModel: getSortedRowModel(),
   })
 
+  /**
+   * Alineación de cada columna: las cifras a la derecha (se comparan de un
+   * vistazo), el texto a la izquierda y las acciones al centro. Se puede
+   * fijar con `meta: { align }`; si no, se deduce de los valores.
+   */
+  const sample: Row<T>[] = table.getCoreRowModel().rows.slice(0, 25)
+  const alignOf = (column: Column<T, unknown>): Align => {
+    const fixed = (column.columnDef.meta as { align?: Align } | undefined)?.align
+    if (fixed) return fixed
+    if (column.id === 'edit') return 'center'
+    const values = sample.map((row) => row.getValue(column.id)).filter((v) => v !== null && v !== undefined && v !== '')
+    return values.length > 0 && values.every((v) => typeof v === 'number') ? 'right' : 'left'
+  }
+
   return (
     <div>
       {/* Paginación (sin fondo, impresa sobre el color de la página) */}
       {showPagination && (
       <div className="flex justify-between items-center px-1 pb-3">
-        <div className="text-sm font-medium text-gray-700">
-          Página <span className="text-emerald-900 font-semibold">{table.getState().pagination.pageIndex + 1}</span> de <span className="text-emerald-900 font-semibold">{table.getPageCount()}</span>
+        <div className="text-sm font-medium text-gray-700 tabular-nums">
+          Página <span className="text-emerald-900 font-semibold">{table.getState().pagination.pageIndex + 1}</span> de <span className="text-emerald-900 font-semibold">{Math.max(table.getPageCount(), 1)}</span>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
+            type="button"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="px-5 py-2 bg-emerald-900 text-white rounded-lg text-sm font-medium shadow-md hover:bg-emerald-800 hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-emerald-900"
+            aria-label="Página anterior"
+            className={PAGE_BUTTON}
           >
-            <ChevronLeft className="inline w-4 h-4 text-white font-bold" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="px-5 py-2 bg-emerald-900 text-white rounded-lg text-sm font-medium shadow-md hover:bg-emerald-800 hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-emerald-900"
+            aria-label="Página siguiente"
+            className={PAGE_BUTTON}
           >
-            <ChevronRight className="inline w-4 h-4 text-white font-bold" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200/70">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900">
+          <thead className="bg-emerald-900 dark:bg-emerald-950">
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th
-                    key={header.id}
-                    className={`py-4 text-center text-sm font-medium text-white uppercase tracking-wider cursor-pointer select-none ${
-                      isNarrowColumn(header.column) ? 'w-px whitespace-nowrap px-4' : 'px-6'
-                    }`}
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                    {{
-                      asc: <ChevronUp className="inline w-4 h-4 text-white font-bold" />,
-                      desc: <ChevronDown className="inline w-4 h-4 text-white font-bold" />,
-                    }[header.column.getIsSorted() as string] ?? null}
-                  </th>
-                ))}
+                {headerGroup.headers.map(header => {
+                  const align = alignOf(header.column)
+                  const sorted = header.column.getIsSorted()
+                  const canSort = header.column.getCanSort()
+                  return (
+                    <th
+                      key={header.id}
+                      scope="col"
+                      aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
+                      className={`py-3.5 text-xs font-semibold text-white uppercase tracking-wider select-none ${ALIGN_CLASS[align]} ${
+                        isNarrowColumn(header.column) ? 'w-px whitespace-nowrap px-4' : 'px-6'
+                      }`}
+                    >
+                      {canSort && !header.isPlaceholder ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className={`inline-flex items-center gap-1 uppercase tracking-wider rounded focus-visible:outline-white/70 ${align === 'right' ? 'flex-row-reverse' : ''}`}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {sorted === 'asc' && <ChevronUp className="w-4 h-4 flex-shrink-0" />}
+                          {sorted === 'desc' && <ChevronDown className="w-4 h-4 flex-shrink-0" />}
+                        </button>
+                      ) : (
+                        flexRender(header.column.columnDef.header, header.getContext())
+                      )}
+                    </th>
+                  )
+                })}
               </tr>
             ))}
           </thead>
@@ -116,7 +162,7 @@ export default function DataTable<T>({
               <tr>
                 <td
                   colSpan={visibleColumns.length}
-                  className="px-6 py-10 text-center text-sm text-gray-400"
+                  className="px-6 py-12 text-center text-sm text-gray-400"
                 >
                   {emptyMessage}
                 </td>
@@ -125,13 +171,13 @@ export default function DataTable<T>({
             {table.getRowModel().rows.map((row, index) => (
               <tr
                 key={row.id}
-                className={`transition-all duration-200 hover:bg-emerald-50/50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
+                className={`transition-colors duration-150 hover:bg-emerald-50/60 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'
                   }`}
               >
                 {row.getVisibleCells().map(cell => (
                   <td
                     key={cell.id}
-                    className={`p-2 text-sm text-gray-700 text-center align-middle ${
+                    className={`py-2.5 text-sm text-gray-700 align-middle ${ALIGN_CLASS[alignOf(cell.column)]} ${
                       isNarrowColumn(cell.column) ? 'w-px whitespace-nowrap px-4' : 'px-6'
                     }`}
                   >
@@ -139,7 +185,8 @@ export default function DataTable<T>({
                       <div className="flex items-center justify-center gap-2">
                         {onEdit && (
                           <button
-                            className="bg-emerald-900 hover:from-emerald-500 hover:to-emerald-600 text-white px-4 p-1 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                            type="button"
+                            className={`${ROW_BUTTON} bg-emerald-900 text-white shadow-sm hover:bg-emerald-800`}
                             onClick={() => onEdit(row.original)}
                           >
                             Editar
@@ -147,7 +194,8 @@ export default function DataTable<T>({
                         )}
                         {onView && (
                           <button
-                            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-4 p-1 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200"
+                            type="button"
+                            className={`${ROW_BUTTON} bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100`}
                             onClick={() => onView(row.original)}
                           >
                             Ver
@@ -155,7 +203,8 @@ export default function DataTable<T>({
                         )}
                         {onDelete && (
                           <button
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 p-1 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                            type="button"
+                            className={`${ROW_BUTTON} bg-red-600 text-white shadow-sm hover:bg-red-700`}
                             onClick={() => onDelete(row.original)}
                           >
                             Borrar

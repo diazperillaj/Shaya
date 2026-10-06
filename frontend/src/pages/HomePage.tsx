@@ -25,12 +25,12 @@ export default function Dashboard() {
   const extraProps = active?.props ?? {};
 
   return (
-    <MainLayout setActiveMenuItem={setActiveMenuItem}>
+    <MainLayout setActiveMenuItem={setActiveMenuItem} activeMenuItem={activeMenuItem}>
       <div
         className={
           // fluid (ej. chat): ocupa todo el alto y maneja su propio scroll.
-          // Resto de páginas: comportamiento original (tablas anchas).
-          active?.fluid ? "h-full min-h-0" : "min-w-[700px] overflow-x-auto p-4"
+          // Resto de páginas: las tablas anchas se desplazan dentro de su tarjeta.
+          active?.fluid ? "h-full min-h-0" : "md:p-4"
         }
       >
         {Component ? (

@@ -1,12 +1,25 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image" href="/logo.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Shaya Café | Sistema de Gestión</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Roboto:wght@400;500&display=swap"
+  <!-- Tema antes de pintar: la elección guardada o la del dispositivo (src/theme/theme.ts) -->
+  <script>
+    (function () {
+      var dark = false
+      try {
+        var saved = localStorage.getItem('shaya-theme')
+        dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+      } catch (e) {}
+      var root = document.documentElement
+      if (dark) root.classList.add('dark')
+      root.style.colorScheme = dark ? 'dark' : 'light'
+    })()
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
     rel="stylesheet">
 </head>
 

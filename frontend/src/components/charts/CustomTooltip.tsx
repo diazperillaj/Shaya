@@ -26,7 +26,7 @@ export default function CustomTooltip({ active, payload, label, currency = false
         : v.toLocaleString('es-CO')
 
   return (
-    <div className="bg-gray-900 text-white rounded-2xl shadow-2xl px-4 py-3 min-w-[160px] border border-white/10">
+    <div className="bg-gray-900 text-white rounded-2xl shadow-2xl px-4 py-3 min-w-[160px] border border-white/10 dark:border-gray-300">
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
       <div className="flex flex-col gap-1.5">
         {payload.map((item) => (
@@ -36,7 +36,7 @@ export default function CustomTooltip({ active, payload, label, currency = false
                 className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-xs text-gray-300">{item.name}</span>
+              <span className="text-xs text-gray-300 dark:text-gray-600">{item.name}</span>
             </div>
             <span className="text-xs font-bold text-white">{fmt(item.value)}</span>
           </div>

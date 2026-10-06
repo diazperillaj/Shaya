@@ -1,5 +1,5 @@
 // src/components/ui/EditModal.tsx
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { TableField } from "../../models/common";
 import { Pencil, X, Check, Trash2, Eye, EyeOff } from "lucide-react";
 
@@ -30,21 +30,38 @@ export default function Modal<T>({
 
   const isEdit = mode === "edit";
   const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
+  const titleId = useId();
+
+  // Escape cierra el diálogo, como en cualquier ventana del sistema
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all animate-slideUp">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slideUp text-left dark:ring-1 dark:ring-white/10"
+      >
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 rounded-t-2xl px-6 py-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-3">
+        <div className="bg-emerald-900 dark:bg-emerald-950 rounded-t-2xl px-6 py-5 flex items-center justify-between">
+          <h2 id={titleId} className="text-lg font-semibold text-white flex items-center gap-3">
             <div>
               <Pencil className="w-5 h-5" />
             </div>
             {isEdit ? `Editar ${title}` : `Agregar ${title}`}
           </h2>
           <button
+            type="button"
             onClick={onClose}
-            className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition-all duration-200"
+            aria-label="Cerrar"
+            className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition-colors duration-150 focus-visible:outline-white/70"
           >
             <div>
               <X className="w-5 h-5" />
@@ -77,7 +94,7 @@ export default function Modal<T>({
                           }) as T,
                       )
                     }
-                    className="text-sm border border-gray-200 rounded-xl px-4 py-3 bg-white focus:outline-none"
+                    className="text-sm border border-gray-200 rounded-xl px-4 py-3 bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 transition-[border-color,box-shadow] duration-150"
                   >
                     {field.options?.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -101,7 +118,7 @@ export default function Modal<T>({
                           }) as T,
                       )
                     }
-                    className="ms-2 h-5 w-5 rounded border-gray-300"
+                    className="ms-2 h-5 w-5 rounded border-gray-300 accent-emerald-700"
                   />
                 )}
 
@@ -119,7 +136,7 @@ export default function Modal<T>({
                       )
                     }
                     rows={5}
-                    className="text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none resize-none"
+                    className="text-sm border border-gray-200 rounded-xl px-4 py-3 bg-white resize-none focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 transition-[border-color,box-shadow] duration-150"
                     placeholder={`Ingrese ${field.header.toLowerCase()}`}
                   />
                 )}
@@ -152,22 +169,24 @@ export default function Modal<T>({
                             }) as T,
                         )
                       }
-                      className="text-sm border border-gray-200 rounded-xl px-4 py-3 pr-12 focus:outline-none w-full"
+                      className="text-sm border border-gray-200 rounded-xl px-4 py-3 pr-12 bg-white w-full focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 transition-[border-color,box-shadow] duration-150"
                       placeholder={`Ingrese ${field.header.toLowerCase()}`}
                     />
 
                     {/* ICONO PASSWORD */}
                     {field.type === "password" && (
-                      <div
-                        className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1"
                         onClick={() => setIsPasswordVisible((prev) => !prev)}
+                        aria-label={isPasswordVisible ? "Ocultar contraseña" : "Mostrar contraseña"}
                       >
                         {isPasswordVisible ? (
                           <EyeOff className="w-5 h-5 text-gray-400" />
                         ) : (
                           <Eye className="w-5 h-5 text-gray-400" />
                         )}
-                      </div>
+                      </button>
                     )}
                   </div>
                 )}
@@ -184,14 +203,15 @@ export default function Modal<T>({
                 onClick={() => {
                   // Pregunta de confirmación
                   const confirmed = window.confirm(
-                    "¿Estás seguro de que deseas eliminar este usuario?",
+                    `¿Eliminar este registro${title ? ` de ${title.toLowerCase()}` : ""}? Esta acción no se puede deshacer.`,
                   );
                   if (!confirmed) return; // si el usuario cancela, no hacemos nada
 
                   // Llamada a la función de delete, convirtiendo id a número
                   onDelete(Number(formData[idKey]));
                 }}
-                className="bg-red-800 hover:bg-red-900 text-white px-5 py-2.5 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                type="button"
+                className="bg-red-800 hover:bg-red-900 text-white shadow-sm px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-[transform,background-color,box-shadow] duration-150 ease-out active:scale-[0.97]"
               >
                 <div>
                   <Trash2 className="w-5 h-5" />
@@ -200,8 +220,9 @@ export default function Modal<T>({
               </button>
             )}
             <button
+              type="button"
               onClick={onClose}
-              className="bg-white hover:bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200 border border-gray-200 flex items-center gap-2"
+              className="bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 shadow-sm px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-[transform,background-color,box-shadow] duration-150 ease-out active:scale-[0.97]"
             >
               <div>
                 <X className="w-5 h-5" />
@@ -209,8 +230,9 @@ export default function Modal<T>({
               Cancelar
             </button>
             <button
+              type="button"
               onClick={() => onSave(formData)}
-              className="bg-emerald-900 hover:bg-emerald-950 text-white px-5 py-2.5 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+              className="bg-emerald-900 hover:bg-emerald-950 text-white shadow-sm px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-[transform,background-color,box-shadow] duration-150 ease-out active:scale-[0.97]"
             >
               <div>
                 <Check className="w-5 h-5" />
