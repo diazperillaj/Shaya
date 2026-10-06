@@ -12,6 +12,9 @@
 #
 # Lee el mismo .env (credenciales de base, chatbot y LLM) y además necesita
 # DEMO_SECRET_KEY: una clave propia, distinta de la de producción.
+# Publicada por el Caddy (red proxy, alias shaya-demo-web), también:
+#   DEMO_URL=https://demoshaya.duckdns.org
+#   DEMO_COOKIE_SECURE=true
 name: shaya-demo
 
 services:
@@ -59,8 +62,8 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       SECRET_KEY: "${DEMO_SECRET_KEY:?Agrega DEMO_SECRET_KEY al .env (por ejemplo, openssl rand -hex 32)}"
-      FRONTEND_URL: http://127.0.0.1:${DEMO_PORT:-8090}
-      COOKIE_SECURE: "false"
+      FRONTEND_URL: ${DEMO_URL:-http://127.0.0.1:8090}
+      COOKIE_SECURE: ${DEMO_COOKIE_SECURE:-false}
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       db:
@@ -85,7 +88,7 @@ services:
       CHAT_DB_PASSWORD: ${CHATBOT_APP_PASSWORD}
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: "${DEMO_SECRET_KEY:?Agrega DEMO_SECRET_KEY al .env}"
-      FRONTEND_URL: http://127.0.0.1:${DEMO_PORT:-8090}
+      FRONTEND_URL: ${DEMO_URL:-http://127.0.0.1:8090}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.groq.com/openai/v1}
       LLM_API_KEY: ${LLM_API_KEY}
       LLM_MODEL: ${LLM_MODEL:-openai/gpt-oss-120b}
@@ -103,9 +106,19 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:${DEMO_PORT:-8090}:80"
+    networks:
+      default: {}
+      # Red del Caddy externo, que lo encuentra por el alias "shaya-demo-web"
+      proxy:
+        aliases:
+          - shaya-demo-web
     depends_on:
       - backend
       - chatbot
+
+networks:
+  proxy:
+    external: true
 
 volumes:
   demo-pgdata:
