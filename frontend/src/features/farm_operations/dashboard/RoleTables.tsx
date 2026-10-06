@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Warehouse } from 'lucide-react'
-import { Card, EmptyState } from '../components/ui'
+import { Card, EmptyState, Pager } from '../components/ui'
+import { usePagination } from '../components/usePagination'
 import { fmtDate, fmtNumber, plural } from '../format'
 import { LABOR_INFO } from '../labors/laborConfig'
 import type { CycleState, DashboardSummary, FarmRanking } from '../models/types'
@@ -13,6 +14,7 @@ const HARVEST_STATUS = {
 
 /** Estado de los ciclos activos: lo que el caficultor revisa cada día (§3.4) */
 export function CyclesTable({ cycles, showFarm }: { cycles: CycleState[]; showFarm: boolean }) {
+  const shown = usePagination(cycles)
   return (
     <Card title="Estado de los ciclos">
       {cycles.length === 0 ? (
@@ -30,7 +32,7 @@ export function CyclesTable({ cycles, showFarm }: { cycles: CycleState[]; showFa
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {cycles.map((cycle) => (
+              {shown.visible.map((cycle) => (
                 <tr key={cycle.crop_cycle_id}>
                   <td className="py-2 pr-3">
                     <Link to={`/cultivo/lotes/${cycle.plot_id}`} className="font-medium text-gray-900 hover:text-emerald-800">
@@ -75,6 +77,7 @@ export function CyclesTable({ cycles, showFarm }: { cycles: CycleState[]; showFa
           </table>
         </div>
       )}
+      <Pager state={shown} />
     </Card>
   )
 }
@@ -88,6 +91,7 @@ const healthTone = (value: number | null, threshold: number | null) => {
 /** Ranking de fincas y mapa de sanidad (§3.5) */
 export function FarmRankingTable({ rows, onSelect }: { rows: FarmRanking[]; onSelect: (farmId: number) => void }) {
   const ranked = [...rows].sort((a, b) => (b.yield_pct ?? -1) - (a.yield_pct ?? -1))
+  const shown = usePagination(ranked)
   return (
     <Card title="Fincas: producción, calidad y sanidad">
       <div className="-mx-5 overflow-x-auto px-5">
@@ -104,7 +108,7 @@ export function FarmRankingTable({ rows, onSelect }: { rows: FarmRanking[]; onSe
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {ranked.map((row) => (
+            {shown.visible.map((row) => (
               <tr key={row.farm_id}>
                 <td className="py-2 pr-3">
                   <button
@@ -141,6 +145,7 @@ export function FarmRankingTable({ rows, onSelect }: { rows: FarmRanking[]; onSe
           </tbody>
         </table>
       </div>
+      <Pager state={shown} />
       <p className="mt-3 text-xs text-gray-400">
         Broca y roya: el mayor de los últimos muestreos de sus lotes; en rojo, sobre el umbral de la finca. Alertas: riesgos ·
         desvíos · recordatorios.
@@ -151,13 +156,14 @@ export function FarmRankingTable({ rows, onSelect }: { rows: FarmRanking[]; onSe
 
 /** Café guardado en finca, por entrar al inventario (§3.5) */
 export function StoredCoffee({ summary }: { summary: DashboardSummary }) {
+  const shown = usePagination(summary.stored_dryings)
   return (
     <Card title="Café guardado en finca">
       {summary.stored_dryings.length === 0 ? (
         <EmptyState icon={Warehouse} title="No hay pergamino guardado" description="Todo el café cerrado ya salió de las fincas." />
       ) : (
         <ul className="grid grid-cols-1 gap-x-8 text-sm md:grid-cols-2">
-          {summary.stored_dryings.map((drying) => (
+          {shown.visible.map((drying) => (
             <li key={drying.drying_id} className="flex items-center justify-between gap-3 border-b border-gray-50 py-2">
               <Link to={`/cultivo/secados/${drying.drying_id}`} className="min-w-0 hover:text-emerald-800">
                 <span className="font-medium text-gray-900">Secado {drying.drying_id}</span>
@@ -170,6 +176,7 @@ export function StoredCoffee({ summary }: { summary: DashboardSummary }) {
           ))}
         </ul>
       )}
+      <Pager state={shown} />
     </Card>
   )
 }

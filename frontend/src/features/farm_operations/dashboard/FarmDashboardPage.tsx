@@ -124,16 +124,13 @@ export default function FarmDashboardPage() {
       <PeriodPicker value={period} seasons={seasons ?? []} today={today} onChange={changePeriod} />
 
       {state.error && <ErrorMessage message={state.error} />}
+      {/* Primero las cifras, luego lo que pide atención (alertas y recordatorios), todo a lo ancho */}
       {summary ? (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="xl:col-span-2">
-            <SummaryCards summary={summary} alerts={alerts} />
-          </div>
-          <div className="order-first flex flex-col gap-6 xl:order-none">
-            <AlertsPanel alerts={alerts} showFarm={showFarm} />
-            <RemindersCard alerts={alerts} showFarm={showFarm} />
-          </div>
-        </div>
+        <>
+          <SummaryCards summary={summary} alerts={alerts} />
+          <AlertsPanel alerts={alerts} showFarm={showFarm} />
+          <RemindersCard alerts={alerts} showFarm={showFarm} />
+        </>
       ) : (
         !state.error && <Loading />
       )}

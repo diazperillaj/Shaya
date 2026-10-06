@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Pager } from '../components/ui'
+import { usePagination } from '../components/usePagination'
 import { fmtDate, fmtMoney } from '../format'
 import type { AnyLabor, LaborKind } from '../models/types'
 import { LABOR_INFO, LABOR_KINDS, describeLabor, laborDate } from './laborConfig'
@@ -10,11 +12,12 @@ import { LABOR_INFO, LABOR_KINDS, describeLabor, laborDate } from './laborConfig
  */
 export default function LaborHistory({ labors, onEdit }: { labors: AnyLabor[]; onEdit: (labor: AnyLabor) => void }) {
   const [filter, setFilter] = useState<LaborKind | null>(null)
-  const visible = filter ? labors.filter((labor) => labor.kind === filter) : labors
+  const filtered = filter ? labors.filter((labor) => labor.kind === filter) : labors
+  const list = usePagination(filtered)
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6">
         {LABOR_KINDS.map((kind) => {
           const { icon: Icon, plural } = LABOR_INFO[kind]
           const ofKind = labors.filter((labor) => labor.kind === kind)
@@ -43,13 +46,14 @@ export default function LaborHistory({ labors, onEdit }: { labors: AnyLabor[]; o
         })}
       </div>
 
-      {visible.length === 0 ? (
+      {filtered.length === 0 ? (
         <p className="text-sm text-gray-400">
           {filter ? `Sin ${LABOR_INFO[filter].plural.toLowerCase()} en este ciclo.` : 'Sin labores en este ciclo. Registra la primera con «Registrar labor».'}
         </p>
       ) : (
+        <div>
         <ul className="divide-y divide-gray-100">
-          {visible.map((labor) => {
+          {list.visible.map((labor) => {
             const Icon = LABOR_INFO[labor.kind].icon
             const { title, detail } = describeLabor(labor)
             return (
@@ -73,6 +77,8 @@ export default function LaborHistory({ labors, onEdit }: { labors: AnyLabor[]; o
             )
           })}
         </ul>
+        <Pager state={list} />
+        </div>
       )}
     </div>
   )

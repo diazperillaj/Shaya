@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ChevronRight, Droplet, Factory, Sun } from 'lucide-react'
-import { Badge, Button, Card, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, Card, ErrorMessage, Loading, PageHeader, Pager } from '../components/ui'
 import { useLoader } from '../components/useLoader'
+import { usePagination } from '../components/usePagination'
 import { fmtDate, fmtDateTime, fmtNumber } from '../format'
 import { DRYING_DESTINATION_LABELS, PROCESS_STATUS_LABELS } from '../models/labels'
 import { fetchFarm } from '../services/farms.api'
@@ -28,6 +29,8 @@ function Postharvest({ farmId }: { farmId: number }) {
   const { data: farm } = useLoader(loadFarm)
   const { data: wets, error: wetsError } = useLoader(loadWets)
   const { data: dryings, error: dryingsError } = useLoader(loadDryings)
+  const shownWets = usePagination(wets)
+  const shownDryings = usePagination(dryings)
   const [dialog, setDialog] = useState<'wet' | 'drying' | null>(null)
 
   return (
@@ -55,7 +58,7 @@ function Postharvest({ farmId }: { farmId: number }) {
         )}
         {wets && wets.length > 0 && (
           <ul className="divide-y divide-gray-100">
-            {wets.map((wet) => (
+            {shownWets.visible.map((wet) => (
               <li key={wet.id}>
                 <Link to={`/cultivo/beneficios/${wet.id}`} className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 hover:bg-gray-50">
                   <span>
@@ -76,6 +79,7 @@ function Postharvest({ farmId }: { farmId: number }) {
             ))}
           </ul>
         )}
+        <Pager state={shownWets} />
       </Card>
 
       <Card title="Secados">
@@ -86,7 +90,7 @@ function Postharvest({ farmId }: { farmId: number }) {
         )}
         {dryings && dryings.length > 0 && (
           <ul className="divide-y divide-gray-100">
-            {dryings.map((drying) => (
+            {shownDryings.visible.map((drying) => (
               <li key={drying.id}>
                 <Link to={`/cultivo/secados/${drying.id}`} className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 hover:bg-gray-50">
                   <span>
@@ -109,6 +113,7 @@ function Postharvest({ farmId }: { farmId: number }) {
             ))}
           </ul>
         )}
+        <Pager state={shownDryings} />
       </Card>
 
       {dialog === 'wet' && (

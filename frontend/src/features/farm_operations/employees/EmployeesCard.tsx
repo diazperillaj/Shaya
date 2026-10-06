@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react'
 import { Pencil, UserPlus } from 'lucide-react'
-import { Badge, Button, Card, ErrorMessage } from '../components/ui'
+import { Badge, Button, Card, ErrorMessage, Pager } from '../components/ui'
 import { useLoader } from '../components/useLoader'
+import { usePagination } from '../components/usePagination'
 import type { Employee } from '../models/types'
 import { fetchEmployees, setEmployeeActive } from '../services/employees.api'
 import EmployeeFormDialog from './EmployeeFormDialog'
@@ -13,6 +14,7 @@ import EmployeeFormDialog from './EmployeeFormDialog'
 export default function EmployeesCard({ farmId }: { farmId: number }) {
   const load = useCallback(() => fetchEmployees(farmId), [farmId])
   const { data: employees, error, reload } = useLoader(load)
+  const shown = usePagination(employees)
 
   const [dialog, setDialog] = useState<{ employee?: Employee } | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -46,7 +48,7 @@ export default function EmployeesCard({ farmId }: { farmId: number }) {
 
       {employees && employees.length > 0 && (
         <ul className="divide-y divide-gray-100">
-          {employees.map((employee) => (
+          {shown.visible.map((employee) => (
             <li key={employee.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
               <div className={employee.active ? '' : 'opacity-60'}>
                 <p className="flex items-center gap-2 text-sm font-medium text-gray-900">
@@ -78,6 +80,7 @@ export default function EmployeesCard({ farmId }: { farmId: number }) {
           ))}
         </ul>
       )}
+      <Pager state={shown} />
 
       {dialog && (
         <EmployeeFormDialog

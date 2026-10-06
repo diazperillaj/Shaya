@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react'
 import { CloudRain } from 'lucide-react'
-import { Button, Card, ErrorMessage } from '../components/ui'
+import { Button, Card, ErrorMessage, Pager } from '../components/ui'
 import { useLoader } from '../components/useLoader'
+import { usePagination } from '../components/usePagination'
 import { fmtDate, fmtNumber } from '../format'
 import type { ClimateRecord, Plot } from '../models/types'
 import { fetchClimateRecords } from '../services/climate.api'
 import ClimateFormDialog from './ClimateFormDialog'
 
-const VISIBLE = 8
 
 /** Temperaturas del día: el rango, o la que se haya medido */
 const temperatures = ({ temp_min_c: min, temp_max_c: max }: ClimateRecord): string | null => {
@@ -28,9 +28,8 @@ export default function ClimateCard({ farmId, plots }: { farmId: number; plots: 
   const load = useCallback(() => fetchClimateRecords(farmId), [farmId])
   const { data: records, error, reload } = useLoader(load)
   const [dialog, setDialog] = useState<{ record?: ClimateRecord } | null>(null)
-  const [showAll, setShowAll] = useState(false)
-
-  const visible = showAll ? records ?? [] : (records ?? []).slice(0, VISIBLE)
+  const shown = usePagination(records)
+  const visible = shown.visible
 
   return (
     <Card title="Clima" actions={<Button icon={CloudRain} onClick={() => setDialog({})}>Registrar</Button>}>
@@ -62,15 +61,7 @@ export default function ClimateCard({ farmId, plots }: { farmId: number; plots: 
           ))}
         </ul>
       )}
-      {records && records.length > VISIBLE && (
-        <button
-          type="button"
-          onClick={() => setShowAll((current) => !current)}
-          className="mt-2 text-sm font-medium text-gray-500 hover:text-emerald-800"
-        >
-          {showAll ? 'Ver menos' : `Ver los ${records.length} registros`}
-        </button>
-      )}
+      <Pager state={shown} />
 
       {dialog && (
         <ClimateFormDialog

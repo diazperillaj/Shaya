@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { Card } from '../components/ui'
+import { Card, Pager } from '../components/ui'
+import { usePagination } from '../components/usePagination'
 import type { QualityProjection } from '../models/types'
 import {
   YIELD_FACTOR_HINT,
@@ -17,6 +18,7 @@ export default function ProjectionsTable({
   projections: QualityProjection[]
   showFarm: boolean
 }) {
+  const shown = usePagination(projections)
   return (
     <Card title="Proyección de calidad">
       {projections.length === 0 ? (
@@ -35,7 +37,7 @@ export default function ProjectionsTable({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {projections.map((p) => (
+                {shown.visible.map((p) => (
                   <tr key={p.crop_cycle_id}>
                     <td className="py-2 pr-3">
                       <Link to={`/cultivo/lotes/${p.plot_id}`} className="font-medium text-gray-900 hover:text-emerald-800">
@@ -54,6 +56,7 @@ export default function ProjectionsTable({
               </tbody>
             </table>
           </div>
+          <Pager state={shown} />
           <p className="mt-3 text-xs text-gray-400">
             {projections[0].disclaimer} Los datos que aún no existen (cosecha, beneficio, secado) se proyectan con los
             valores típicos de cada finca.

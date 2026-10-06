@@ -16,7 +16,7 @@ export default function SummaryCards({ summary, alerts }: { summary: DashboardSu
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Ahora</p>
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-7">
         <KpiCard
           icon={<BellRing className="h-5 w-5" />}
           label="Alertas activas"
@@ -71,7 +71,7 @@ export default function SummaryCards({ summary, alerts }: { summary: DashboardSu
       </div>
 
       <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-gray-400">En el periodo</p>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         <KpiCard
           icon={<Cherry className="h-5 w-5" />}
           label="Cereza cosechada"

@@ -83,7 +83,7 @@ export default function SuppliesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nombre o composición…"
-              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
             />
           </div>
           {isAdmin && (

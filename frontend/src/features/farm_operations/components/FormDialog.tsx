@@ -93,14 +93,14 @@ export default function FormDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm animate-fadeIn sm:items-center sm:p-4">
       <form
         onSubmit={handleSubmit}
-        className={`flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white text-left shadow-2xl sm:rounded-2xl ${
+        className={`flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white text-left shadow-2xl animate-slideUp dark:ring-1 dark:ring-white/10 sm:rounded-2xl ${
           wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'
         }`}
       >
-        <div className="flex items-start justify-between gap-3 rounded-t-2xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 px-5 py-4">
+        <div className="flex items-start justify-between gap-3 rounded-t-2xl bg-emerald-900 px-5 py-4 dark:bg-emerald-950">
           <div className="flex items-start gap-3">
             <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-100" />
             <div>

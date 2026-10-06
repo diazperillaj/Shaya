@@ -1,14 +1,15 @@
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import type { PaginationState } from './usePagination'
 
 /**
  * Piezas visuales del módulo de cultivo, con el estilo del resto de la app.
  */
 
 const BUTTON_VARIANTS = {
-  primary: 'bg-emerald-900 text-white shadow-md hover:bg-emerald-950',
+  primary: 'bg-emerald-900 text-white shadow-sm hover:bg-emerald-950 dark:hover:bg-emerald-800',
   secondary: 'border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50',
   danger: 'border border-red-200 bg-white text-red-700 shadow-sm hover:bg-red-50',
 }
@@ -31,7 +32,7 @@ export function Button({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${BUTTON_VARIANTS[variant]}`}
+      className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-[transform,background-color,box-shadow] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${BUTTON_VARIANTS[variant]}`}
     >
       {Icon && <Icon className="h-4 w-4" />}
       {children}
@@ -71,7 +72,7 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-3">
       {back && (
-        <Link to={back.to} className="flex w-fit items-center gap-1.5 text-sm text-gray-500 hover:text-emerald-800">
+        <Link to={back.to} className="flex w-fit items-center gap-1.5 rounded text-sm text-gray-500 transition-colors duration-150 hover:text-emerald-800">
           <ArrowLeft className="h-4 w-4" /> {back.label}
         </Link>
       )}
@@ -81,7 +82,7 @@ export function PageHeader({
             <Icon className="h-6 w-6 text-emerald-800" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">{title}</h1>
             {subtitle && <div className="mt-0.5 text-sm text-gray-500">{subtitle}</div>}
           </div>
         </div>
@@ -154,6 +155,35 @@ export function Loading() {
   return (
     <div className="flex justify-center py-12">
       <Loader2 className="h-6 w-6 animate-spin text-emerald-800" />
+    </div>
+  )
+}
+
+const PAGE_BUTTON =
+  'flex h-8 w-9 items-center justify-center rounded-lg bg-emerald-900 text-white shadow-sm transition-[transform,background-color,opacity] duration-150 ease-out hover:bg-emerald-800 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-emerald-900 disabled:active:scale-100'
+
+/**
+ * Paginación de una tabla o lista (`usePagination`): «11–20 de 81 · Página 2
+ * de 9» y las flechas, como en las tablas del resto de la app. No aparece si
+ * todo cabe en una página.
+ */
+export function Pager<T>({ state }: { state: PaginationState<T> }) {
+  if (state.pages <= 1) return null
+  return (
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3">
+      <p className="text-xs text-gray-500 tabular-nums">
+        {state.from}–{state.to} de {state.total} · Página{' '}
+        <span className="font-semibold text-emerald-900">{state.page}</span> de{' '}
+        <span className="font-semibold text-emerald-900">{state.pages}</span>
+      </p>
+      <div className="flex gap-2">
+        <button type="button" onClick={state.prev} disabled={!state.canPrev} aria-label="Página anterior" className={PAGE_BUTTON}>
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button type="button" onClick={state.next} disabled={!state.canNext} aria-label="Página siguiente" className={PAGE_BUTTON}>
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   )
 }

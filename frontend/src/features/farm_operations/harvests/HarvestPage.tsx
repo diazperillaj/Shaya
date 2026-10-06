@@ -3,9 +3,10 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Apple, CircleCheck, Loader2, Pencil, Plus, RotateCcw, Wallet } from 'lucide-react'
 import { FormSection } from '../components/fields'
-import { Badge, Button, Card, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, Card, ErrorMessage, Loading, PageHeader, Pager } from '../components/ui'
 import { useFormValues } from '../components/useFormValues'
 import { useLoader } from '../components/useLoader'
+import { usePagination } from '../components/usePagination'
 import { fromKg } from '../components/weight'
 import type { WeightUnit } from '../components/weight'
 import { fmtDate, fmtMoney, fmtNumber, todayIso } from '../format'
@@ -240,12 +241,24 @@ function EntryForm({
 
 /** Recolección agrupada por día, con el acumulado de cada día */
 function WorksByDay({ harvest, onEdit }: { harvest: HarvestDetail; onEdit: (work: HarvestWork) => void }) {
-  const days = useMemo(() => {
-    const groups = new Map<string, HarvestWork[]>()
-    harvest.works.forEach((work) => groups.set(work.work_date, [...(groups.get(work.work_date) ?? []), work]))
-    return [...groups.entries()]
+  // Totales de cada día con toda su recolección, aunque el día quede repartido entre páginas
+  const dayTotals = useMemo(() => {
+    const totals = new Map<string, { kg: number; value: number }>()
+    harvest.works.forEach((work) => {
+      const day = totals.get(work.work_date) ?? { kg: 0, value: 0 }
+      day.kg += work.kg_collected ?? 0
+      day.value += work.total_value
+      totals.set(work.work_date, day)
+    })
+    return totals
   }, [harvest.works])
   const editable = harvest.status === 'open'
+  // De a 10 registros (los más recientes primero), agrupados por día
+  const shown = usePagination(harvest.works)
+  const days = [...shown.visible.reduce((groups, work) => {
+    groups.set(work.work_date, [...(groups.get(work.work_date) ?? []), work])
+    return groups
+  }, new Map<string, HarvestWork[]>()).entries()]
 
   return (
     <Card title="Recolección">
@@ -254,8 +267,7 @@ function WorksByDay({ harvest, onEdit }: { harvest: HarvestDetail; onEdit: (work
       )}
       <div className="flex flex-col gap-4">
         {days.map(([day, works]) => {
-          const kg = works.reduce((sum, work) => sum + (work.kg_collected ?? 0), 0)
-          const value = works.reduce((sum, work) => sum + work.total_value, 0)
+          const { kg, value } = dayTotals.get(day) ?? { kg: 0, value: 0 }
           return (
             <section key={day}>
               <p className="mb-1 flex flex-wrap justify-between gap-2 text-xs font-medium text-gray-500">
@@ -290,6 +302,7 @@ function WorksByDay({ harvest, onEdit }: { harvest: HarvestDetail; onEdit: (work
           )
         })}
       </div>
+      <Pager state={shown} />
       {!editable && harvest.works.length > 0 && (
         <p className="mt-3 text-xs text-gray-400">La pasada está cerrada: reábrela para corregir su recolección.</p>
       )}
@@ -315,6 +328,7 @@ function WorksByEmployee({ harvest }: { harvest: HarvestDetail }) {
     })
     return [...byEmployee.values()].sort((a, b) => b.kg - a.kg)
   }, [harvest.works])
+  const shown = usePagination(rows)
 
   if (rows.length === 0) return null
   return (
@@ -330,7 +344,7 @@ function WorksByEmployee({ harvest }: { harvest: HarvestDetail }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {rows.map((row) => (
+            {shown.visible.map((row) => (
               <tr key={row.name}>
                 <td className="py-2 pr-3 text-gray-900">{row.name}</td>
                 <td className="py-2 pr-3 text-right">{fmtNumber(row.kg, 1, 'kg')}</td>
@@ -341,6 +355,7 @@ function WorksByEmployee({ harvest }: { harvest: HarvestDetail }) {
           </tbody>
         </table>
       </div>
+      <Pager state={shown} />
     </Card>
   )
 }

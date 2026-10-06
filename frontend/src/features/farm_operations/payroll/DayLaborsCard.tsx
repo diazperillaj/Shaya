@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { HardHat, Wallet } from 'lucide-react'
-import { Badge, Button, Card, ErrorMessage } from '../components/ui'
+import { Badge, Button, Card, ErrorMessage, Pager } from '../components/ui'
 import { useLoader } from '../components/useLoader'
+import { usePagination } from '../components/usePagination'
 import { fmtDate, fmtMoney } from '../format'
 import type { DayLabor, Plot } from '../models/types'
 import { fetchEmployees } from '../services/employees.api'
@@ -10,7 +11,6 @@ import { fetchDayLabors } from '../services/payroll.api'
 import DayLaborFormDialog from './DayLaborFormDialog'
 import { describeActivity } from './describe'
 
-const VISIBLE = 8
 
 /** Jornales recientes de la finca y acceso a los pagos */
 export default function DayLaborsCard({ farmId, plots }: { farmId: number; plots: Plot[] }) {
@@ -20,10 +20,10 @@ export default function DayLaborsCard({ farmId, plots }: { farmId: number; plots
   const { data: labors, error, reload } = useLoader(loadLabors)
   const { data: employees } = useLoader(loadEmployees)
   const [dialog, setDialog] = useState<{ labor?: DayLabor } | null>(null)
-  const [showAll, setShowAll] = useState(false)
 
   const active = (employees ?? []).filter((employee) => employee.active)
-  const visible = showAll ? labors ?? [] : (labors ?? []).slice(0, VISIBLE)
+  const shown = usePagination(labors)
+  const visible = shown.visible
 
   return (
     <Card
@@ -70,15 +70,7 @@ export default function DayLaborsCard({ farmId, plots }: { farmId: number; plots
           ))}
         </ul>
       )}
-      {labors && labors.length > VISIBLE && (
-        <button
-          type="button"
-          onClick={() => setShowAll((current) => !current)}
-          className="mt-2 text-sm font-medium text-gray-500 hover:text-emerald-800"
-        >
-          {showAll ? 'Ver menos' : `Ver los ${labors.length} jornales`}
-        </button>
-      )}
+      <Pager state={shown} />
 
       {dialog && (
         <DayLaborFormDialog
