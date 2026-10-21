@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { GitBranch } from 'lucide-react'
-import { Badge, Card, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { Badge, Card, ErrorMessage, PageHeader, PageSkeleton } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { fmtDate, fmtDateTime, fmtMoney, fmtNumber } from '../format'
 import { LABOR_INFO } from '../labors/laborConfig'
@@ -39,7 +39,7 @@ function TraceView({ load }: { load: () => Promise<DryingTrace> }) {
       </div>
     )
   }
-  if (!trace) return <Loading />
+  if (!trace) return <PageSkeleton />
 
   const { drying } = trace
   return (

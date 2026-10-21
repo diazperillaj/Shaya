@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Apple, CircleCheck, Loader2, Pencil, Plus, RotateCcw, Wallet } from 'lucide-react'
 import { FormSection } from '../components/fields'
-import { Badge, Button, Card, ErrorMessage, Loading, PageHeader, Pager } from '../components/ui'
+import { Badge, Button, Card, ErrorMessage, PageHeader, Pager, PageSkeleton } from '../components/ui'
 import { useFormValues } from '../components/useFormValues'
 import { useLoader } from '../components/useLoader'
 import { usePagination } from '../components/usePagination'
@@ -48,7 +48,7 @@ function HarvestView({ id }: { id: number }) {
       </div>
     )
   }
-  if (!harvest) return <Loading />
+  if (!harvest) return <PageSkeleton />
 
   const open = harvest.status === 'open'
   const closeAndReload = () => {

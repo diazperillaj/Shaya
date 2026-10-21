@@ -26,13 +26,13 @@ const summarize = (record: ClimateRecord): string =>
 /** Clima registrado a mano en la finca, del más reciente al más antiguo */
 export default function ClimateCard({ farmId, plots }: { farmId: number; plots: Plot[] }) {
   const load = useCallback(() => fetchClimateRecords(farmId), [farmId])
-  const { data: records, error, reload } = useLoader(load)
+  const { data: records, error, refreshing, reload } = useLoader(load)
   const [dialog, setDialog] = useState<{ record?: ClimateRecord } | null>(null)
   const shown = usePagination(records)
   const visible = shown.visible
 
   return (
-    <Card title="Clima" actions={<Button icon={CloudRain} onClick={() => setDialog({})}>Registrar</Button>}>
+    <Card title="Clima" busy={refreshing} actions={<Button icon={CloudRain} onClick={() => setDialog({})}>Registrar</Button>}>
       {error && <ErrorMessage message={error} />}
       {records && records.length === 0 && (
         <p className="text-sm text-gray-400">

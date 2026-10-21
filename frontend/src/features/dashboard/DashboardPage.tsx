@@ -26,28 +26,25 @@ import DonutChart from '../../components/charts/DonutChart'
 import GlobalChartDefs from '../../components/charts/GlobalChartDefs'
 import KpiCard from '../../components/charts/KpiCard'
 import { fmtCOP, GRAD_H, GRAD_V } from '../../components/charts/chartData'
+import { ChartSkeleton, KpiSkeletonGrid } from '../../components/ui/Busy'
+import { BusyScope, useMinDuration } from '../../components/ui/busyContext'
 import { useDashboard } from './hooks/useDashboard'
 import type { DashboardKPIsApi } from './models/types'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const fmtNum = (n: number) => n.toLocaleString('es-CO')
+const KPI_GRID = 'grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4'
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { kpis, charts, loading, error, refresh } = useDashboard()
+  // Al actualizar, las cifras siguen a la vista mientras llegan las nuevas
+  const refreshing = loading && kpis !== null
+  const spinning = useMinDuration(loading)
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64 gap-3 text-emerald-700">
-        <span className="animate-spin w-6 h-6 border-2 border-emerald-700 border-t-transparent rounded-full inline-block" />
-        Cargando dashboard…
-      </div>
-    )
-  }
-
-  if (error) {
+  if (error && !kpis) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4 text-red-600">
         <AlertCircle className="w-10 h-10" />
@@ -71,102 +68,121 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-semibold">Dashboard</h1>
         <button
           onClick={refresh}
-          className="flex items-center gap-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition duration-150 ease-out"
+          disabled={spinning}
+          aria-busy={spinning || undefined}
+          className="flex items-center gap-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} />
           Actualizar
         </button>
       </div>
 
-      {/* ── KPI cards ──────────────────────────────────────────────────────── */}
-      {kpis && <KpiGrid kpis={kpis} />}
+      {error && (
+        <p className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+        </p>
+      )}
 
-      {/* ── Charts ─────────────────────────────────────────────────────────── */}
-      {charts && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <BusyScope busy={refreshing}>
+        {/* ── KPI cards ──────────────────────────────────────────────────────── */}
+        {kpis ? <KpiGrid kpis={kpis} /> : <KpiSkeletonGrid count={12} className={KPI_GRID} />}
 
-          {/* Chart 1: Sales by month */}
-          <ChartCard title="Ingresos por mes" subtitle="Últimos 6 meses">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={charts.salesByMonth.data} margin={{ top: 4, right: 16, bottom: 0, left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="left" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip currency />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
-                <Legend />
-                <Bar yAxisId="left" dataKey="Ingresos ($)" fill={GRAD_V[0]} radius={[8, 8, 0, 0]} maxBarSize={40} />
-                <Bar yAxisId="right" dataKey="N° ventas" fill={GRAD_V[2]} radius={[8, 8, 0, 0]} maxBarSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+        {/* ── Charts ─────────────────────────────────────────────────────────── */}
+        {!charts && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <ChartSkeleton />
+            <ChartSkeleton />
+            <div className="xl:col-span-2">
+              <ChartSkeleton height={280} />
+            </div>
+          </div>
+        )}
+        {charts && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-          {/* Chart 2: Top products */}
-          <ChartCard title="Top productos vendidos" subtitle="Por unidades vendidas">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart
-                data={charts.topProducts.data}
-                layout="vertical"
-                margin={{ top: 4, right: 16, bottom: 0, left: 80 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={80} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
-                <Legend />
-                <Bar dataKey="Unidades vendidas" fill={GRAD_H[1]} radius={[0, 8, 8, 0]} maxBarSize={28} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          {/* Chart: Ingresos vs Gastos vs Utilidad — full width */}
-          <div className="xl:col-span-2">
-            <ChartCard title="Ingresos vs Gastos" subtitle="Ingresos, gastos generales y utilidad · Últimos 6 meses">
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={charts.incomeVsExpenses.data} margin={{ top: 4, right: 16, bottom: 0, left: 8 }} barCategoryGap="25%">
+            {/* Chart 1: Sales by month */}
+            <ChartCard title="Ingresos por mes" subtitle="Últimos 6 meses">
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={charts.salesByMonth.data} margin={{ top: 4, right: 16, bottom: 0, left: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip currency />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
                   <Legend />
-                  <Bar dataKey="Ingresos" fill="#059669" radius={[8, 8, 0, 0]} maxBarSize={36} />
-                  <Bar dataKey="Gastos" fill="#dc2626" radius={[8, 8, 0, 0]} maxBarSize={36} />
-                  <Bar dataKey="Utilidad" fill="#0d9488" radius={[8, 8, 0, 0]} maxBarSize={36} />
+                  <Bar yAxisId="left" dataKey="Ingresos ($)" fill={GRAD_V[0]} radius={[8, 8, 0, 0]} maxBarSize={40} />
+                  <Bar yAxisId="right" dataKey="N° ventas" fill={GRAD_V[2]} radius={[8, 8, 0, 0]} maxBarSize={40} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
-          </div>
 
-          {/* Chart: Gastos por categoría (donut) */}
-          <ChartCard title="Gastos por categoría" subtitle="Distribución del gasto acumulado">
-            <DonutChart chart={charts.expensesByCategory} />
-          </ChartCard>
-
-          {/* Chart: Ventas por método de pago (donut) */}
-          <ChartCard title="Ventas por método de pago" subtitle="Total vendido por Efectivo, Nequi, Nu…">
-            <DonutChart chart={charts.salesByPaymentMethod} />
-          </ChartCard>
-
-          {/* Chart 3: Inventory status — full width */}
-          <div className="xl:col-span-2">
-            <ChartCard title="Estado del inventario tostado" subtitle="Total producido · Disponible · Vendido por producto">
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={charts.inventoryStatus.data} margin={{ top: 4, right: 16, bottom: 0, left: 8 }} barCategoryGap="25%">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+            {/* Chart 2: Top products */}
+            <ChartCard title="Top productos vendidos" subtitle="Por unidades vendidas">
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart
+                  data={charts.topProducts.data}
+                  layout="vertical"
+                  margin={{ top: 4, right: 16, bottom: 0, left: 80 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={80} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
                   <Legend />
-                  <Bar dataKey="Total producido" fill={GRAD_V[0]} radius={[8, 8, 0, 0]} maxBarSize={36} />
-                  <Bar dataKey="Disponible" fill={GRAD_V[2]} radius={[8, 8, 0, 0]} maxBarSize={36} />
-                  <Bar dataKey="Vendido" fill={GRAD_V[3]} radius={[8, 8, 0, 0]} maxBarSize={36} />
+                  <Bar dataKey="Unidades vendidas" fill={GRAD_H[1]} radius={[0, 8, 8, 0]} maxBarSize={28} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
-          </div>
 
-        </div>
-      )}
+            {/* Chart: Ingresos vs Gastos vs Utilidad — full width */}
+            <div className="xl:col-span-2">
+              <ChartCard title="Ingresos vs Gastos" subtitle="Ingresos, gastos generales y utilidad · Últimos 6 meses">
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={charts.incomeVsExpenses.data} margin={{ top: 4, right: 16, bottom: 0, left: 8 }} barCategoryGap="25%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip currency />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
+                    <Legend />
+                    <Bar dataKey="Ingresos" fill="#059669" radius={[8, 8, 0, 0]} maxBarSize={36} />
+                    <Bar dataKey="Gastos" fill="#dc2626" radius={[8, 8, 0, 0]} maxBarSize={36} />
+                    <Bar dataKey="Utilidad" fill="#0d9488" radius={[8, 8, 0, 0]} maxBarSize={36} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            </div>
+
+            {/* Chart: Gastos por categoría (donut) */}
+            <ChartCard title="Gastos por categoría" subtitle="Distribución del gasto acumulado">
+              <DonutChart chart={charts.expensesByCategory} />
+            </ChartCard>
+
+            {/* Chart: Ventas por método de pago (donut) */}
+            <ChartCard title="Ventas por método de pago" subtitle="Total vendido por Efectivo, Nequi, Nu…">
+              <DonutChart chart={charts.salesByPaymentMethod} />
+            </ChartCard>
+
+            {/* Chart 3: Inventory status — full width */}
+            <div className="xl:col-span-2">
+              <ChartCard title="Estado del inventario tostado" subtitle="Total producido · Disponible · Vendido por producto">
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={charts.inventoryStatus.data} margin={{ top: 4, right: 16, bottom: 0, left: 8 }} barCategoryGap="25%">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
+                    <Legend />
+                    <Bar dataKey="Total producido" fill={GRAD_V[0]} radius={[8, 8, 0, 0]} maxBarSize={36} />
+                    <Bar dataKey="Disponible" fill={GRAD_V[2]} radius={[8, 8, 0, 0]} maxBarSize={36} />
+                    <Bar dataKey="Vendido" fill={GRAD_V[3]} radius={[8, 8, 0, 0]} maxBarSize={36} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            </div>
+
+          </div>
+        )}
+      </BusyScope>
     </div>
   )
 }
@@ -197,7 +213,7 @@ function KpiGrid({ kpis }: { kpis: DashboardKPIsApi }) {
     kpis.sales_total_month > 0 ? (kpis.net_month / kpis.sales_total_month) * 100 : null
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className={KPI_GRID}>
       <KpiCard
         icon={<Coffee className="w-5 h-5" />}
         label="Precio café"

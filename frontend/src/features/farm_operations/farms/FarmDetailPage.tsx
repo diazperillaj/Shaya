@@ -4,7 +4,7 @@ import { BellRing, CirclePlus, ClipboardPlus, Factory, LandPlot, MapPinned, Penc
 import { useAuth } from '../../auth/AuthContext'
 import AlertConfigDialog from '../alerts/AlertConfigDialog'
 import ClimateCard from '../climate/ClimateCard'
-import { Badge, Button, Card, DetailList, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, Card, DetailList, ErrorMessage, PageHeader, PageSkeleton } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import EmployeesCard from '../employees/EmployeesCard'
 import { fmtNumber, plural } from '../format'
@@ -49,7 +49,7 @@ function FarmDetail({ id }: { id: number }) {
       </div>
     )
   }
-  if (!farm) return <Loading />
+  if (!farm) return <PageSkeleton />
 
   const activePlots = (plots ?? []).filter((plot) => plot.status === 'active')
   const closedPlots = (plots ?? []).filter((plot) => plot.status === 'closed')

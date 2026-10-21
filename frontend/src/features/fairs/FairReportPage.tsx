@@ -7,6 +7,8 @@ import {
   ArrowLeft, RefreshCw, TrendingUp, TrendingDown, ShoppingBag,
   Package, Clock, BarChart2, AlertCircle,
 } from 'lucide-react'
+import { BusyOverlay, ChartSkeleton, KpiSkeletonGrid, Skeleton } from '../../components/ui/Busy'
+import { BusyScope, useMinDuration } from '../../components/ui/busyContext'
 import { fetchFairReport } from './services/fairs.api'
 import type { FairReport } from './models/types'
 
@@ -69,12 +71,13 @@ function CustomTooltip({ active, payload, label, currency = false }: any) {
 
 function ChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5">
+    <div className="relative bg-white rounded-2xl shadow-lg border border-gray-100 p-5">
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
         <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
       </div>
       {children}
+      <BusyOverlay />
     </div>
   )
 }
@@ -113,13 +116,14 @@ function KpiCard({ icon, label, value, sub, color = 'default' }: {
   }
 
   return (
-    <div className={`rounded-2xl p-4 border shadow-sm flex flex-col gap-2 ${styles[color]}`}>
+    <div className={`relative rounded-2xl p-4 border shadow-sm flex flex-col gap-2 ${styles[color]}`}>
       <div className={`flex items-center gap-2 ${iconStyle[color]}`}>
         {icon}
         <span className={`text-xs font-semibold uppercase tracking-wide ${color === 'accent' ? 'text-emerald-200' : 'text-gray-500'}`}>{label}</span>
       </div>
       <p className={`text-lg font-bold leading-tight ${valueStyle[color]}`}>{value}</p>
       <p className={`text-xs ${subStyle[color]}`}>{sub}</p>
+      <BusyOverlay tone={color === 'accent' ? 'accent' : 'light'} />
     </div>
   )
 }
@@ -137,15 +141,11 @@ export default function FairReportPage({ fairId, fairName, onBack }: Props) {
   }
 
   useEffect(() => { load() }, [fairId])
+  const spinning = useMinDuration(loading)
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64 gap-3 text-emerald-700">
-      <span className="animate-spin w-6 h-6 border-2 border-emerald-700 border-t-transparent rounded-full inline-block" />
-      Cargando reporte…
-    </div>
-  )
+  if (loading && !report) return <ReportSkeleton />
 
-  if (error) return (
+  if (error && !report) return (
     <div className="flex flex-col items-center justify-center h-64 gap-4 text-red-600">
       <AlertCircle className="w-10 h-10" />
       <p className="text-sm font-medium">{error}</p>
@@ -162,160 +162,189 @@ export default function FairReportPage({ fairId, fairName, onBack }: Props) {
   const pieData = expensesByCategory.labels.map((label, i) => ({ name: label, value: expensesByCategory.data[i] }))
 
   return (
-    <div className="flex flex-col gap-6">
-      <GlobalDefs />
+    <BusyScope busy={loading}>
+      <div className="flex flex-col gap-6">
+        <GlobalDefs />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reporte — {fairName}</h1>
-            <p className="text-sm text-gray-400">Dashboard de resultados</p>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={onBack} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Reporte — {fairName}</h1>
+              <p className="text-sm text-gray-400">Dashboard de resultados</p>
+            </div>
           </div>
+          <button onClick={load} disabled={spinning} aria-busy={spinning || undefined}
+            className="flex items-center gap-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-xl shadow-sm transition duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100">
+            <RefreshCw className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} /> Actualizar
+          </button>
         </div>
-        <button onClick={load}
-          className="flex items-center gap-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-xl shadow-sm transition duration-150 ease-out">
-          <RefreshCw className="w-4 h-4" /> Actualizar
-        </button>
-      </div>
 
-      {/* KPI Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Total ventas"
-          value={fmtCOP(kpis.total_sales)} sub={`${kpis.total_transactions} transacciones`} color="green" />
-        <KpiCard icon={<TrendingDown className="w-5 h-5" />} label="Total gastos"
-          value={fmtCOP(kpis.total_expenses)} sub="Alimentación, insumos, transporte" color="red" />
-        <KpiCard icon={<BarChart2 className="w-5 h-5" />} label="Ganancia neta"
-          value={fmtCOP(kpis.net_profit)}
-          sub={`Margen: ${margin.toFixed(1)}%`}
-          color={parseFloat(kpis.net_profit) >= 0 ? 'accent' : 'red'} />
-        <KpiCard icon={<ShoppingBag className="w-5 h-5" />} label="Venta promedio"
-          value={fmtCOP(kpis.avg_sale_value)} sub="Por transacción" color="blue" />
-        <KpiCard icon={<Package className="w-5 h-5" />} label="Inventario"
-          value={`${kpis.total_bags_sold} / ${kpis.total_bags_assigned}`}
-          sub={`${parseFloat(kpis.inventory_utilization_percentage).toFixed(1)}% utilizado`} />
-        <KpiCard icon={<Clock className="w-5 h-5" />} label="Duración"
-          value={kpis.duration_hours != null ? `${kpis.duration_hours.toFixed(1)} h` : 'En curso'}
-          sub={kpis.duration_hours != null ? 'Duración total de la feria' : 'Feria aún abierta'} />
-      </div>
+        {error && (
+          <p className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+          </p>
+        )}
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* KPI Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Total ventas"
+            value={fmtCOP(kpis.total_sales)} sub={`${kpis.total_transactions} transacciones`} color="green" />
+          <KpiCard icon={<TrendingDown className="w-5 h-5" />} label="Total gastos"
+            value={fmtCOP(kpis.total_expenses)} sub="Alimentación, insumos, transporte" color="red" />
+          <KpiCard icon={<BarChart2 className="w-5 h-5" />} label="Ganancia neta"
+            value={fmtCOP(kpis.net_profit)}
+            sub={`Margen: ${margin.toFixed(1)}%`}
+            color={parseFloat(kpis.net_profit) >= 0 ? 'accent' : 'red'} />
+          <KpiCard icon={<ShoppingBag className="w-5 h-5" />} label="Venta promedio"
+            value={fmtCOP(kpis.avg_sale_value)} sub="Por transacción" color="blue" />
+          <KpiCard icon={<Package className="w-5 h-5" />} label="Inventario"
+            value={`${kpis.total_bags_sold} / ${kpis.total_bags_assigned}`}
+            sub={`${parseFloat(kpis.inventory_utilization_percentage).toFixed(1)}% utilizado`} />
+          <KpiCard icon={<Clock className="w-5 h-5" />} label="Duración"
+            value={kpis.duration_hours != null ? `${kpis.duration_hours.toFixed(1)} h` : 'En curso'}
+            sub={kpis.duration_hours != null ? 'Duración total de la feria' : 'Feria aún abierta'} />
+        </div>
 
-        {/* Ventas por producto */}
-        <ChartCard title="Ventas por producto" subtitle="Unidades vendidas e ingresos">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={salesByProduct.data} margin={{ top: 4, right: 16, bottom: 0, left: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="left" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
-              <Legend />
-              <Bar yAxisId="left" dataKey="Unidades vendidas" fill="url(#fgv0)" radius={[8, 8, 0, 0]} maxBarSize={40} />
-              <Bar yAxisId="right" dataKey="Ingresos ($)" fill="url(#fgv1)" radius={[8, 8, 0, 0]} maxBarSize={40} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        {/* Charts */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-        {/* Timeline de ventas */}
-        <ChartCard title="Timeline de ventas" subtitle="Evolución durante la feria">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={salesTimeline.data} margin={{ top: 4, right: 16, bottom: 0, left: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="left" tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip currency />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
-              <Legend />
-              <Bar yAxisId="left" dataKey="Ingresos ($)" fill="url(#fgv0)" radius={[8, 8, 0, 0]} maxBarSize={40} />
-              <Bar yAxisId="right" dataKey="N° ventas" fill="url(#fgv2)" radius={[8, 8, 0, 0]} maxBarSize={40} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* Gastos por categoría */}
-        <ChartCard title="Gastos por categoría" subtitle="Distribución del gasto total">
-          {pieData.every(d => d.value === 0) ? (
-            <div className="flex items-center justify-center h-[220px] text-gray-400 text-sm">Sin gastos registrados</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${((percent as number) * 100).toFixed(0)}%`} labelLine={false}>
-                  {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                </Pie>
-                <Tooltip content={<CustomTooltip currency />} />
+          {/* Ventas por producto */}
+          <ChartCard title="Ventas por producto" subtitle="Unidades vendidas e ingresos">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={salesByProduct.data} margin={{ top: 4, right: 16, bottom: 0, left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
                 <Legend />
-              </PieChart>
+                <Bar yAxisId="left" dataKey="Unidades vendidas" fill="url(#fgv0)" radius={[8, 8, 0, 0]} maxBarSize={40} />
+                <Bar yAxisId="right" dataKey="Ingresos ($)" fill="url(#fgv1)" radius={[8, 8, 0, 0]} maxBarSize={40} />
+              </BarChart>
             </ResponsiveContainer>
-          )}
-        </ChartCard>
+          </ChartCard>
 
-        {/* Estado del inventario */}
-        <ChartCard title="Estado del inventario" subtitle="Inicial · Vendido · Remanente por producto">
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart
-              data={inventoryStatus.map(i => ({
-                name: i.product_name,
-                'Inicial': i.initial_quantity,
-                'Vendido': i.sold_quantity,
-                'Remanente': i.remaining_quantity,
-              }))}
-              margin={{ top: 4, right: 16, bottom: 0, left: 8 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
-              <Legend />
-              <Bar dataKey="Inicial" fill="url(#fgv1)" radius={[6, 6, 0, 0]} maxBarSize={32} />
-              <Bar dataKey="Vendido" fill="url(#fgv0)" radius={[6, 6, 0, 0]} maxBarSize={32} />
-              <Bar dataKey="Remanente" fill="url(#fgv2)" radius={[6, 6, 0, 0]} maxBarSize={32} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+          {/* Timeline de ventas */}
+          <ChartCard title="Timeline de ventas" subtitle="Evolución durante la feria">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={salesTimeline.data} margin={{ top: 4, right: 16, bottom: 0, left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left" tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip currency />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
+                <Legend />
+                <Bar yAxisId="left" dataKey="Ingresos ($)" fill="url(#fgv0)" radius={[8, 8, 0, 0]} maxBarSize={40} />
+                <Bar yAxisId="right" dataKey="N° ventas" fill="url(#fgv2)" radius={[8, 8, 0, 0]} maxBarSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          {/* Gastos por categoría */}
+          <ChartCard title="Gastos por categoría" subtitle="Distribución del gasto total">
+            {pieData.every(d => d.value === 0) ? (
+              <div className="flex items-center justify-center h-[220px] text-gray-400 text-sm">Sin gastos registrados</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${((percent as number) * 100).toFixed(0)}%`} labelLine={false}>
+                    {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip currency />} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          {/* Estado del inventario */}
+          <ChartCard title="Estado del inventario" subtitle="Inicial · Vendido · Remanente por producto">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart
+                data={inventoryStatus.map(i => ({
+                  name: i.product_name,
+                  'Inicial': i.initial_quantity,
+                  'Vendido': i.sold_quantity,
+                  'Remanente': i.remaining_quantity,
+                }))}
+                margin={{ top: 4, right: 16, bottom: 0, left: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
+                <Legend />
+                <Bar dataKey="Inicial" fill="url(#fgv1)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+                <Bar dataKey="Vendido" fill="url(#fgv0)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+                <Bar dataKey="Remanente" fill="url(#fgv2)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+        </div>
+
+        {/* Inventory detail table */}
+        <div className="relative bg-white rounded-2xl shadow-lg border border-gray-100 p-5">
+          <h3 className="text-sm font-semibold text-gray-800 mb-1">Detalle de inventario</h3>
+          <p className="text-xs text-gray-400 mb-4">Resultados por producto al cierre</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  {['Producto', 'Inicial', 'Vendido', 'Remanente', '% Utilización', 'Ingresos'].map(h => (
+                    <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2 pr-4">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {inventoryStatus.map((item, i) => (
+                  <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="py-2.5 pr-4 font-medium text-gray-800">{item.product_name}</td>
+                    <td className="py-2.5 pr-4 text-gray-600">{item.initial_quantity}</td>
+                    <td className="py-2.5 pr-4 text-emerald-700 font-semibold">{item.sold_quantity}</td>
+                    <td className="py-2.5 pr-4 text-gray-600">{item.remaining_quantity}</td>
+                    <td className="py-2.5 pr-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                          <div className="bg-emerald-600 h-1.5 rounded-full" style={{ width: `${parseFloat(item.utilization_percentage)}%` }} />
+                        </div>
+                        <span className="text-xs text-gray-600">{parseFloat(item.utilization_percentage).toFixed(1)}%</span>
+                      </div>
+                    </td>
+                    <td className="py-2.5 pr-4 font-semibold text-gray-800">{fmtCOP(Number(item.revenue))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <BusyOverlay />
+        </div>
 
       </div>
+    </BusyScope>
+  )
+}
 
-      {/* Inventory detail table */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5">
-        <h3 className="text-sm font-semibold text-gray-800 mb-1">Detalle de inventario</h3>
-        <p className="text-xs text-gray-400 mb-4">Resultados por producto al cierre</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {['Producto', 'Inicial', 'Vendido', 'Remanente', '% Utilización', 'Ingresos'].map(h => (
-                  <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2 pr-4">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {inventoryStatus.map((item, i) => (
-                <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="py-2.5 pr-4 font-medium text-gray-800">{item.product_name}</td>
-                  <td className="py-2.5 pr-4 text-gray-600">{item.initial_quantity}</td>
-                  <td className="py-2.5 pr-4 text-emerald-700 font-semibold">{item.sold_quantity}</td>
-                  <td className="py-2.5 pr-4 text-gray-600">{item.remaining_quantity}</td>
-                  <td className="py-2.5 pr-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                        <div className="bg-emerald-600 h-1.5 rounded-full" style={{ width: `${parseFloat(item.utilization_percentage)}%` }} />
-                      </div>
-                      <span className="text-xs text-gray-600">{parseFloat(item.utilization_percentage).toFixed(1)}%</span>
-                    </div>
-                  </td>
-                  <td className="py-2.5 pr-4 font-semibold text-gray-800">{fmtCOP(Number(item.revenue))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+/** Encabezado, cifras y gráficas en su lugar mientras llega el reporte */
+function ReportSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-9 w-9 rounded-xl" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-6 w-64" />
+          <Skeleton className="h-3.5 w-40" />
         </div>
       </div>
-
+      <KpiSkeletonGrid count={6} className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4" />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <ChartSkeleton />
+        <ChartSkeleton />
+      </div>
     </div>
   )
 }

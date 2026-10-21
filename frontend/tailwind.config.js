@@ -28,6 +28,8 @@ export default {
       },
       keyframes: {
         fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } },
+        // Barra de «actualizando»: un tramo que cruza de lado a lado
+        progress: { from: { transform: 'translateX(-100%)' }, to: { transform: 'translateX(300%)' } },
         slideUp: {
           from: { opacity: '0', transform: 'translateY(8px) scale(0.98)' },
           to: { opacity: '1', transform: 'translateY(0) scale(1)' },
@@ -35,6 +37,7 @@ export default {
       },
       animation: {
         fadeIn: 'fadeIn 150ms cubic-bezier(0.23, 1, 0.32, 1)',
+        progress: 'progress 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite',
         slideUp: 'slideUp 220ms cubic-bezier(0.23, 1, 0.32, 1)',
       },
     },

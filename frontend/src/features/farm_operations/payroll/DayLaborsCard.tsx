@@ -17,7 +17,7 @@ export default function DayLaborsCard({ farmId, plots }: { farmId: number; plots
   const navigate = useNavigate()
   const loadLabors = useCallback(() => fetchDayLabors(farmId), [farmId])
   const loadEmployees = useCallback(() => fetchEmployees(farmId), [farmId])
-  const { data: labors, error, reload } = useLoader(loadLabors)
+  const { data: labors, error, refreshing, reload } = useLoader(loadLabors)
   const { data: employees } = useLoader(loadEmployees)
   const [dialog, setDialog] = useState<{ labor?: DayLabor } | null>(null)
 
@@ -27,6 +27,7 @@ export default function DayLaborsCard({ farmId, plots }: { farmId: number; plots
 
   return (
     <Card
+      busy={refreshing}
       title="Jornales"
       actions={
         <>

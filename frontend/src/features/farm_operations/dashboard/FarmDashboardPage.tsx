@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import { BarChart3, ChevronDown, LayoutDashboard, RefreshCw } from 'lucide-react'
 import GlobalChartDefs from '../../../components/charts/GlobalChartDefs'
+import { CardSkeleton, ChartSkeleton } from '../../../components/ui/Busy'
+import { BusyScope } from '../../../components/ui/busyContext'
 import { useAuth } from '../../auth/AuthContext'
-import { Button, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { Button, ErrorMessage, PageHeader } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { todayIso } from '../format'
 import ProjectionsTable from '../projection/ProjectionsTable'
@@ -22,7 +24,7 @@ import { ProductionSection, QualitySection } from './ChartSections'
 import PeriodPicker from './PeriodPicker'
 import { loadChoice, resolvePreset, saveChoice, type PeriodChoice } from './period'
 import { CyclesTable, FarmRankingTable, StoredCoffee } from './RoleTables'
-import SummaryCards from './SummaryCards'
+import SummaryCards, { SummaryCardsSkeleton } from './SummaryCards'
 
 const wideScreen = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
 
@@ -82,13 +84,9 @@ export default function FarmDashboardPage() {
   const multiFarm = (farms?.length ?? 0) > 1
   const showFarm = multiFarm && farmId === null
   const [summary, alerts] = state.data ?? [null, []]
-  const refresh = () => {
-    state.reload()
-    charts.reload()
-    cycles.reload()
-    projections.reload()
-    ranking.reload()
-  }
+  const loaders = [state, charts, cycles, projections, ranking]
+  const refresh = () => loaders.forEach((loader) => loader.reload())
+  const loading = loaders.some((loader) => loader.loading)
 
   return (
     <div className="flex flex-col gap-6">
@@ -116,7 +114,7 @@ export default function FarmDashboardPage() {
                 ))}
               </select>
             )}
-            <Button icon={RefreshCw} onClick={refresh}>Actualizar</Button>
+            <Button icon={RefreshCw} onClick={refresh} loading={loading}>Actualizar</Button>
           </>
         }
       />
@@ -124,22 +122,59 @@ export default function FarmDashboardPage() {
       <PeriodPicker value={period} seasons={seasons ?? []} today={today} onChange={changePeriod} />
 
       {state.error && <ErrorMessage message={state.error} />}
-      {/* Primero las cifras, luego lo que pide atención (alertas y recordatorios), todo a lo ancho */}
-      {summary ? (
-        <>
-          <SummaryCards summary={summary} alerts={alerts} />
-          <AlertsPanel alerts={alerts} showFarm={showFarm} />
-          <RemindersCard alerts={alerts} showFarm={showFarm} />
-        </>
-      ) : (
-        !state.error && <Loading />
-      )}
+      {/* Primero las cifras, luego lo que pide atención (alertas y recordatorios), todo a lo ancho.
+          Mientras llega la primera carga, esqueletos; al actualizar, cada tarjeta muestra que carga. */}
+      <BusyScope busy={state.refreshing}>
+        {summary ? (
+          <>
+            <SummaryCards summary={summary} alerts={alerts} />
+            <AlertsPanel alerts={alerts} showFarm={showFarm} />
+            <RemindersCard alerts={alerts} showFarm={showFarm} />
+          </>
+        ) : (
+          !state.error && (
+            <>
+              <SummaryCardsSkeleton />
+              <CardSkeleton rows={3} label="Cargando alertas…" />
+              <CardSkeleton rows={3} label="Cargando recordatorios…" />
+            </>
+          )
+        )}
+      </BusyScope>
 
-      {showCycles && cycles.data && <CyclesTable cycles={cycles.data} showFarm={showFarm} />}
+      {showCycles && (
+        <BusyScope busy={cycles.refreshing}>
+          {cycles.data ? (
+            <CyclesTable cycles={cycles.data} showFarm={showFarm} />
+          ) : (
+            !cycles.error && <CardSkeleton label="Cargando ciclos…" />
+          )}
+        </BusyScope>
+      )}
       {showCycles && projections.error && <ErrorMessage message={projections.error} />}
-      {showCycles && projections.data && <ProjectionsTable projections={projections.data} showFarm={showFarm} />}
-      {showRanking && ranking.data && <FarmRankingTable rows={ranking.data} onSelect={setFarmId} />}
-      {isAdmin && summary && <StoredCoffee summary={summary} />}
+      {showCycles && (
+        <BusyScope busy={projections.refreshing}>
+          {projections.data ? (
+            <ProjectionsTable projections={projections.data} showFarm={showFarm} />
+          ) : (
+            !projections.error && <CardSkeleton label="Calculando la proyección de calidad…" />
+          )}
+        </BusyScope>
+      )}
+      {showRanking && (
+        <BusyScope busy={ranking.refreshing}>
+          {ranking.data ? (
+            <FarmRankingTable rows={ranking.data} onSelect={setFarmId} />
+          ) : (
+            !ranking.error && <CardSkeleton rows={5} label="Cargando fincas…" />
+          )}
+        </BusyScope>
+      )}
+      {isAdmin && summary && (
+        <BusyScope busy={state.refreshing}>
+          <StoredCoffee summary={summary} />
+        </BusyScope>
+      )}
 
       <section className="flex flex-col gap-4">
         <button
@@ -156,14 +191,22 @@ export default function FarmDashboardPage() {
           <>
             {charts.error && <ErrorMessage message={charts.error} />}
             {charts.data ? (
-              <>
+              <BusyScope busy={charts.refreshing}>
                 <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Producción</h2>
                 <ProductionSection charts={charts.data[0]} />
                 <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Calidad y sanidad</h2>
                 <QualitySection charts={charts.data[1]} />
-              </>
+              </BusyScope>
             ) : (
-              !charts.error && <Loading />
+              !charts.error && (
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <div className="xl:col-span-2">
+                    <ChartSkeleton />
+                  </div>
+                  <ChartSkeleton />
+                  <ChartSkeleton />
+                </div>
+              )
             )}
           </>
         )}

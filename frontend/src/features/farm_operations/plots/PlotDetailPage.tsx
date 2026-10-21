@@ -4,7 +4,7 @@ import { Archive, BellRing, History, LandPlot, Pencil, RotateCcw, Sprout } from 
 import AlertConfigDialog from '../alerts/AlertConfigDialog'
 import CyclePanel from '../cycles/CyclePanel'
 import SoilAnalysesCard from '../soil/SoilAnalysesCard'
-import { Badge, Button, Card, DetailList, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, Card, DetailList, ErrorMessage, PageHeader, PageSkeleton } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { fmtDate, fmtMoney, fmtNumber, treesPerHectare } from '../format'
 import { PLOT_EVENT_LABELS } from '../models/labels'
@@ -51,7 +51,7 @@ function PlotDetail({ id }: { id: number }) {
       </div>
     )
   }
-  if (!plot) return <Loading />
+  if (!plot) return <PageSkeleton />
 
   const active = plot.status === 'active'
   const reloadAll = () => {

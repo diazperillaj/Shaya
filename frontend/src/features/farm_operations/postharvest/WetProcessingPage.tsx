@@ -11,7 +11,7 @@ import {
   TextAreaField,
   TextField,
 } from '../components/fields'
-import { Badge, Button, Card, DetailList, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, Card, DetailList, ErrorMessage, PageHeader, PageSkeleton } from '../components/ui'
 import { numberOrNull, textOrNull, toInput, useFormValues } from '../components/useFormValues'
 import { useLoader } from '../components/useLoader'
 import WeightField from '../components/WeightField'
@@ -61,7 +61,7 @@ function WetProcessingView({ id }: { id: number }) {
       </div>
     )
   }
-  if (!wet) return <Loading />
+  if (!wet) return <PageSkeleton />
 
   const inProgress = wet.status === 'in_progress'
   const refresh = () => {

@@ -1,9 +1,12 @@
 import { Award, BellRing, Cherry, Coffee, Coins, Factory, MapPinned, Percent, Sprout, Sun, Wallet, Warehouse } from 'lucide-react'
 import KpiCard from '../../../components/charts/KpiCard'
+import { KpiSkeletonGrid } from '../../../components/ui/Busy'
 import { fmtMoney, fmtNumber, plural } from '../format'
 import type { DashboardSummary, FarmAlert } from '../models/types'
 
 const KG_PER_ARROBA = 12.5
+const NOW_GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-7'
+const PERIOD_GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5'
 
 /** Tarjetas KPI: primero las de estado (el ahora), luego las del periodo (§3.1) */
 export default function SummaryCards({ summary, alerts }: { summary: DashboardSummary; alerts: FarmAlert[] }) {
@@ -16,7 +19,7 @@ export default function SummaryCards({ summary, alerts }: { summary: DashboardSu
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Ahora</p>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-7">
+      <div className={NOW_GRID}>
         <KpiCard
           icon={<BellRing className="h-5 w-5" />}
           label="Alertas activas"
@@ -71,7 +74,7 @@ export default function SummaryCards({ summary, alerts }: { summary: DashboardSu
       </div>
 
       <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-gray-400">En el periodo</p>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+      <div className={PERIOD_GRID}>
         <KpiCard
           icon={<Cherry className="h-5 w-5" />}
           label="Cereza cosechada"
@@ -107,6 +110,18 @@ export default function SummaryCards({ summary, alerts }: { summary: DashboardSu
           sub={plural(s.evaluations, 'evaluación en pergamino', 'evaluaciones en pergamino')}
         />
       </div>
+    </div>
+  )
+}
+
+/** Las mismas dos grillas, vacías, mientras llega el resumen */
+export function SummaryCardsSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Ahora</p>
+      <KpiSkeletonGrid count={7} className={NOW_GRID} />
+      <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-gray-400">En el periodo</p>
+      <KpiSkeletonGrid count={5} className={PERIOD_GRID} />
     </div>
   )
 }

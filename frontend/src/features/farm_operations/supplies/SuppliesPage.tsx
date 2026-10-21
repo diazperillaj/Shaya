@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react'
 import { CirclePlus, FlaskConical, Pencil, Search, Trash2 } from 'lucide-react'
+import { BusyOverlay, CardSkeleton } from '../../../components/ui/Busy'
 import { useAuth } from '../../auth/AuthContext'
-import { Badge, Button, EmptyState, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, EmptyState, ErrorMessage, PageHeader } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { plural } from '../format'
 import { SUPPLY_TYPE_LABELS } from '../models/labels'
@@ -34,7 +35,7 @@ export default function SuppliesPage() {
     () => fetchSupplies({ supply_type: type || undefined, search, active: showInactive ? undefined : true }),
     [type, search, showInactive],
   )
-  const { data: supplies, error, loading, reload } = useLoader(load)
+  const { data: supplies, error, refreshing, reload } = useLoader(load)
 
   const runAction = async (action: () => Promise<unknown>) => {
     setActionError(null)
@@ -101,7 +102,7 @@ export default function SuppliesPage() {
       </div>
 
       {(error || actionError) && <ErrorMessage message={(error ?? actionError) as string} />}
-      {loading && <Loading />}
+      {!supplies && !error && <CardSkeleton rows={5} label="Cargando insumos…" />}
 
       {supplies && supplies.length === 0 && (
         <EmptyState
@@ -112,7 +113,7 @@ export default function SuppliesPage() {
       )}
 
       {supplies && supplies.length > 0 && (
-        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <div className="relative rounded-2xl border border-gray-100 bg-white shadow-sm">
           <p className="border-b border-gray-100 px-5 py-3 text-xs text-gray-400">
             {plural(supplies.length, 'insumo', 'insumos')}
           </p>
@@ -168,6 +169,7 @@ export default function SuppliesPage() {
               </li>
             ))}
           </ul>
+          <BusyOverlay busy={refreshing} />
         </div>
       )}
 

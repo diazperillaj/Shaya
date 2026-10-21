@@ -34,11 +34,12 @@ export default function QualityCard({
     () => fetchQualityEvals(isHarvest ? { harvest_id: targetId } : { drying_id: targetId }),
     [isHarvest, targetId],
   )
-  const { data: evals, error, reload } = useLoader(load)
+  const { data: evals, error, refreshing, reload } = useLoader(load)
   const [dialog, setDialog] = useState<{ record?: QualityEval } | null>(null)
 
   return (
     <Card
+      busy={refreshing}
       title={stage === 'cherry' ? 'Calidad en cereza' : 'Calidad del pergamino'}
       actions={canAdd ? <Button icon={Award} onClick={() => setDialog({})}>Evaluar</Button> : undefined}
     >

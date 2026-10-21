@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { CalendarCheck, CalendarPlus, CalendarRange, ClipboardPlus, Pencil, RotateCcw } from 'lucide-react'
-import { Badge, Button, Card, EmptyState, ErrorMessage, Loading } from '../components/ui'
+import { RowsSkeleton } from '../../../components/ui/Busy'
+import { Badge, Button, Card, EmptyState, ErrorMessage } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { fmtDate } from '../format'
 import HarvestsSection from '../harvests/HarvestsSection'
@@ -22,7 +23,7 @@ import CycleStatusDialog from './CycleStatusDialog'
  */
 export default function CyclePanel({ plot, onPlotChanged }: { plot: Plot; onPlotChanged: () => void }) {
   const loadCycles = useCallback(() => fetchCycles(plot.id), [plot.id])
-  const { data: cycles, error, reload } = useLoader(loadCycles)
+  const { data: cycles, error, refreshing, reload } = useLoader(loadCycles)
   const [chosenId, setChosenId] = useState<number | null>(null)
   const [opening, setOpening] = useState(false)
 
@@ -39,6 +40,7 @@ export default function CyclePanel({ plot, onPlotChanged }: { plot: Plot; onPlot
 
   return (
     <Card
+      busy={refreshing}
       title="Ciclo productivo"
       actions={
         canOpen && cycles.length > 0 ? (
@@ -47,7 +49,7 @@ export default function CyclePanel({ plot, onPlotChanged }: { plot: Plot; onPlot
       }
     >
       {error && <ErrorMessage message={error} />}
-      {!cycles && !error && <Loading />}
+      {!cycles && !error && <RowsSkeleton rows={3} label="Cargando ciclos…" />}
 
       {cycles && cycles.length === 0 && (
         <EmptyState
@@ -186,7 +188,7 @@ function CycleView({
 
       <h3 className="text-sm font-semibold text-gray-900">Labores</h3>
       {error && <ErrorMessage message={error} />}
-      {!labors && !error && <Loading />}
+      {!labors && !error && <RowsSkeleton label="Cargando labores…" />}
       {labors && <LaborHistory labors={labors} onEdit={(labor) => setDialog({ kind: 'edit-labor', labor })} />}
 
       {dialog?.kind === 'chooser' && (

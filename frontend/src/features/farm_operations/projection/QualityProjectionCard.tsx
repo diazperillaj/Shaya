@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { Check, RefreshCw } from 'lucide-react'
-import { Button, Card, ErrorMessage, Loading } from '../components/ui'
+import { Skeleton } from '../../../components/ui/Busy'
+import { Button, Card, ErrorMessage } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import type { QualityProjection } from '../models/types'
 import { fetchQualityProjection } from '../services/plots.api'
@@ -18,12 +19,47 @@ import {
  * ciclo: al abrir o cerrar un ciclo, vuelve a proyectar.
  */
 export default function QualityProjectionCard({ plotId }: { plotId: number }) {
-  const { data, error, reload } = useLoader(useCallback(() => fetchQualityProjection(plotId), [plotId]))
+  const { data, error, loading, refreshing, reload } = useLoader(
+    useCallback(() => fetchQualityProjection(plotId), [plotId]),
+  )
 
   return (
-    <Card title="Proyección de calidad" actions={<Button icon={RefreshCw} onClick={reload}>Recalcular</Button>}>
-      {error ? <ErrorMessage message={error} /> : data ? <ProjectionBody projection={data} /> : <Loading />}
+    <Card
+      title="Proyección de calidad"
+      busy={refreshing}
+      actions={<Button icon={RefreshCw} onClick={reload} loading={loading}>Recalcular</Button>}
+    >
+      {error ? <ErrorMessage message={error} /> : data ? <ProjectionBody projection={data} /> : <ProjectionSkeleton />}
     </Card>
+  )
+}
+
+/** Las tres cifras y la barra de datos, vacías, mientras el modelo proyecta */
+function ProjectionSkeleton() {
+  return (
+    <div role="status" className="flex flex-col gap-4">
+      <span className="sr-only">Calculando la proyección…</span>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex flex-col gap-2 rounded-xl bg-gray-50 px-4 py-3">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-6 w-16" />
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-between">
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="h-3 w-10" />
+        </div>
+        <Skeleton className="h-1.5 w-full rounded-full" />
+        <div className="flex flex-wrap gap-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-5 w-20 rounded-full" />
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { KeyRound, UserPlus } from 'lucide-react'
-import { Badge, Button, EmptyState, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { CardSkeleton } from '../../../components/ui/Busy'
+import { Badge, Button, EmptyState, ErrorMessage, PageHeader } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { plural } from '../format'
 import type { FarmerAccount } from '../models/types'
@@ -16,7 +17,7 @@ import NewFarmerAccountDialog from './NewFarmerAccountDialog'
  */
 export default function FarmerAccountsPage() {
   const load = useCallback(() => fetchFarmerAccounts(), [])
-  const { data: accounts, error, loading, reload } = useLoader(load)
+  const { data: accounts, error, reload } = useLoader(load)
 
   const [dialog, setDialog] = useState<{ grant?: FarmerAccount } | null>(null)
   const closeAndReload = () => {
@@ -38,7 +39,7 @@ export default function FarmerAccountsPage() {
       />
 
       {error && <ErrorMessage message={error} />}
-      {loading && <Loading />}
+      {!accounts && !error && <CardSkeleton rows={4} label="Cargando cuentas…" />}
 
       {accounts && accounts.length === 0 && (
         <EmptyState icon={KeyRound} title="Aún no hay caficultores registrados" />

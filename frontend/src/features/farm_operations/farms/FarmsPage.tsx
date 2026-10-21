@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CirclePlus, MapPinned, Search, Sprout } from 'lucide-react'
+import { CardSkeleton } from '../../../components/ui/Busy'
 import { useAuth } from '../../auth/AuthContext'
-import { Badge, Button, EmptyState, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, EmptyState, ErrorMessage, PageHeader } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { fmtNumber, plural } from '../format'
 import type { Farm } from '../models/types'
@@ -23,7 +24,7 @@ export default function FarmsPage() {
   const [creating, setCreating] = useState(false)
 
   const load = useCallback(() => fetchFarms(search), [search])
-  const { data: farms, error, loading } = useLoader(load)
+  const { data: farms, error } = useLoader(load)
 
   const newFarm = (
     <Button variant="primary" icon={CirclePlus} onClick={() => setCreating(true)}>
@@ -51,7 +52,7 @@ export default function FarmsPage() {
       </div>
 
       {error && <ErrorMessage message={error} />}
-      {loading && <Loading />}
+      {!farms && !error && <CardSkeleton rows={4} label="Cargando fincas…" />}
 
       {farms && farms.length === 0 && (
         <EmptyState

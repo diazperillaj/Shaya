@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { GitBranch, PackageCheck, Pencil, Plus, RotateCcw, Sun, Warehouse, X } from 'lucide-react'
 import FormDialog from '../components/FormDialog'
 import { inputClass } from '../components/styles'
-import { Badge, Button, Card, DetailList, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, Card, DetailList, ErrorMessage, PageHeader, PageSkeleton } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { fmtDate, fmtDateTime, fmtNumber, plural, todayIso } from '../format'
 import { DRYING_DESTINATION_LABELS, PROCESS_STATUS_LABELS } from '../models/labels'
@@ -42,7 +42,7 @@ function DryingView({ id }: { id: number }) {
       </div>
     )
   }
-  if (!drying) return <Loading />
+  if (!drying) return <PageSkeleton />
 
   const inProgress = drying.status === 'in_progress'
   const refresh = () => {

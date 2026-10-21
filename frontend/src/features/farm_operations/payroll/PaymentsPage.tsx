@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Loader2, Undo2, Wallet } from 'lucide-react'
+import { CardSkeleton } from '../../../components/ui/Busy'
 import { inputClass } from '../components/styles'
-import { EmptyState, ErrorMessage, Loading, PageHeader } from '../components/ui'
+import { EmptyState, ErrorMessage, PageHeader } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { fmtDate, fmtMoney, plural, todayIso } from '../format'
 import type { PaymentItem } from '../models/types'
@@ -109,7 +110,7 @@ function PaymentList({ farmId, paid }: { farmId: number; paid: boolean }) {
   }
 
   if (error) return <ErrorMessage message={error} />
-  if (!items) return <Loading />
+  if (!items) return <CardSkeleton rows={5} label="Cargando pagos…" />
 
   return (
     <div className="flex flex-col gap-4">

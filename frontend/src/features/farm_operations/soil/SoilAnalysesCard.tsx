@@ -26,11 +26,12 @@ const summarize = (analysis: SoilAnalysis): string =>
  */
 export default function SoilAnalysesCard({ plotId, canAdd }: { plotId: number; canAdd: boolean }) {
   const load = useCallback(() => fetchSoilAnalyses(plotId), [plotId])
-  const { data: analyses, error, reload } = useLoader(load)
+  const { data: analyses, error, refreshing, reload } = useLoader(load)
   const [dialog, setDialog] = useState<{ analysis?: SoilAnalysis } | null>(null)
 
   return (
     <Card
+      busy={refreshing}
       title="Análisis de suelo"
       actions={canAdd ? <Button icon={Plus} onClick={() => setDialog({})}>Agregar</Button> : undefined}
     >

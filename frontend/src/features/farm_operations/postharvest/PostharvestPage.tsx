@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ChevronRight, Droplet, Factory, Sun } from 'lucide-react'
-import { Badge, Button, Card, ErrorMessage, Loading, PageHeader, Pager } from '../components/ui'
+import { RowsSkeleton } from '../../../components/ui/Busy'
+import { Badge, Button, Card, ErrorMessage, PageHeader, Pager } from '../components/ui'
 import { useLoader } from '../components/useLoader'
 import { usePagination } from '../components/usePagination'
 import { fmtDate, fmtDateTime, fmtNumber } from '../format'
@@ -50,7 +51,7 @@ function Postharvest({ farmId }: { farmId: number }) {
 
       <Card title="Beneficios">
         {wetsError && <ErrorMessage message={wetsError} />}
-        {!wets && !wetsError && <Loading />}
+        {!wets && !wetsError && <RowsSkeleton label="Cargando beneficios…" />}
         {wets && wets.length === 0 && (
           <p className="text-sm text-gray-400">
             Aún no hay beneficios. Crea uno con el café cereza de las cosechas de la finca.
@@ -84,7 +85,7 @@ function Postharvest({ farmId }: { farmId: number }) {
 
       <Card title="Secados">
         {dryingsError && <ErrorMessage message={dryingsError} />}
-        {!dryings && !dryingsError && <Loading />}
+        {!dryings && !dryingsError && <RowsSkeleton label="Cargando secados…" />}
         {dryings && dryings.length === 0 && (
           <p className="text-sm text-gray-400">Aún no hay secados. Se secan los beneficios completados.</p>
         )}

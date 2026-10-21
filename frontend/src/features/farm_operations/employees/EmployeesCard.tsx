@@ -13,7 +13,7 @@ import EmployeeFormDialog from './EmployeeFormDialog'
  */
 export default function EmployeesCard({ farmId }: { farmId: number }) {
   const load = useCallback(() => fetchEmployees(farmId), [farmId])
-  const { data: employees, error, reload } = useLoader(load)
+  const { data: employees, error, refreshing, reload } = useLoader(load)
   const shown = usePagination(employees)
 
   const [dialog, setDialog] = useState<{ employee?: Employee } | null>(null)
@@ -31,6 +31,7 @@ export default function EmployeesCard({ farmId }: { farmId: number }) {
 
   return (
     <Card
+      busy={refreshing}
       title="Empleados"
       actions={
         <Button icon={UserPlus} onClick={() => setDialog({})}>

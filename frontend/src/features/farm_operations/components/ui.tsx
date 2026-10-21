@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { ArrowLeft, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { BusyOverlay, CardSkeleton, Skeleton } from '../../../components/ui/Busy'
+import { useMinDuration } from '../../../components/ui/busyContext'
 import type { PaginationState } from './usePagination'
 
 /**
@@ -19,22 +21,28 @@ export function Button({
   variant = 'secondary',
   onClick,
   disabled,
+  loading = false,
   children,
 }: {
   icon?: LucideIcon
   variant?: keyof typeof BUTTON_VARIANTS
   onClick: () => void
   disabled?: boolean
+  /** Mientras carga lo que pidió el clic: el icono gira y no se puede volver a pulsar */
+  loading?: boolean
   children: ReactNode
 }) {
+  const busy = useMinDuration(loading)
+  const ShownIcon = busy && !Icon ? Loader2 : Icon
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
       className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-[transform,background-color,box-shadow] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${BUTTON_VARIANTS[variant]}`}
     >
-      {Icon && <Icon className="h-4 w-4" />}
+      {ShownIcon && <ShownIcon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />}
       {children}
     </button>
   )
@@ -95,14 +103,17 @@ export function PageHeader({
 export function Card({
   title,
   actions,
+  busy,
   children,
 }: {
   title?: string
   actions?: ReactNode
+  /** Se está actualizando; si no se indica, lo toma de `BusyScope` */
+  busy?: boolean
   children: ReactNode
 }) {
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+    <section className="relative rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
       {(title || actions) && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           {title && <h2 className="font-semibold text-gray-900">{title}</h2>}
@@ -110,6 +121,7 @@ export function Card({
         </div>
       )}
       {children}
+      <BusyOverlay busy={busy} />
     </section>
   )
 }
@@ -151,6 +163,27 @@ export function EmptyState({
   )
 }
 
+/**
+ * Página de detalle (finca, lote, cosecha…) mientras llegan sus datos:
+ * encabezado y tarjetas en su lugar, en vez de una pantalla vacía.
+ */
+export function PageSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-start gap-3">
+        <Skeleton className="h-11 w-11 rounded-xl" />
+        <div className="flex flex-col gap-2 pt-1">
+          <Skeleton className="h-6 w-56" />
+          <Skeleton className="h-3.5 w-36" />
+        </div>
+      </div>
+      <CardSkeleton rows={3} />
+      <CardSkeleton rows={5} />
+    </div>
+  )
+}
+
+/** Indicador pequeño, para diálogos y espacios reducidos */
 export function Loading() {
   return (
     <div className="flex justify-center py-12">

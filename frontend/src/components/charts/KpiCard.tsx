@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { BusyOverlay } from '../ui/Busy'
 
 interface KpiCardProps {
   icon: ReactNode
@@ -11,7 +12,7 @@ interface KpiCardProps {
 export default function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
   return (
     <div
-      className={`rounded-2xl p-4 border shadow-sm flex flex-col gap-2 ${
+      className={`relative rounded-2xl p-4 border shadow-sm flex flex-col gap-2 ${
         accent
           ? 'bg-emerald-900 border-emerald-800 text-white'
           : 'bg-white border-gray-100'
@@ -27,6 +28,7 @@ export default function KpiCard({ icon, label, value, sub, accent = false }: Kpi
         {value}
       </p>
       <p className={`text-xs ${accent ? 'text-emerald-300' : 'text-gray-400'}`}>{sub}</p>
+      <BusyOverlay tone={accent ? 'accent' : 'light'} />
     </div>
   )
 }
