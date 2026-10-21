@@ -1,4 +1,5 @@
-from typing import Optional, List
+from datetime import date
+from typing import Literal, Optional, List
 
 from pydantic import BaseModel, Field
 
@@ -60,3 +61,51 @@ class RoastedCoffeeInventoryResponse(BaseModel):
 
 class RoastedCoffeeDeleteResponse(BaseModel):
     message: str
+
+
+# ─── Tablero del inventario ───────────────────────────────────────────────────
+
+class InventoryLotProductResponse(BaseModel):
+    detail_id: int
+    product_id: int
+    name: str
+    # Existencia inicial del proceso + entradas por movimientos
+    total_in: int
+    # Ventas + ferias + salidas por movimientos
+    total_out: int
+    remaining_quantity: int
+    unit_cost: Optional[float] = None
+
+
+class InventoryLotResponse(BaseModel):
+    id: int
+    process_id: int
+    invoice_number: str
+    process_date: date
+    variety: Optional[str] = None
+    farmer_name: Optional[str] = None
+    farm_name: Optional[str] = None
+    altitude: Optional[float] = None
+    yield_percentage: Optional[float] = None
+    observations: Optional[str] = None
+    products: List[InventoryLotProductResponse]
+
+
+class InventoryEventResponse(BaseModel):
+    """Entrada (+) o salida (−) de unidades de un producto de un lote."""
+
+    event_date: date
+    lot_id: int
+    detail_id: int
+    product_id: int
+    product_name: str
+    kind: Literal["process", "sale", "fair", "movement", "adjustment"]
+    quantity: int
+    reference: str
+    note: Optional[str] = None
+
+
+class RoastedInventoryDashboardResponse(BaseModel):
+    lots: List[InventoryLotResponse]
+    # Ordenados por fecha; por lote y producto suman su cantidad restante
+    events: List[InventoryEventResponse]

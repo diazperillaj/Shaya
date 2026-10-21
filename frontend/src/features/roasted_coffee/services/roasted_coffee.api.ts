@@ -1,8 +1,17 @@
 // src/features/roasted_coffee/services/roasted_coffee.api.ts
-import type { RoastedCoffeeApiResponse, RoastedCoffeeQuery, RoastedCoffeeRow } from '../models/types'
+import type { InventoryDashboard, RoastedCoffeeApiResponse, RoastedCoffeeQuery, RoastedCoffeeRow } from '../models/types'
 import { mapRoastedCoffeeFromApi } from '../mapper/roasted_coffee.mapper'
 
 const BASE_URL = '/api/v1/maquilado'
+
+/* =======================
+   GET tablero del inventario
+======================= */
+export const fetchInventoryDashboard = async (): Promise<InventoryDashboard> => {
+  const res = await fetch(`${BASE_URL}/dashboard`, { credentials: 'include' })
+  if (!res.ok) throw new Error('Error obteniendo el inventario de maquilado')
+  return res.json()
+}
 
 /* =======================
    GET all

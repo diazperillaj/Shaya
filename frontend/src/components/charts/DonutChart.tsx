@@ -6,10 +6,13 @@ import { fmtCOP, PIE_COLORS, type RechartsChart } from './chartData'
 export default function DonutChart({
   chart,
   format = fmtCOP,
+  colors = PIE_COLORS,
 }: {
   chart: RechartsChart
   /** Formato de los valores; por defecto, pesos */
   format?: (value: number) => string
+  /** Color de cada porción, en el orden de los datos */
+  colors?: string[]
 }) {
   const valueKey = chart.keys[0]
   const data = chart.data.map((d) => ({ name: String(d.name), value: Number(d[valueKey] ?? 0) }))
@@ -37,7 +40,7 @@ export default function DonutChart({
             strokeWidth={2}
           >
             {data.map((_, i) => (
-              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+              <Cell key={i} fill={colors[i % colors.length]} />
             ))}
           </Pie>
           <Tooltip
@@ -56,7 +59,7 @@ export default function DonutChart({
             <div className="flex items-center gap-1.5 min-w-0">
               <span
                 className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+                style={{ backgroundColor: colors[i % colors.length] }}
               />
               <span className="text-gray-600 truncate">{d.name}</span>
             </div>

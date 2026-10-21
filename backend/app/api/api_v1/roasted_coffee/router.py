@@ -9,7 +9,9 @@ from app.api.api_v1.roasted_coffee.schema import (
     RoastedCoffeeDeleteResponse,
     RoastedCoffeeInventoryResponse,
     RoastedCoffeeUpdate,
+    RoastedInventoryDashboardResponse,
 )
+from app.api.api_v1.roasted_coffee.dashboard_service import RoastedCoffeeDashboardService
 from app.api.api_v1.roasted_coffee.service import RoastedCoffeeService
 from app.core.db.session import get_db
 
@@ -24,6 +26,18 @@ def get_maquilados(
 ):
     """Lista todos los registros de café maquilado."""
     return RoastedCoffeeService(db).get_roasted_coffees(search=search)
+
+
+@router.get("/dashboard", response_model=RoastedInventoryDashboardResponse)
+def get_maquilado_dashboard(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Tablero del inventario: lotes con su origen (variedad, caficultor) y la
+    línea de tiempo de entradas y salidas de cada producto.
+    """
+    return RoastedCoffeeDashboardService(db).get_dashboard()
 
 
 @router.get("/get/{maquilado_id}", response_model=RoastedCoffeeInventoryResponse)
