@@ -77,8 +77,6 @@ export const createUser = async (user: User): Promise<User> => {
     },
   }
 
-  console.log(payload)
-
   const res = await fetch(`${BASE_URL}/create`, {
     method: 'POST',
     credentials: "include",
@@ -88,13 +86,9 @@ export const createUser = async (user: User): Promise<User> => {
 
   const data = await res.json()
 
-  console.log(data.detail)
-
   if (!res.ok) {
     throw new Error(apiErrorMessage(data, 'Error creando usuario'))
   }
-
-  if (!res.ok) throw new Error('Error creando usuario')
 
   return mapUserFromApi(data)
 }
@@ -140,13 +134,9 @@ export const updateUser = async (user: User): Promise<User> => {
 
   const data = await res.json()
 
-  console.log(data.detail)
-
   if (!res.ok) {
     throw new Error(apiErrorMessage(data, 'Error actualizando usuario'))
   }
-
-  if (!res.ok) throw new Error('Error creando usuario')
 
   return mapUserFromApi(data)
 }

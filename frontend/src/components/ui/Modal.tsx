@@ -156,7 +156,10 @@ export default function Modal<T>({
                             : "password"
                           : field.type
                       }
-                      value={formData[field.accessor] as string | number}
+                      value={(formData[field.accessor] as string | number) ?? ""}
+                      // El navegador no debe rellenar estos campos con la sesión guardada
+                      // (usuario y contraseña de quien edita): la contraseña siempre es nueva
+                      autoComplete={field.type === "password" ? "new-password" : "off"}
                       onChange={(e) =>
                         setFormData(
                           (prev) =>
