@@ -6,6 +6,8 @@ from app.models.farmer import Farmer
 from app.models.person import Person
 from app.models.inventory import Inventory
 from app.models.inventory_movement import InventoryMovement, MovementTypeEnum, ProductMovementTypeEnum
+from app.models.process import Process
+from app.api.api_v1.processes.cost_service import ProcessCostService
 from app.api.api_v1.inventory.schema import (
     ParchmentCreate,
     ParchmentResponse, 
@@ -402,10 +404,13 @@ class ParchmentService:
         if 'humidity' in update_data:
             parchment.humidity = update_data['humidity']
 
+        price_changed = False
         if 'full_price' in update_data:
+            purchase_price = calculate_purchase_price(update_data['full_price'], parchment.initial_quantity)
+            price_changed = purchase_price != parchment.purchase_price
             parchment.full_price = update_data['full_price']
-            parchment.purchase_price = calculate_purchase_price(update_data['full_price'], parchment.initial_quantity)
-            
+            parchment.purchase_price = purchase_price
+
         if 'origin_batch' in update_data:
             parchment.origin_batch = update_data['origin_batch']
 
@@ -434,10 +439,29 @@ class ParchmentService:
                 # adjust_parchment_inventory ahora hace flush, no commit
                 self.adjust_parchment_inventory(adjustment_data)
 
+        # El precio del lote entra al costo de café de cada bolsa: los procesos
+        # que usaron este pergamino recalculan su unit_cost en la misma transacción
+        if price_changed:
+            self.db.flush()
+            self._recalculate_process_costs(parchment.id)
+
         # Un solo commit al final que persiste todo (campos descriptivos + ajuste si hubo)
         self.db.commit()
         self.db.refresh(parchment)
         return parchment
+
+    def _recalculate_process_costs(self, parchment_id: int) -> None:
+        """
+        Recalcula el unit_cost de los lotes de cada proceso que consumió el
+        pergamino. Hace flush, sin commit: el caller controla la transacción.
+        """
+        process_ids = [
+            row[0]
+            for row in self.db.query(Process.id).filter(Process.parchment_id == parchment_id)
+        ]
+        cost_service = ProcessCostService(self.db)
+        for process_id in process_ids:
+            cost_service.recalculate_process_costs(process_id)
 
     def get_parchments_filtered(
         self,
