@@ -2,21 +2,28 @@
 import { useEffect, useState } from 'react'
 import { useEscapeKey } from '../../../hooks/useEscapeKey'
 import { X, FlaskConical, Package, Coins, CirclePlus } from 'lucide-react'
-import type { Process, ProcessDetail, ProcessCosts, ProcessExpense } from '../models/types'
+import type { Process, ProcessDetail, ProcessCosts } from '../models/types'
+import type {
+  ExpenseCategory,
+  GeneralExpense,
+  PaymentMethod,
+  UpdateExpensePayload,
+} from '../../expenses/models/types'
 
 import DataTable from '../../../components/ui/DataTable'
-import Modal from '../../../components/ui/Modal'
 import { runWithAlert } from '../../../hooks/useSafeAction'
 import { useAuth } from '../../auth/AuthContext'
 
 import { ProcessCostProductColumns, ProcessExpenseColumns } from '../models/columns'
-import { ProcessExpenseFields } from '../models/fields'
 import { fetchProcessCosts } from '../services/inventoryProcessed.api'
+import { createProcessExpense } from '../services/processExpenses.api'
+import ExpenseFormModal from '../../expenses/components/ExpenseFormModal'
 import {
-  createProcessExpense,
-  updateProcessExpense,
-  deleteProcessExpense,
-} from '../services/processExpenses.api'
+  deleteExpense,
+  fetchExpenseCategories,
+  fetchPaymentMethods,
+  updateExpense,
+} from '../../expenses/services/expenses.api'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -53,7 +60,9 @@ export default function ProcessDetailModal({
   const [costs, setCosts] = useState<ProcessCosts | null>(null)
   const [loadingCosts, setLoadingCosts] = useState(true)
   const [addingExpense, setAddingExpense] = useState(false)
-  const [editingExpense, setEditingExpense] = useState<ProcessExpense | null>(null)
+  const [editingExpense, setEditingExpense] = useState<GeneralExpense | null>(null)
+  const [categories, setCategories] = useState<ExpenseCategory[]>([])
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
 
   const loadCosts = async (): Promise<void> => {
     setLoadingCosts(true)
@@ -70,49 +79,33 @@ export default function ProcessDetailModal({
     loadCosts()
   }, [proceso.id])
 
-  const emptyExpense: ProcessExpense = {
-    id: 0,
-    process_id: proceso.id,
-    category: 'transport',
-    amount: 0,
-    expense_date: new Date().toISOString().slice(0, 10),
-    observations: '',
-  }
+  // Los gastos del proceso son gastos generales: mismos catálogos que Gastos
+  useEffect(() => {
+    fetchExpenseCategories().then(setCategories).catch(() => setCategories([]))
+    fetchPaymentMethods().then(setPaymentMethods).catch(() => setPaymentMethods([]))
+  }, [])
 
-  const validateExpense = (expense: ProcessExpense): string | null => {
-    if (!expense.amount || expense.amount <= 0) return 'El valor debe ser mayor a 0'
-    if (!expense.expense_date) return 'La fecha es obligatoria'
-    return null
-  }
-
-  const handleSaveExpense = async (expense: ProcessExpense): Promise<void> => {
-    const error = validateExpense(expense)
-    if (error) {
-      alert(error)
-      return
-    }
-    const payload = {
-      category: expense.category,
-      amount: expense.amount,
-      expense_date: expense.expense_date,
-      observations: expense.observations || undefined,
-    }
+  const handleCreateExpense = async (payload: UpdateExpensePayload): Promise<void> => {
     await runWithAlert(async () => {
-      if (expense.id) {
-        await updateProcessExpense(expense.id, payload)
-      } else {
-        await createProcessExpense(proceso.id, payload)
-      }
+      await createProcessExpense(proceso.id, payload)
       setAddingExpense(false)
+      await loadCosts()
+    }, 'Gasto agregado correctamente')
+  }
+
+  const handleUpdateExpense = async (payload: UpdateExpensePayload): Promise<void> => {
+    if (!editingExpense) return
+    await runWithAlert(async () => {
+      await updateExpense(editingExpense.id, payload)
       setEditingExpense(null)
       await loadCosts()
-    }, expense.id ? 'Gasto actualizado correctamente' : 'Gasto agregado correctamente')
+    }, 'Gasto actualizado correctamente')
   }
 
-  const handleDeleteExpense = async (expense: ProcessExpense): Promise<void> => {
+  const handleDeleteExpense = async (expense: GeneralExpense): Promise<void> => {
     if (!window.confirm('¿Eliminar este gasto? El costo de los lotes se recalculará.')) return
     await runWithAlert(async () => {
-      await deleteProcessExpense(expense.id)
+      await deleteExpense(expense.id)
       await loadCosts()
     }, 'Gasto eliminado correctamente')
   }
@@ -353,24 +346,23 @@ export default function ProcessDetailModal({
 
       {/* ── Formulario de gasto (modal anidado) ─────────────────────────────── */}
       {addingExpense && (
-        <Modal
-          item={emptyExpense}
-          fields={ProcessExpenseFields}
+        <ExpenseFormModal
           onClose={() => setAddingExpense(false)}
-          onSave={handleSaveExpense}
-          mode="add"
-          title="gasto del proceso"
+          onSave={handleCreateExpense}
+          categories={categories}
+          paymentMethods={paymentMethods}
+          processInvoice={proceso.invoice_number}
         />
       )}
 
       {editingExpense && (
-        <Modal
-          item={editingExpense}
-          fields={ProcessExpenseFields}
+        <ExpenseFormModal
           onClose={() => setEditingExpense(null)}
-          onSave={handleSaveExpense}
-          mode="edit"
-          title="gasto del proceso"
+          onSave={handleUpdateExpense}
+          categories={categories}
+          paymentMethods={paymentMethods}
+          initial={editingExpense}
+          isEdit
         />
       )}
     </div>

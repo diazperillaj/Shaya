@@ -14,6 +14,7 @@ from app.models.detail_roasted_coffe import DetailRoastedCoffee
 from app.models.detail_sale import DetailSale
 from app.models.fair import Fair
 from app.models.fair_inventory import FairInventory
+from app.models.general_expense import GeneralExpense
 from app.models.inventory_movement import (
     InventoryMovement,
     MovementTypeEnum,
@@ -21,7 +22,6 @@ from app.models.inventory_movement import (
 )
 from app.models.parchment import Parchment
 from app.models.process import Process
-from app.models.process_expense import ProcessExpense
 from app.models.product import Product
 from app.models.roasted_coffe import RoastedCoffee
 from app.models.roasted_movement import RoastedMovementDetail
@@ -443,12 +443,12 @@ class ProcessService:
                 )
 
         expense_count = (
-            self.db.query(ProcessExpense)
-            .filter(ProcessExpense.process_id == process_id)
+            self.db.query(GeneralExpense)
+            .filter(GeneralExpense.process_id == process_id)
             .count()
         )
         if expense_count:
-            relations.append(f"{expense_count} gasto(s) de producción")
+            relations.append(f"{expense_count} gasto(s) del proceso")
 
         if relations:
             raise HTTPException(

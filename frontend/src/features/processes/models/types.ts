@@ -3,6 +3,8 @@
 
 // features/inventoryProcessed/models/types.ts
 
+import type { GeneralExpense } from '../../expenses/models/types'
+
 // ─── Process ─────────────────────────────────────────────────────────────────
 
 /**
@@ -154,29 +156,6 @@ export interface ProcessWithDetails {
   details: ProcessDetail[]
 }
 
-// ─── Process expenses (gastos de producción del proceso) ─────────────────────
-
-/**
- * Gasto adicional de un proceso (transporte, mano de obra, etc.).
- * El valor es TOTAL del proceso y se prorratea por gramos.
- */
-export interface ProcessExpense {
-  id: number
-  process_id: number
-  category: string
-  amount: number
-  expense_date: string
-  observations?: string
-}
-
-/** Payload de creación/edición de un gasto de proceso */
-export interface ProcessExpensePayload {
-  category: string
-  amount: number
-  expense_date: string
-  observations?: string
-}
-
 // ─── Process costs (desglose de GET /process/{id}/costs) ─────────────────────
 
 /** Costos calculados de un producto dentro del proceso */
@@ -198,7 +177,11 @@ export interface ProcessCosts {
   parchment_cost: number
   parchment_kg: number
   maquila_total: number
-  process_expenses: ProcessExpense[]
+  /**
+   * Gastos generales asociados al proceso (transporte, mano de obra, etc.).
+   * Su valor es TOTAL del proceso y se prorratea por gramos.
+   */
+  process_expenses: GeneralExpense[]
   process_expenses_total: number
   total_grams: number
   total_cost: number

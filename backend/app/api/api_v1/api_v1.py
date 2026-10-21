@@ -12,7 +12,6 @@ from app.api.api_v1.sales import router as sales_router
 from app.api.api_v1.dashboard import router as dashboard_router
 from app.api.api_v1.fairs import router as fairs_router
 from app.api.api_v1.roasted_movements import router as roasted_movements_router
-from app.api.api_v1.process_expenses import router as process_expenses_router
 from app.api.api_v1.product_expenses import router as product_expenses_router
 from app.api.api_v1.general_expenses import router as general_expenses_router
 from app.api.api_v1.expense_categories import router as expense_categories_router
@@ -54,7 +53,6 @@ staff_router.include_router(sales_router.router, prefix="/sales", tags=["sales"]
 staff_router.include_router(dashboard_router.router, prefix="/dashboard", tags=["dashboard"])
 staff_router.include_router(fairs_router.router, prefix="/fairs", tags=["fairs"])
 staff_router.include_router(roasted_movements_router.router, prefix="/roasted-movements", tags=["roasted-movements"])
-staff_router.include_router(process_expenses_router.router, prefix="/process-expenses", tags=["process-expenses"])
 staff_router.include_router(product_expenses_router.router, prefix="/product-expenses", tags=["product-expenses"])
 staff_router.include_router(general_expenses_router.router, prefix="/general-expenses", tags=["general-expenses"])
 staff_router.include_router(expense_categories_router.router, prefix="/expense-categories", tags=["expense-categories"])

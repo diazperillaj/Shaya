@@ -10,6 +10,12 @@ export interface PaymentMethod {
   name: string
 }
 
+/** Proceso de maquila al que quedó asociado un gasto */
+export interface ExpenseProcess {
+  id: number
+  invoice_number: string
+}
+
 // ─── API shapes ───────────────────────────────────────────────────────────────
 
 export interface GeneralExpenseApi {
@@ -20,6 +26,8 @@ export interface GeneralExpenseApi {
   category?: ExpenseCategory
   payment_method_id?: number | null
   payment_method?: PaymentMethod | null
+  process_id?: number | null
+  process?: ExpenseProcess | null
   description: string
   created_by?: number | null
 }
@@ -34,6 +42,9 @@ export interface GeneralExpense {
   category_name: string
   payment_method_id?: number
   payment_method_name: string
+  /** Solo los gastos creados desde el detalle de un proceso */
+  process_id?: number
+  process_invoice?: string
   description: string
 }
 

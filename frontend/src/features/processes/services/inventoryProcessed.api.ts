@@ -9,6 +9,7 @@ import type {
   ProcessCosts,
 } from '../models/types'
 import { mapDetalleFromApi, mapProcesoFromApi } from '../mapper/inventoryProcessed.mapper'
+import { mapExpenseFromApi } from '../../expenses/mapper/expense.mapper'
 import type { Parchment  } from '../mapper/parchment.mapper'
 import { mapParchmentFromApi } from '../mapper/parchment.mapper'
 import type { Product } from '../../products/models/types'
@@ -201,14 +202,7 @@ export const fetchProcessCosts = async (
     parchment_cost: Number(data.parchment?.cost ?? 0),
     parchment_kg: Number(data.parchment?.parchment_kg ?? 0),
     maquila_total: Number(data.maquila?.total ?? 0),
-    process_expenses: (data.process_expenses || []).map((e: any) => ({
-      id: e.id,
-      process_id: data.process_id,
-      category: e.category,
-      amount: Number(e.amount),
-      expense_date: e.expense_date,
-      observations: e.observations ?? undefined,
-    })),
+    process_expenses: (data.process_expenses || []).map(mapExpenseFromApi),
     process_expenses_total: Number(data.process_expenses_total ?? 0),
     total_grams: Number(data.total_grams ?? 0),
     total_cost: Number(data.total_cost ?? 0),

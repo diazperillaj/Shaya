@@ -1,4 +1,4 @@
-"""Gastos generales de la empresa (no ligados a proceso ni feria)."""
+"""Gastos generales de la empresa, incluidos los asociados a un proceso (no los de ferias)."""
 
 from app.analytics.base import (
     add_month_column,
@@ -14,10 +14,12 @@ _SQL = """
     SELECT e.id, e.expense_date AS fecha, e.amount AS monto,
            e.description AS descripcion,
            cat.name AS categoria,
-           COALESCE(pm.name, 'Sin método') AS metodo_pago
+           COALESCE(pm.name, 'Sin método') AS metodo_pago,
+           COALESCE('Factura ' || pr.invoice_number, 'Sin proceso') AS proceso
     FROM general_expenses e
     JOIN expense_categories cat ON cat.id = e.category_id
     LEFT JOIN payment_methods pm ON pm.id = e.payment_method_id
+    LEFT JOIN processes pr ON pr.id = e.process_id
     WHERE (:d0 IS NULL OR e.expense_date >= :d0)
       AND (:d1 IS NULL OR e.expense_date <  :d1)
       AND (:categoria IS NULL OR cat.name ILIKE :categoria)
@@ -57,7 +59,12 @@ def consultar_gastos_generales(
 
     if agrupar_por == "mes":
         df = add_month_column(df, "fecha")
-    key = {"categoria": "categoria", "metodo_pago": "metodo_pago", "mes": "mes"}[agrupar_por]
+    key = {
+        "categoria": "categoria",
+        "metodo_pago": "metodo_pago",
+        "proceso": "proceso",
+        "mes": "mes",
+    }[agrupar_por]
 
     grouped = (
         df.groupby(key)

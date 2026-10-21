@@ -2,12 +2,13 @@ from decimal import Decimal
 from typing import Dict, List, Optional
 
 from fastapi import HTTPException, status
+from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.detail_process import DetailProcess
 from app.models.detail_roasted_coffe import DetailRoastedCoffee
+from app.models.general_expense import GeneralExpense
 from app.models.process import Process
-from app.models.process_expense import ProcessExpense
 from app.models.product_expense import ProductExpense
 from app.models.roasted_coffe import RoastedCoffee
 
@@ -22,6 +23,7 @@ class ProcessCostService:
                            (regla de 3: si initial_quantity kg costaron
                            purchase_price, cuánto valen los parchment_kg usados)
         costo_por_gramo  = (costo_pergamino + gastos_del_proceso) / gramos_embolsados
+                           (gastos_del_proceso = gastos generales con su process_id)
         unit_cost        = grams_per_bag * costo_por_gramo      <- café + gastos proceso
                          + total_linea_maquila / bag_quantity   <- maquila con IVA
                          + costos_del_producto                  <- empaque etc., por bolsa
@@ -168,10 +170,22 @@ class ProcessCostService:
             "process_expenses": [
                 {
                     "id": e.id,
-                    "category": e.category.value,
-                    "amount": e.amount,
                     "expense_date": e.expense_date,
-                    "observations": e.observations,
+                    "amount": e.amount,
+                    "category_id": e.category_id,
+                    "category": (
+                        {"id": e.category.id, "name": e.category.name}
+                        if e.category
+                        else None
+                    ),
+                    "payment_method_id": e.payment_method_id,
+                    "payment_method": (
+                        {"id": e.payment_method.id, "name": e.payment_method.name}
+                        if e.payment_method
+                        else None
+                    ),
+                    "process_id": e.process_id,
+                    "description": e.description,
                 }
                 for e in expenses
             ],
@@ -256,10 +270,15 @@ class ProcessCostService:
             .all()
         )
 
-    def _get_process_expenses(self, process_id: int) -> List[ProcessExpense]:
+    def _get_process_expenses(self, process_id: int) -> List[GeneralExpense]:
         return (
-            self.db.query(ProcessExpense)
-            .filter(ProcessExpense.process_id == process_id)
+            self.db.query(GeneralExpense)
+            .options(
+                joinedload(GeneralExpense.category),
+                joinedload(GeneralExpense.payment_method),
+            )
+            .filter(GeneralExpense.process_id == process_id)
+            .order_by(desc(GeneralExpense.expense_date), desc(GeneralExpense.id))
             .all()
         )
 

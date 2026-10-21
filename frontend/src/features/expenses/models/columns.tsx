@@ -42,6 +42,15 @@ export const ExpenseColumns: ColumnDef<GeneralExpense>[] = [
   },
 
   {
+    accessorKey: 'process_invoice',
+    header: 'Proceso',
+    cell: ({ getValue }) => {
+      const invoice = getValue() as string | undefined
+      return invoice ? `Factura ${invoice}` : '—'
+    },
+  },
+
+  {
     accessorKey: 'amount',
     header: 'Valor',
     cell: ({ getValue }) => (

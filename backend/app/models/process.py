@@ -59,6 +59,7 @@ class Process(Base):
         cascade="all, delete-orphan"
     )
 
-    # Sin cascade de borrado: los gastos bloquean la eliminación del
-    # proceso (FK RESTRICT) y deben borrarse manualmente primero.
-    expenses = relationship("ProcessExpense", back_populates="process")
+    # Gastos generales asociados al proceso. Sin cascade de borrado: los
+    # gastos bloquean la eliminación del proceso (FK RESTRICT) y deben
+    # borrarse manualmente primero.
+    expenses = relationship("GeneralExpense", back_populates="process")

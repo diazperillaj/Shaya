@@ -1,8 +1,8 @@
 // features/inventoryProcessed/models/columns.ts
 
 import type { ColumnDef } from '@tanstack/react-table'
-import type { Process, ProcessCostProduct, ProcessExpense } from './types'
-import { PROCESS_EXPENSE_CATEGORY_LABELS } from './fields'
+import type { Process, ProcessCostProduct } from './types'
+import type { GeneralExpense } from '../../expenses/models/types'
 
 const fmtCOP = (n: number | null | undefined): string => {
   if (typeof n !== 'number' || Number.isNaN(n)) return '$ 0'
@@ -128,29 +128,27 @@ export const ProcessCostProductColumns: ColumnDef<ProcessCostProduct>[] = [
 
 // ─── Gastos del proceso (con acciones, dentro del modal de detalle) ──────────
 
-export const ProcessExpenseColumns: ColumnDef<ProcessExpense>[] = [
-  {
-    accessorKey: 'category',
-    header: 'Categoría',
-    cell: ({ getValue }) =>
-      PROCESS_EXPENSE_CATEGORY_LABELS[getValue() as string] ?? (getValue() as string),
-  },
-  {
-    accessorKey: 'amount',
-    header: 'Valor',
-    cell: ({ getValue }) => fmtCOP(getValue() as number),
-  },
+export const ProcessExpenseColumns: ColumnDef<GeneralExpense>[] = [
   {
     accessorKey: 'expense_date',
     header: 'Fecha',
   },
   {
-    accessorKey: 'observations',
-    header: 'Observaciones',
-    cell: ({ getValue }) => {
-      const value = (getValue() as string | undefined)?.trim()
-      return value ? value : 'Sin observacion'
-    },
+    accessorKey: 'category_name',
+    header: 'Categoría',
+  },
+  {
+    accessorKey: 'description',
+    header: 'Motivo',
+  },
+  {
+    accessorKey: 'payment_method_name',
+    header: 'Pagado con',
+  },
+  {
+    accessorKey: 'amount',
+    header: 'Valor',
+    cell: ({ getValue }) => fmtCOP(getValue() as number),
   },
   {
     accessorKey: 'edit',

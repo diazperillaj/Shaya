@@ -10,13 +10,21 @@ from app.api.api_v1.general_expenses.schema import (
     GeneralExpenseCreate,
     GeneralExpenseUpdate,
 )
+from app.api.api_v1.processes.cost_service import ProcessCostService
 from app.models.expense_category import ExpenseCategory
 from app.models.general_expense import GeneralExpense
 from app.models.payment_method import PaymentMethod
+from app.models.process import Process
 
 
 class GeneralExpenseService:
-    """Gastos generales de la empresa (pestaña Gastos del Excel original)."""
+    """
+    Gastos generales de la empresa (pestaña Gastos del Excel original).
+
+    Un gasto asociado a un proceso entra en el unit_cost de sus lotes: cada
+    create/update/delete de esos gastos recalcula el costo del proceso
+    dentro del mismo commit, sin importar desde qué pestaña se haga.
+    """
 
     def __init__(self, db: Session):
         self.db = db
@@ -34,6 +42,7 @@ class GeneralExpenseService:
         query = self.db.query(GeneralExpense).options(
             joinedload(GeneralExpense.category),
             joinedload(GeneralExpense.payment_method),
+            joinedload(GeneralExpense.process),
         )
         if search:
             query = query.filter(GeneralExpense.description.ilike(f"%{search}%"))
@@ -57,6 +66,7 @@ class GeneralExpenseService:
             .options(
                 joinedload(GeneralExpense.category),
                 joinedload(GeneralExpense.payment_method),
+                joinedload(GeneralExpense.process),
             )
             .filter(GeneralExpense.id == expense_id)
             .first()
@@ -71,22 +81,34 @@ class GeneralExpenseService:
     # ─── Create / Update / Delete ─────────────────────────────────────────
 
     def create_expense(
-        self, payload: GeneralExpenseCreate, current_user
+        self,
+        payload: GeneralExpenseCreate,
+        current_user,
+        process_id: Optional[int] = None,
     ) -> GeneralExpense:
+        """
+        Crea un gasto. `process_id` solo lo pasa la ruta del detalle del
+        proceso: es la única forma de asociar un gasto a un proceso.
+        """
         self._get_category_or_404(payload.category_id)
         if payload.payment_method_id is not None:
             self._get_payment_method_or_404(payload.payment_method_id)
+        if process_id is not None:
+            self._get_process_or_404(process_id)
 
         expense = GeneralExpense(
             expense_date=payload.expense_date,
             amount=payload.amount,
             category_id=payload.category_id,
             payment_method_id=payload.payment_method_id,
+            process_id=process_id,
             description=payload.description.strip(),
             created_by=getattr(current_user, "id", None),
         )
         try:
             self.db.add(expense)
+            self.db.flush()
+            self._recalculate_process_costs(expense.process_id)
             self.db.commit()
         except SQLAlchemyError:
             self.db.rollback()
@@ -118,6 +140,8 @@ class GeneralExpenseService:
             expense.description = update_data["description"].strip()
 
         try:
+            self.db.flush()
+            self._recalculate_process_costs(expense.process_id)
             self.db.commit()
         except SQLAlchemyError:
             self.db.rollback()
@@ -135,8 +159,12 @@ class GeneralExpenseService:
         )
         if not expense:
             return False
+
+        process_id = expense.process_id
         try:
             self.db.delete(expense)
+            self.db.flush()
+            self._recalculate_process_costs(process_id)
             self.db.commit()
         except SQLAlchemyError:
             self.db.rollback()
@@ -147,6 +175,22 @@ class GeneralExpenseService:
         return True
 
     # ─── Helpers ──────────────────────────────────────────────────────────
+
+    def _recalculate_process_costs(self, process_id: Optional[int]) -> None:
+        """Recalcula el unit_cost del proceso del gasto, si tiene uno."""
+        if process_id is not None:
+            ProcessCostService(self.db).recalculate_process_costs(process_id)
+
+    def _get_process_or_404(self, process_id: int) -> Process:
+        process = (
+            self.db.query(Process).filter(Process.id == process_id).first()
+        )
+        if not process:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Proceso no encontrado",
+            )
+        return process
 
     def _get_category_or_404(self, category_id: int) -> ExpenseCategory:
         category = (

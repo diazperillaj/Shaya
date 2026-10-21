@@ -19,7 +19,19 @@ class PaymentMethodBasicResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProcessBasicResponse(BaseModel):
+    id: int
+    invoice_number: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class GeneralExpenseCreate(BaseModel):
+    """
+    Sin `process_id`: un gasto solo se asocia a un proceso al crearse desde
+    el detalle del proceso (POST /process/{id}/expenses/create).
+    """
+
     expense_date: date
     amount: Decimal = Field(..., gt=0)
     category_id: int = Field(..., gt=0)
@@ -45,6 +57,8 @@ class GeneralExpenseResponse(BaseModel):
     category: Optional[ExpenseCategoryBasicResponse] = None
     payment_method_id: Optional[int] = None
     payment_method: Optional[PaymentMethodBasicResponse] = None
+    process_id: Optional[int] = None
+    process: Optional[ProcessBasicResponse] = None
     description: str
     created_by: Optional[int] = None
 

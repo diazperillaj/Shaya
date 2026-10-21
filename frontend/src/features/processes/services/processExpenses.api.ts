@@ -1,74 +1,26 @@
 // features/processes/services/processExpenses.api.ts
 
-import type { ProcessExpense, ProcessExpensePayload } from '../models/types'
+import type { CreateExpensePayload, GeneralExpense } from '../../expenses/models/types'
+import { mapExpenseFromApi } from '../../expenses/mapper/expense.mapper'
 import { apiErrorMessage } from '../../../utils/apiError'
 
-const BASE_URL = '/api/v1/process-expenses'
-
-/** Convierte la respuesta del backend (Decimals como string) al modelo del front */
-const mapExpenseFromApi = (data: any): ProcessExpense => ({
-  id: data.id,
-  process_id: data.process_id,
-  category: data.category,
-  amount: Number(data.amount),
-  expense_date: data.expense_date,
-  observations: data.observations ?? undefined,
-})
-
-export const fetchProcessExpenses = async (
-  processId: number,
-): Promise<ProcessExpense[]> => {
-  const res = await fetch(`${BASE_URL}/get?process_id=${processId}`, {
-    credentials: 'include',
-  })
-  if (!res.ok) throw new Error('Error obteniendo los gastos del proceso')
-
-  const data = await res.json()
-  return data.map(mapExpenseFromApi)
-}
-
+/**
+ * Crea un gasto general asociado al proceso. Es la única forma de asociar
+ * un gasto a un proceso: editarlo o eliminarlo se hace con la API de Gastos.
+ */
 export const createProcessExpense = async (
   processId: number,
-  payload: ProcessExpensePayload,
-): Promise<ProcessExpense> => {
-  const res = await fetch(`${BASE_URL}/create`, {
+  payload: CreateExpensePayload,
+): Promise<GeneralExpense> => {
+  const res = await fetch(`/api/v1/process/${processId}/expenses/create`, {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ process_id: processId, ...payload }),
-  })
-
-  const data = await res.json()
-  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error creando el gasto'))
-
-  return mapExpenseFromApi(data)
-}
-
-export const updateProcessExpense = async (
-  expenseId: number,
-  payload: ProcessExpensePayload,
-): Promise<ProcessExpense> => {
-  const res = await fetch(`${BASE_URL}/update/${expenseId}`, {
-    method: 'PUT',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
 
   const data = await res.json()
-  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error actualizando el gasto'))
+  if (!res.ok) throw new Error(apiErrorMessage(data, 'Error creando el gasto'))
 
   return mapExpenseFromApi(data)
-}
-
-export const deleteProcessExpense = async (expenseId: number): Promise<void> => {
-  const res = await fetch(`${BASE_URL}/delete/${expenseId}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  })
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
-    throw new Error(apiErrorMessage(data, 'Error eliminando el gasto'))
-  }
 }

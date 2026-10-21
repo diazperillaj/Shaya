@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useEscapeKey } from '../../../hooks/useEscapeKey'
-import { X, Check, Trash2, Receipt } from 'lucide-react'
+import { X, Check, Trash2, Receipt, Info } from 'lucide-react'
 import type {
   ExpenseCategory,
   GeneralExpense,
@@ -16,6 +16,8 @@ interface ExpenseFormModalProps {
   paymentMethods: PaymentMethod[]
   initial?: GeneralExpense
   isEdit?: boolean
+  /** Factura del proceso al que se asocia un gasto nuevo (detalle del proceso) */
+  processInvoice?: string
 }
 
 const inputCls =
@@ -29,8 +31,11 @@ export default function ExpenseFormModal({
   paymentMethods,
   initial,
   isEdit = false,
+  processInvoice,
 }: ExpenseFormModalProps) {
   useEscapeKey(onClose)
+  // La asociación a un proceso solo se muestra: no se puede elegir ni cambiar
+  const linkedInvoice = processInvoice ?? initial?.process_invoice
   const [expenseDate, setExpenseDate] = useState(initial?.expense_date ?? '')
   const [amount, setAmount] = useState<number>(initial?.amount ?? 0)
   const [categoryId, setCategoryId] = useState<string>(
@@ -107,6 +112,19 @@ export default function ExpenseFormModal({
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2">
               {error}
             </p>
+          )}
+
+          {linkedInvoice && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+              <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <p>
+                {isEdit ? 'Asociado' : 'Se asociará'} al proceso
+                <span className="font-semibold"> Factura {linkedInvoice}</span>.{' '}
+                {isEdit
+                  ? 'Cambiar el valor o eliminarlo recalcula el costo de sus lotes.'
+                  : 'Su valor se suma al costo de los lotes del proceso.'}
+              </p>
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">

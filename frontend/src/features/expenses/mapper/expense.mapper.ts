@@ -8,5 +8,7 @@ export const mapExpenseFromApi = (e: GeneralExpenseApi): GeneralExpense => ({
   category_name: e.category?.name ?? '—',
   payment_method_id: e.payment_method_id ?? undefined,
   payment_method_name: e.payment_method?.name ?? '—',
+  process_id: e.process_id ?? undefined,
+  process_invoice: e.process?.invoice_number ?? undefined,
   description: e.description,
 })

@@ -4,6 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.api_v1.auth.dependencies import get_current_user, require_admin
+from app.api.api_v1.general_expenses.schema import (
+    GeneralExpenseCreate,
+    GeneralExpenseResponse,
+)
+from app.api.api_v1.general_expenses.service import GeneralExpenseService
 from app.api.api_v1.processes.schema import ProcessCreate, ProcessResponse, ProcessUpdate
 from app.api.api_v1.processes.service import ProcessService
 from app.core.db.session import get_db
@@ -83,6 +88,23 @@ def get_process_costs(
     from app.api.api_v1.processes.cost_service import ProcessCostService
 
     return ProcessCostService(db).get_process_costs(process_id)
+
+
+@router.post("/{process_id}/expenses/create", response_model=GeneralExpenseResponse)
+def create_process_expense(
+    process_id: int,
+    payload: GeneralExpenseCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Crea un gasto general asociado al proceso y recalcula el costo de sus
+    lotes. Es la única forma de asociar un gasto a un proceso; editarlo o
+    eliminarlo se hace por /general-expenses.
+    """
+    return GeneralExpenseService(db).create_expense(
+        payload, current_user, process_id=process_id
+    )
 
 
 @router.post("/recalculate-costs", response_model=dict)

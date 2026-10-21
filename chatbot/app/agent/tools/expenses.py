@@ -6,9 +6,10 @@ TOOLS = [
     ToolSpec(
         name="consultar_gastos_generales",
         description=(
-            "Gastos generales de la empresa (nómina, publicidad, transporte…), NO los "
-            "gastos de procesos ni de ferias. Agregables por categoría, método de pago "
-            "o mes. Úsala para '¿cuánto gastamos en…?', '¿qué pagamos con Nequi?'."
+            "Gastos generales de la empresa (nómina, publicidad, transporte…), incluidos "
+            "los asociados a un proceso de maquila; NO los de ferias. Agregables por "
+            "categoría, método de pago, proceso o mes. Úsala para '¿cuánto gastamos "
+            "en…?', '¿qué pagamos con Nequi?', '¿qué gastos tuvo la factura X?'."
         ),
         parameters=params(
             {
@@ -16,7 +17,7 @@ TOOLS = [
                 "fecha_fin": FECHA,
                 "agrupar_por": {
                     "type": "string",
-                    "enum": ["categoria", "metodo_pago", "mes", "ninguno"],
+                    "enum": ["categoria", "metodo_pago", "proceso", "mes", "ninguno"],
                     "description": "'ninguno' lista gastos individuales. Default: categoria.",
                 },
                 "filtro_categoria": {

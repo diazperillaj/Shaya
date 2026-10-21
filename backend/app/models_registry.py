@@ -32,7 +32,6 @@ from app.models import (  # noqa: F401
     payment_method,
     person,
     process,
-    process_expense,
     product,
     product_expense,
     roasted_coffe,
