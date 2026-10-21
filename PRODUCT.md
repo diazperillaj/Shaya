@@ -32,7 +32,7 @@ Une en un solo sistema la operación de campo del caficultor y la operación com
 ## Brand Commitments
 - Nombre: **Shaya Café**. Logo en `frontend/public/shaya.svg` y `frontend/public/logo.png`.
 - El usuario quiere conservar el diseño actual y su paleta de verdes (esmeralda); la mejora es de UI/UX, no un cambio de identidad.
-- Debe haber un botón para alternar modo claro y modo oscuro. La primera vez sigue la preferencia del dispositivo; si el usuario elige, se recuerda su elección.
+- Debe haber un botón para alternar modo claro y modo oscuro. Por defecto se abre en modo claro; si el usuario elige, se recuerda su elección.
 
 ## Evidence on Hand
 - Datos de demostración: el generador sintético puebla fincas, lotes, cosechas, beneficios, secados y evaluaciones (`backend/scripts/farm_ml/`).

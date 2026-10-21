@@ -3,24 +3,13 @@ import { useSyncExternalStore } from 'react'
 /**
  * Modo claro u oscuro.
  *
- * La primera vez sigue la preferencia del dispositivo (y la sigue si
- * cambia). Cuando el usuario elige con el botón, su elección se recuerda en
- * este navegador. El script de `index.html` aplica el mismo cálculo antes de
- * pintar, para que la página no parpadee al cargar.
+ * Por defecto, claro. Cuando el usuario elige con el botón, su elección se
+ * recuerda en este navegador. El script de `index.html` aplica la elección
+ * guardada antes de pintar, para que la página no parpadee al cargar.
  */
 export type Theme = 'light' | 'dark'
 
 const STORAGE_KEY = 'shaya-theme'
-const query = () => window.matchMedia('(prefers-color-scheme: dark)')
-
-function stored(): Theme | null {
-  try {
-    const value = localStorage.getItem(STORAGE_KEY)
-    return value === 'light' || value === 'dark' ? value : null
-  } catch {
-    return null
-  }
-}
 
 function current(): Theme {
   return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
@@ -41,15 +30,8 @@ const listeners = new Set<() => void>()
 
 function subscribe(listener: () => void) {
   listeners.add(listener)
-  const media = query()
-  // Sin elección guardada, el tema acompaña al del dispositivo
-  const onSystemChange = () => {
-    if (stored() === null) apply(media.matches ? 'dark' : 'light')
-  }
-  media.addEventListener('change', onSystemChange)
   return () => {
     listeners.delete(listener)
-    media.removeEventListener('change', onSystemChange)
   }
 }
 

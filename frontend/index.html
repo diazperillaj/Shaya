@@ -6,13 +6,12 @@
   <link rel="icon" type="image" href="/logo.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Shaya Café | Sistema de Gestión</title>
-  <!-- Tema antes de pintar: la elección guardada o la del dispositivo (src/theme/theme.ts) -->
+  <!-- Tema antes de pintar: la elección guardada o, si no hay, claro (src/theme/theme.ts) -->
   <script>
     (function () {
       var dark = false
       try {
-        var saved = localStorage.getItem('shaya-theme')
-        dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+        dark = localStorage.getItem('shaya-theme') === 'dark'
       } catch (e) {}
       var root = document.documentElement
       if (dark) root.classList.add('dark')
